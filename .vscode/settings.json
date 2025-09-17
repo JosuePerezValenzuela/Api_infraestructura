@@ -1,4 +1,10 @@
 {
   "files.eol": "\n",
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.tabSize": 2,
+  "typescript.format.enable": false,
+  "javascript.format.enable": false,
+  "prettier.tabWidth": 2,
+  "prettier.useTabs": false
 }
