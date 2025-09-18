@@ -11,6 +11,19 @@ async function bootstrap() {
   app.use(helmet());
   app.enableCors({ origin: true, credentials: true });
 
-  await app.listen(process.env.PORT ?? 3000);
+  //Prefijo global del .env
+  app.setGlobalPrefix(cfg.get<string>('GLOBAL_PREFIX')!);
+
+  //Validacion global (DTOs)
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+
+  await app.listen(cfg.get<number>('PORT')!);
 }
 bootstrap();
