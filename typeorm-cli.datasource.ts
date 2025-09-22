@@ -6,9 +6,9 @@ const isNumber = (v?: string) => (v ? Number(v) : undefined);
 const dataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST,
-  port: isNumber(process.env.PORT),
+  port: isNumber(process.env.DB_PORT),
   username: process.env.DB_USER,
-  password: process.env.DB_PASS,
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   schema: 'infraestructura',
   //Entidades vacio, ya que se migra con sql crudo
