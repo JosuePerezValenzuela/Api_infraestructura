@@ -88,6 +88,6 @@ async function bootstrap() {
   const port = cfg.get<number>('PORT') ?? 3000;
   await app.listen(port);
   console.log(`Documentacion en: http://localhost:${port}/${swaggerPath}`);
-  console.log('Api en: http://localhost:${port}');
+  console.log(`Api en: http://localhost:${port}/${prefix}`);
 }
 bootstrap();
