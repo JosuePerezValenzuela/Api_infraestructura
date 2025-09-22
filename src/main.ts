@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,6 +23,48 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
+      exceptionFactory: (errors: ValidationError[] = []) => {
+        // orden de prioridad de mensajes (ajústalo a tu gusto)
+        const prio = [
+          'isDefined',
+          'isNotEmpty',
+          'isString',
+          'isNumber',
+          'isInt',
+          'isBoolean',
+          'maxLength',
+          'minLength',
+        ];
+
+        const details = errors.flatMap(collect);
+        return new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Los datos enviados no son válidos',
+          details,
+        });
+
+        function collect(
+          err: ValidationError,
+        ): { field: string; message: string }[] {
+          const out: { field: string; message: string }[] = [];
+          const stack: ValidationError[] = [err];
+          while (stack.length) {
+            const e = stack.pop()!;
+            if (e.constraints) {
+              const keys = Object.keys(e.constraints);
+              const best =
+                keys.sort(
+                  (a, b) =>
+                    (prio.indexOf(a) === -1 ? 999 : prio.indexOf(a)) -
+                    (prio.indexOf(b) === -1 ? 999 : prio.indexOf(b)),
+                )[0] ?? keys[0];
+              out.push({ field: e.property, message: e.constraints[best] });
+            }
+            if (e.children?.length) stack.push(...e.children);
+          }
+          return out;
+        }
+      },
     }),
   );
 
