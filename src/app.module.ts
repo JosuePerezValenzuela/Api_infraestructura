@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { envSchema } from './config/validation';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CampusModule } from './modules/campus/campus.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         extra: { application_name: 'Infra_nest' },
       }),
     }),
+    CampusModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -15,7 +15,7 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
     lat: number;
     lng: number;
   }): Promise<{ id: number }> {
-    const pointAsText = `(${input.lng},$(input.lat})`;
+    const pointAsText = `(${input.lng},${input.lat})`;
     const entity = this.repo.create({
       nombre: input.nombre,
       direccion: input.direccion,
