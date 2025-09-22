@@ -89,5 +89,10 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Documentacion en: http://localhost:${port}/${swaggerPath}`);
   console.log(`Api en: http://localhost:${port}/${prefix}`);
+
+  app.enableCors({
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+  });
 }
 bootstrap();
