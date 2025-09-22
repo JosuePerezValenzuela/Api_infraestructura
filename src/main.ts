@@ -76,7 +76,6 @@ async function bootstrap() {
       'API para gestionar toda la infraestructura de la Universidad mayor de San Simon',
     )
     .setVersion('1.0.0')
-    .addServer(`/${prefix}`)
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
