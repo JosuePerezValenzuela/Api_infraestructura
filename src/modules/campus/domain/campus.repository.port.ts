@@ -1,5 +1,24 @@
-export const CampusRepositoryPort = Symbol('CampusRepositoryPort');
+export type OrderDirection = 'asc' | 'desc';
+export interface ListOptions {
+  skip: number;
+  take: number;
+  search?: string;
+  orderBy?: 'nombre' | 'creado_en';
+  direction?: OrderDirection;
+}
 
+export interface CampusListItem {
+  id: number;
+  nombre: string;
+  direccion: string;
+  lat: number;
+  lng: number;
+  activo: boolean;
+  creado_en: Date;
+  actualizado_en: Date;
+}
+
+export const CampusRepositoryPort = Symbol('CampusRepositoryPort');
 export interface CampusRepositoryPort {
   create(input: {
     nombre: string;
@@ -7,5 +26,10 @@ export interface CampusRepositoryPort {
     lat: number;
     lng: number;
   }): Promise<{ id: number }>;
+
+  list(opts: ListOptions): Promise<{
+    items: CampusListItem[];
+    total: number;
+  }>;
 }
 //Los dominios definen lo que necesita un 'puerto'

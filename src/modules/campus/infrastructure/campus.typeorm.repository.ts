@@ -1,15 +1,11 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CampusRepositoryPort } from '../domain/campus.repository.port';
+import {
+  CampusListItem,
+  CampusRepositoryPort,
+  ListOptions,
+} from '../domain/campus.repository.port';
 import { CampusOrmEntity } from './campus.orm-entity';
-
-type OrderBy = { column: string; direction: 'asc' | 'desc' };
-type ListOptions = {
-  skip: number;
-  take: number;
-  search?: string;
-  orderBy: OrderBy;
-};
 
 export class TypeormCampusRepository implements CampusRepositoryPort {
   constructor(
@@ -34,8 +30,24 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
     return { id: saved.id };
   }
 
-  async list(opts: ListOptions) {
-    const { skip, take, search, orderBy } = opts;
+  async list(
+    opts: ListOptions,
+  ): Promise<{ items: CampusListItem[]; total: number }> {
+    const {
+      skip,
+      take,
+      search,
+      orderBy = 'creado_en',
+      direction = 'asc',
+    } = opts;
+
+    const ORDER_COLUMNS: Record<'nombre' | 'creado_en', string> = {
+      nombre: 'c.nombre',
+      creado_en: 'c.creado_en',
+    };
+
+    const dir = direction.toUpperCase() as 'ASC' | 'DESC';
+    const orderCol = ORDER_COLUMNS[orderBy];
 
     let qb = this.repo
       .createQueryBuilder('c')
@@ -56,39 +68,26 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
       });
     }
 
-    qb = qb
-      .orderBy(
-        orderBy.column,
-        orderBy.direction.toUpperCase() as 'ASC' | 'DESC',
-      )
-      .skip(skip)
-      .take(take);
+    qb = qb.orderBy(orderCol, dir).skip(skip).take(take);
 
-    const [items, totalRow] = await Promise.all([
-      qb.getRawMany<{
-        id: number;
-        nombre: string;
-        direccion: string;
-        lat: number;
-        lng: number;
-        activo: boolean;
-        creado_en: Date;
-        actualizado_en: Date;
-      }>(),
+    const [items, total] = await Promise.all([
+      qb.getRawMany<CampusListItem>(),
       (async () => {
-        let cqd = this.repo.createQueryBuilder('c').select('COUNT(*)', 'cnt');
-        if (search && search.trim() !== '') {
-          cqd = cqd.where('(c.nombre ILIKE :q OR c.direccion ILIKE :q)', {
-            q: `%${search}%`,
-          });
+        let countQb = this.repo
+          .createQueryBuilder('c')
+          .select('COUNT(*)', 'cnt');
+        if (search && search.trim() != '') {
+          countQb = countQb.where(
+            '(c.nombre ILIKE :q OR c.direccion ILIKE :q)',
+            { q: `%${search}%` },
+          );
         }
-        const { cnt } = (await cqd.getRawOne<{ cnt: string }>()) ?? {
+        const { cnt } = (await countQb.getRawOne<{ cnt: string }>()) ?? {
           cnt: '0',
         };
         return Number(cnt) || 0;
       })(),
     ]);
-
-    return { items, total: totalRow };
+    return { items, total };
   }
 }
