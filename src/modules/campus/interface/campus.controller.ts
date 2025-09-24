@@ -20,6 +20,34 @@ export class CampusController {
   ) {}
 
   @Get()
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Listar los campus' })
+  @ApiCreatedResponse({
+    description: 'Listado correctamente',
+    schema: {
+      example: {
+        items: [
+          {
+            id: 1,
+            nombre: 'Campus central',
+            direccion: 'Av Sucre entre Belzu y Oquendo',
+            lat: 15,
+            lng: 15,
+            activo: true,
+            creando_en: '2025-09-24T15:20:30.767Z',
+            actualizado_en: '2025-09-24T15:20:30.767Z',
+          },
+        ],
+        meta: {
+          total: 50,
+          page: 1,
+          take: 1,
+          hasNextPage: true,
+          hasPreviousPage: false,
+        },
+      },
+    },
+  })
   async list(@Query() query: ListCampusQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
@@ -34,8 +62,6 @@ export class CampusController {
 
     return {
       ...result,
-      page,
-      limit,
     };
   }
 
@@ -46,7 +72,21 @@ export class CampusController {
     description: 'Campus creado correctamente',
     schema: { example: { id: 1 } },
   })
-  @ApiBadRequestResponse({ description: 'Datos invalidos ' })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos ',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son válidos',
+        details: [
+          {
+            field: 'direccion',
+            message: 'No se ingreso el campo direccion',
+          },
+        ],
+      },
+    },
+  })
   async create(@Body() dto: CreateCampusDto) {
     const { id } = await this.createCampus.execute({
       nombre: dto.nombre,
