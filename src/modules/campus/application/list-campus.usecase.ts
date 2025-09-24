@@ -42,7 +42,7 @@ export class ListCampusUseCase {
         page,
         take,
         pages,
-        hasNextpage: page < pages,
+        hasNextPage: page < pages,
         hasPrevPage: page > 1,
       },
     };
