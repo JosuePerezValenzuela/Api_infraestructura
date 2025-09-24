@@ -1,4 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Get, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -7,11 +8,17 @@ import {
 } from '@nestjs/swagger';
 import { CreateCampusUseCase } from '../application/create-campus.usecase';
 import { CreateCampusDto } from './dto/create-campus.dto';
+import { ListCampusQueryDto } from './dto/list-campus.query';
 
 @ApiTags('Campus')
 @Controller('campus')
 export class CampusController {
   constructor(private readonly createCampus: CreateCampusUseCase) {}
+
+  @Get()
+  async list(@Query() query: ListCampusQueryDto) {
+    return this.campusService.list(query);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

@@ -1,5 +1,6 @@
 /* eslint-disable indent */
 import {
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -31,4 +32,14 @@ export class ListCampusQueryDto {
   @IsString({ message: 'La busqueda debe ser texto' })
   @MaxLength(256, { message: 'La busqueda es demasiado largo' })
   search?: string;
+
+  @IsOptional()
+  @IsIn(['nombre', 'creado_en'], {
+    message: 'Solo se puede ordenar por nombre y fecha de creacion',
+  })
+  orderBy: 'nombre' | 'creado_en' = 'creado_en';
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'], { message: 'asc o desc' })
+  orderDir: 'asc' | 'desc' = 'desc';
 }
