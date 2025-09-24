@@ -10,9 +10,11 @@ import {
 } from 'class-validator';
 
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ListCampusQueryDto {
   // Pagina
+  @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'pagina debe ser entero' })
@@ -20,6 +22,7 @@ export class ListCampusQueryDto {
   page: number = 1;
 
   //Limite de registros
+  @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'limite debe ser entero' })
@@ -28,17 +31,20 @@ export class ListCampusQueryDto {
   limit: number = 10;
 
   //Texto de busqueda para filtar
+  @ApiPropertyOptional({ example: 'central' })
   @IsOptional()
   @IsString({ message: 'La busqueda debe ser texto' })
   @MaxLength(256, { message: 'La busqueda es demasiado largo' })
   search?: string;
 
+  @ApiPropertyOptional({ example: 'nombre' })
   @IsOptional()
   @IsIn(['nombre', 'creado_en'], {
     message: 'Solo se puede ordenar por nombre y fecha de creacion',
   })
   orderBy: 'nombre' | 'creado_en' = 'creado_en';
 
+  @ApiProperty({ example: 'asc' })
   @IsOptional()
   @IsIn(['asc', 'desc'], { message: 'asc o desc' })
   orderDir: 'asc' | 'desc' = 'desc';
