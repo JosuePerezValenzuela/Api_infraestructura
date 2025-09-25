@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ListCampusQueryDto {
   // Pagina
@@ -44,7 +44,7 @@ export class ListCampusQueryDto {
   })
   orderBy: 'nombre' | 'creado_en' = 'creado_en';
 
-  @ApiProperty({ example: 'asc' })
+  @ApiPropertyOptional({ example: 'asc' })
   @IsOptional()
   @IsIn(['asc', 'desc'], { message: 'asc o desc' })
   orderDir: 'asc' | 'desc' = 'desc';
