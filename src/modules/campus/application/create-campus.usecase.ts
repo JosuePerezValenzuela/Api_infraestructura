@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { CampusRepositoryPort } from '../domain/campus.repository.port';
 
 @Injectable()
@@ -14,7 +14,12 @@ export class CreateCampusUseCase {
     lat: number;
     lng: number;
   }): Promise<{ id: number }> {
+    try {
+      return await this.repo.create(cmd);
+    } catch (e: any) {
+      throw new ConflictException('Ya existe un campus con el mismo código');
+      throw e;
+    }
     //Reglas de negocio como validaciones de dominio
-    return this.repo.create(cmd);
   }
 }

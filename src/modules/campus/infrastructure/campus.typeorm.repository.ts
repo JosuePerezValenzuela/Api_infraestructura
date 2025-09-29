@@ -1,11 +1,13 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import {
   CampusListItem,
   CampusRepositoryPort,
   ListOptions,
 } from '../domain/campus.repository.port';
 import { CampusOrmEntity } from './campus.orm-entity';
+
+type PgDriverError = { code?: string; constraint?: string; detail?: string };
 
 export class TypeormCampusRepository implements CampusRepositoryPort {
   constructor(
@@ -20,16 +22,28 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
     lat: number;
     lng: number;
   }): Promise<{ id: number }> {
-    const pointAsText = `(${input.lng},${input.lat})`;
-    const entity = this.repo.create({
-      nombre: input.nombre,
-      codigo: input.codigo,
-      direccion: input.direccion,
-      coordenadas: pointAsText,
-    });
+    try {
+      const pointAsText = `(${input.lng},${input.lat})`;
+      const entity = this.repo.create({
+        nombre: input.nombre,
+        codigo: input.codigo,
+        direccion: input.direccion,
+        coordenadas: pointAsText,
+      });
 
-    const saved = await this.repo.save(entity);
-    return { id: saved.id };
+      const saved = await this.repo.save(entity);
+      return { id: saved.id };
+    } catch (err: unknown) {
+      if (err instanceof QueryFailedError) {
+        const drv = (err as QueryFailedError).driverError as
+          | PgDriverError
+          | undefined;
+        if (drv?.code === '23505') {
+          throw new Error('Ya existe un campus con el mismo código');
+        }
+      }
+      throw err;
+    }
   }
 
   async list(
