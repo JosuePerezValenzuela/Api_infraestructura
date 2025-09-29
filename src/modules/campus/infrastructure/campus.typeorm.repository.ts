@@ -15,6 +15,7 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
 
   async create(input: {
     nombre: string;
+    codigo: string;
     direccion: string;
     lat: number;
     lng: number;
@@ -22,6 +23,7 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
     const pointAsText = `(${input.lng},${input.lat})`;
     const entity = this.repo.create({
       nombre: input.nombre,
+      codigo: input.codigo,
       direccion: input.direccion,
       coordenadas: pointAsText,
     });
@@ -53,6 +55,7 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
       .createQueryBuilder('c')
       .select([
         'c.id AS id',
+        'c.codigo as codigo',
         'c.nombre AS nombre',
         'c.direccion AS direccion',
         'c.coordenadas[1]::float8 AS lat',

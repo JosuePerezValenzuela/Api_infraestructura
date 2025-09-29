@@ -9,6 +9,7 @@ export class CreateCampusUseCase {
 
   async execute(cmd: {
     nombre: string;
+    codigo: string;
     direccion: string;
     lat: number;
     lng: number;

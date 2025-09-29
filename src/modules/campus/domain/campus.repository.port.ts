@@ -9,6 +9,7 @@ export interface ListOptions {
 
 export interface CampusListItem {
   id: number;
+  codigo: string;
   nombre: string;
   direccion: string;
   lat: number;
@@ -22,6 +23,7 @@ export const CampusRepositoryPort = Symbol('CampusRepositoryPort');
 export interface CampusRepositoryPort {
   create(input: {
     nombre: string;
+    codigo: string;
     direccion: string;
     lat: number;
     lng: number;

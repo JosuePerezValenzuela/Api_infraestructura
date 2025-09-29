@@ -9,6 +9,13 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 export class CreateCampusDto {
+  @ApiProperty({ example: '013255', maxLength: 16 })
+  @IsDefined({ message: 'No se ingreso el campo codigo' })
+  @IsNotEmpty({ message: 'El codigo no puede ser vacio' })
+  @IsString({ message: 'El codigo debe ser una cadena' })
+  @MaxLength(128, { message: 'El codigo no debe exceder de 16 caracteres' })
+  codigo!: string;
+
   @ApiProperty({ example: 'Campus Central', maxLength: 128 })
   @IsDefined({ message: 'No se ingreso el campo nombre' })
   @IsNotEmpty({ message: 'El nombre no puede ser vacio' })

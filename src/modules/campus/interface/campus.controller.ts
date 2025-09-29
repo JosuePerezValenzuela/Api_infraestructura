@@ -29,6 +29,7 @@ export class CampusController {
         items: [
           {
             id: 1,
+            codigo: '1565789',
             nombre: 'Campus central',
             direccion: 'Av Sucre entre Belzu y Oquendo',
             lat: 15,
@@ -89,6 +90,7 @@ export class CampusController {
   })
   async create(@Body() dto: CreateCampusDto) {
     const { id } = await this.createCampus.execute({
+      codigo: dto.codigo,
       nombre: dto.nombre,
       direccion: dto.direccion,
       lat: dto.lat,

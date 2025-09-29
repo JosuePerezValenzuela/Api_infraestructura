@@ -6,6 +6,9 @@ export class CampusOrmEntity {
   @PrimaryGeneratedColumn({ type: 'integer' })
   id!: number;
 
+  @Column({ type: 'varchar', length: 16 })
+  codigo!: string;
+
   @Column({ type: 'varchar', length: 128 })
   nombre!: string;
 
