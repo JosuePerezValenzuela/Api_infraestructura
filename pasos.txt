@@ -1,6 +1,6 @@
 DTO
-Dominio
+puerto
 Repository
-Service
+use case
 Controller
 Module

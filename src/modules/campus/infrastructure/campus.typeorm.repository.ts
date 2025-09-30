@@ -80,9 +80,12 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
       ]);
 
     if (search && search.trim() != '') {
-      qb = qb.where('(c.nombre ILIKE :q OR c.direccion ILIKE :q)', {
-        q: `%${search}%`,
-      });
+      qb = qb.where(
+        '(c.nombre ILIKE :q OR c.direccion ILIKE :q OR c.codigo ILIKE :q)',
+        {
+          q: `%${search}%`,
+        },
+      );
     }
 
     qb = qb.orderBy(orderCol, dir).skip(skip).take(take);
@@ -95,7 +98,7 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
           .select('COUNT(*)', 'cnt');
         if (search && search.trim() != '') {
           countQb = countQb.where(
-            '(c.nombre ILIKE :q OR c.direccion ILIKE :q)',
+            '(c.nombre ILIKE :q OR c.direccion ILIKE :q OR c.codigo ILIKE :q)',
             { q: `%${search}%` },
           );
         }
