@@ -1,6 +1,6 @@
-DTO
-puerto
-Repository
-use case
-Controller
-Module
+puerto (Port, defien que necesita el caso de uso)
+interfaz HTTP (DTO, Define que acepta la API)
+use case (Use Case, Ejecuta lo del repository y que devuelve)
+repository (Repository, implementa el metodo para la edicion)
+Controller (Controller, Expone la ruta y delega al use case)
+Module (Module, cablea)
