@@ -43,6 +43,10 @@ export interface CampusRepositoryPort {
     total: number;
   }>;
 
+  findById(id: number): Promise<CampusListItem | null>;
+
+  isCodeTaken(codigo: string, excldeId?: number): Promise<boolean>;
+
   update(id: number, input: UpdateCampusInput): Promise<boolean>;
 }
 //Los dominios definen lo que necesita un 'puerto'
