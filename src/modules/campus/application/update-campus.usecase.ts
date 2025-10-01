@@ -11,6 +11,8 @@ type UpdateCampusInput = {
     lat?: number;
     lng?: number;
     activo?: boolean;
+    creado_en: Date;
+    actualizado_en: Date;
   }>;
 };
 

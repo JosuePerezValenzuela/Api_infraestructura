@@ -45,8 +45,8 @@ export interface CampusRepositoryPort {
 
   findById(id: number): Promise<CampusListItem | null>;
 
-  isCodeTaken(codigo: string, excldeId?: number): Promise<boolean>;
+  isCodeTaken(codigo: string, excludeId?: number): Promise<boolean>;
 
-  update(id: number, input: UpdateCampusInput): Promise<boolean>;
+  update(id: number, input: UpdateCampusInput): Promise<{ id: number }>;
 }
 //Los dominios definen lo que necesita un 'puerto'

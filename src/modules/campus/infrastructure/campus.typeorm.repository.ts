@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { QueryFailedError, Repository, DataSource } from 'typeorm';
 import {
   CampusListItem,
   CampusRepositoryPort,
@@ -13,6 +13,7 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
   constructor(
     @InjectRepository(CampusOrmEntity)
     private readonly repo: Repository<CampusOrmEntity>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(input: {
@@ -109,5 +110,29 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
       })(),
     ]);
     return { items, total };
+  }
+
+  async findById(id: number): Promise<CampusListItem | null> {
+    const sql = `
+      SELECT
+        c.id,
+        c.codigo,
+        c.nombre,
+        c.direccion,
+        c.coordenadas[1]::float8 AS lat,
+        c.coordenadas[0]::float8 AS lng,
+        c.activo,
+        c.actualizado_en,
+        c.creado_en
+      FROM infraestructura.campus c
+      WHERE c.id = $1
+      LIMIT 1
+    `;
+    const row = await this.dataSource.query<CampusListItem[]>(sql, [id]);
+    if (row.length === 0) {
+      return null;
+    }
+
+    return row[0];
   }
 }
