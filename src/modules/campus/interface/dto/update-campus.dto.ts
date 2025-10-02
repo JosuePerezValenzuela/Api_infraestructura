@@ -46,7 +46,7 @@ export class UpdateCampusDto {
   @IsOptional()
   @IsString({ message: 'El codigo debe ser una cadena' })
   @MaxLength(16, { message: 'El codigo no debe exceder de 16 caracteres' })
-  @MinLength(1, { message: 'El codigo debe tener al menos 3 caracteres' })
+  @MinLength(1, { message: 'El codigo debe tener al menos 1 caracteres' })
   codigo?: string;
 
   @ApiPropertyOptional({
@@ -57,7 +57,7 @@ export class UpdateCampusDto {
   @IsOptional()
   @IsString({ message: 'El nombre debe ser una cadena' })
   @MaxLength(128, { message: 'El nombre no debe exceder de 128 caracteres' })
-  @MinLength(1, { message: 'El nombre debe tener al menos 3 caracteres' })
+  @MinLength(1, { message: 'El nombre debe tener al menos 1 caracteres' })
   nombre?: string;
 
   @ApiPropertyOptional({
@@ -98,6 +98,7 @@ export class UpdateCampusDto {
   @IsNumber({}, { message: 'La longitud debe ser un numero' })
   @Max(180, { message: 'La longitud no puede ser mayor a 180' })
   @Min(-180, { message: 'La longitud no puede ser menor a -180' })
+  @Validate(LatLngPair)
   lng?: number;
 
   @ApiPropertyOptional({
@@ -105,7 +106,6 @@ export class UpdateCampusDto {
     example: true,
   })
   @IsOptional()
-  @Type(() => Boolean)
   @IsBoolean({ message: 'El estado activo debe ser booleano' })
   activo?: boolean;
 }

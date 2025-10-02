@@ -11,7 +11,13 @@ async function bootstrap() {
   const cfg = app.get(ConfigService);
   //Seguridad HTTP
   app.use(helmet());
-  app.enableCors({ origin: true, credentials: true });
+
+  app.enableCors({
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'], // <- nombre correcto
+    credentials: true,
+  });
 
   //Prefijo global del .env
   app.setGlobalPrefix(cfg.get<string>('GLOBAL_PREFIX')!);
@@ -22,7 +28,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
+      transformOptions: { enableImplicitConversion: false },
       exceptionFactory: (errors: ValidationError[] = []) => {
         // orden de prioridad de mensajes (ajústalo a tu gusto)
         const prio = [
@@ -89,11 +95,5 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Documentacion en: http://localhost:${port}/${swaggerPath}`);
   console.log(`Api en: http://localhost:${port}/${prefix}`);
-
-  app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
-  });
 }
 bootstrap();

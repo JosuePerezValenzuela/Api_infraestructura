@@ -34,13 +34,12 @@ export class CampusController {
   constructor(
     private readonly createCampus: CreateCampusUseCase,
     private readonly listCampus: ListCampusUseCase,
-    private readonly UpdateCampus: UpdateCampusUseCase,
+    private readonly updateCampus: UpdateCampusUseCase,
   ) {}
 
   @Get()
-  @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Listar los campus' })
-  @ApiCreatedResponse({
+  @ApiOkResponse({
     description: 'Listado correctamente',
     schema: {
       example: {
@@ -127,7 +126,7 @@ export class CampusController {
     @Body() dto: UpdateCampusDto,
   ) {
     try {
-      const { idResp } = await this.UpdateCampus.execute({ id, data: dto });
+      const { idResp } = await this.updateCampus.execute({ id, data: dto });
       return { id: idResp };
     } catch (err) {
       if (err instanceof NotFoundException) {
