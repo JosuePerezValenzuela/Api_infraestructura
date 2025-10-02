@@ -4,6 +4,7 @@ import {
   CampusListItem,
   CampusRepositoryPort,
   ListOptions,
+  UpdateCampusInput,
 } from '../domain/campus.repository.port';
 import { CampusOrmEntity } from './campus.orm-entity';
 
@@ -150,5 +151,56 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
 
     const rows = await this.dataSource.query<[existe: number]>(sql, params);
     return rows.length > 0;
+  }
+
+  async update(id: number, input: UpdateCampusInput): Promise<{ id: number }> {
+    const sets: string[] = [];
+    const params: any[] = [];
+    let i = 1;
+
+    if (input.codigo !== undefined) {
+      sets.push(`codigo = $${i++}`);
+      params.push(input.codigo);
+    }
+
+    if (input.nombre !== undefined) {
+      sets.push(`nombre = $${i++}`);
+      params.push(input.nombre);
+    }
+
+    if (input.direccion !== undefined) {
+      sets.push(`direccion = $${i++}`);
+      params.push(input.direccion);
+    }
+
+    if (input.direccion !== undefined) {
+      sets.push(`direccion = $${i++}`);
+      params.push(input.direccion);
+    }
+
+    if (input.activo !== undefined) {
+      sets.push(`activo = $${i++}`);
+      params.push(input.activo);
+    }
+
+    if (input.lat !== undefined && input.lng !== undefined) {
+      sets.push(`coordenadas = point($${i++}, $${i++})`);
+      params.push(input.lng, input.lat);
+    }
+
+    if (sets.length === 0) {
+      throw new Error('No hay datos para actualizar');
+    }
+
+    const sql = `
+      UPDATE infraestructura.campus
+      SET ${sets.join(', ')}
+      WHERE id = $${i}
+      RETURNING id
+    `;
+    params.push(id);
+
+    await this.dataSource.query(sql, params);
+    return { id };
   }
 }
