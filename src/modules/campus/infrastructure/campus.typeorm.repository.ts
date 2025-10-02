@@ -173,11 +173,6 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
       params.push(input.direccion);
     }
 
-    if (input.direccion !== undefined) {
-      sets.push(`direccion = $${i++}`);
-      params.push(input.direccion);
-    }
-
     if (input.activo !== undefined) {
       sets.push(`activo = $${i++}`);
       params.push(input.activo);
