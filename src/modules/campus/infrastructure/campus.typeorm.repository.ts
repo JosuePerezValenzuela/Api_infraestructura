@@ -135,4 +135,20 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
 
     return row[0];
   }
+
+  async isCodeTaken(codigo: string, excludeId?: number): Promise<boolean> {
+    let sql = `
+      SELECT 1 AS existe
+      FROM infraestructura.campus
+      WHERE codigo = $1
+    `;
+    const params: any[] = [codigo];
+    if (excludeId) {
+      sql += ' AND id != $2';
+      params.push(excludeId);
+    }
+
+    const rows = await this.dataSource.query<[existe: number]>(sql, params);
+    return rows.length > 0;
+  }
 }
