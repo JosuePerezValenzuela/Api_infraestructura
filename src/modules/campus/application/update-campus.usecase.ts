@@ -16,7 +16,7 @@ type UpdateCampusInput = {
   }>;
 };
 
-type UpdateCampusOutput = { id: number };
+type UpdateCampusOutput = { idResp: number };
 
 @Injectable()
 export class UpdateCampusUseCase {
@@ -65,6 +65,6 @@ export class UpdateCampusUseCase {
 
     await this.repo.update(id, data);
 
-    return { id };
+    return { idResp: id };
   }
 }

@@ -1,15 +1,32 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { Get, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiParam,
+  ApiBody,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import { CreateCampusUseCase } from '../application/create-campus.usecase';
 import { CreateCampusDto } from './dto/create-campus.dto';
 import { ListCampusQueryDto } from './dto/list-campus.query';
 import { ListCampusUseCase } from '../application/list-campus.usecase';
+import { UpdateCampusUseCase } from '../application/update-campus.usecase';
+import { UpdateCampusDto } from './dto/update-campus.dto';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 
 @ApiTags('Campus')
 @Controller('campus')
@@ -17,6 +34,7 @@ export class CampusController {
   constructor(
     private readonly createCampus: CreateCampusUseCase,
     private readonly listCampus: ListCampusUseCase,
+    private readonly UpdateCampus: UpdateCampusUseCase,
   ) {}
 
   @Get()
@@ -97,5 +115,31 @@ export class CampusController {
       lng: dto.lng,
     });
     return { id };
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar un campus por ID' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ type: UpdateCampusDto })
+  @ApiOkResponse({ description: 'Devuelve el id' })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCampusDto,
+  ) {
+    try {
+      const { idResp } = await this.UpdateCampus.execute({ id, data: dto });
+      return { id: idResp };
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new HttpException(err.message, HttpStatus.NOT_FOUND);
+      }
+      if (err instanceof ConflictException) {
+        throw new HttpException(err.message, HttpStatus.CONFLICT);
+      }
+      if (err instanceof BadRequestException) {
+        throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
+      }
+      throw new HttpException('Eror interno', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }
