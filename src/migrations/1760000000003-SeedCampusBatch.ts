@@ -9,9 +9,9 @@ export class SeedCampusBatch1760000000003 implements MigrationInterface {
         `
           INSERT INTO infraestructura.campus (codigo, nombre, direccion, coordenadas)
           VALUES
-            ('123456789', 'Campus central', 'Av Sucre entre Belzu y Oquendo', POINT(-66.5, -17.39))
+            ('123456789', 'Campus central', 'Av Sucre entre Belzu y Oquendo', POINT(-66.5, -17.39)),
             ('987654321', 'Valle Sacta', 'Zona sacta', POINT(-63, -18)),
-            ('555555555', 'Quillacollo', 'Blanco galindo', POINT(-70, -20))
+            ('555555555', 'Quillacollo', 'Blanco galindo', POINT(-70, -20));
         `,
       );
     } catch (error) {

@@ -11,7 +11,7 @@ export class SeedTipoAmbientesBatch1760000000002 implements MigrationInterface {
           VALUES
             ('Clases', 'Aula para clases de pizarra', 'Basica'),
             ('Laboratorio de computacion', 'Aula equipada con computadoras personales', 'Laboratorio de computadoras'),
-            ('Laboratorio de redes', 'Aula equipada con routers', 'Aula de redes')
+            ('Laboratorio de redes', 'Aula equipada con routers');
         `,
       );
       await queryRunner.commitTransaction();
