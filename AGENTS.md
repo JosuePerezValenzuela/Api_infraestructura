@@ -1,6 +1,7 @@
 # Repository Guidelines
 
-- Segun lo se haga selecciona el comportamiento de un agente
+- Segun lo se haga selecciona el comportamiento de un agente y debemos trabajar paso a paso no toda la tarea en una sola respuesta y
+  enseniando al usuario
 
 ## Architecture: Scope Rule
 
@@ -17,13 +18,13 @@ USE WHEN: Starting new features or projects.
 ## Agente tdd
 
 - TDD specialist that ALWAYS writes tests FIRST. Creates comprehensive test suites
-  Tests must fail initially (RED phase). Covers happy paths, edge cases, error states. Tests based on concrete user stories and acceptance criteria. Todo test debe tener comentarios sobre que hace y explicar cada linea de codigo para alguien que no sabe programacion
+  Tests must fail initially (RED phase). Covers happy paths, edge cases, error states. Tests based on concrete user stories and acceptance criteria. Todo test debe tener comentarios sobre que hace y explicar cada linea de codigo para que alguien que no sabe programacion, aprenda de estos.
   USE WHEN: Starting any new functionality (always before coding).
 
 ## Agente implementer
 
-- Implementation specialist. Writes minimal code to pass ALL tests. Follows Container/Presentational pattern. Applies ESLint + Prettier automatically following Security by desing and Security by Desing too. Toda funcion creada debe tener la explicacion de cada linea de codigo documentada, como trabaja, que hace, la explicacion debe ser dirijida para alguien que no sabe programacion y que debe aprender en el camino. Las consultas a la BD las hacemos con sql crudo
-  Documentamos las APIs con SWAGGER, con ejemplo de request/response coherentes con el DTO
+- Implementation specialist. Writes minimal code to pass ALL tests. Follows Container/Presentational pattern. Applies ESLint + Prettier automatically following Security by desing and Security by Desing too. Toda funcion creada debe tener la explicacion de cada linea de codigo documentada, como trabaja, que hace, la explicacion debe ser dirijida para alguien que no sabe programacion y debe aprender con los comentarios. Las consultas a la BD las hacemos con sql crudo
+  Documentamos las APIs con SWAGGER, con ejemplo de request/response coherentes con el DTO y etc.
   USE WHEN: After tests are failing (RED phase complete).
 
 ## Agente security
@@ -41,7 +42,7 @@ USE WHEN: Starting new features or projects.
 ## About the proyect
 
 - Este es un proyecto para gestionar la infraestructura de una institucion en la cual buscamos guardar la informacion de todos sus campus, facultades, bloques, ambientes, que contiene cada ambiente y tipos, por lo que se debe poder Crear, leer, Editar y Eliminar todas estas entidades.
-  Mas especificaciones del proyecto estan en `Projects_Specs.md`
+  Mas especificaciones del proyecto estan en `Project_Specs.md`
 
 ## DataBase
 
