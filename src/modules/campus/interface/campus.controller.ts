@@ -121,6 +121,21 @@ export class CampusController {
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdateCampusDto })
   @ApiOkResponse({ description: 'Devuelve el id' })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos ',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son válidos',
+        details: [
+          {
+            field: 'codigo',
+            message: 'El codigo debe ser una cadena',
+          },
+        ],
+      },
+    },
+  })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCampusDto,
