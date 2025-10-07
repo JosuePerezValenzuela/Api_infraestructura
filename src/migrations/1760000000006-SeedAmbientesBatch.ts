@@ -11,7 +11,7 @@ export class SeedAmbientesBatch1760000000006 implements MigrationInterface {
           VALUES
             ('691A', '691', '69111', 1, '{"total": 45, "examen":35}'::jsonb, '{"largo": 30, "ancho": 8, "alto": 3.4, "unid_med": "metros"}'::jsonb, TRUE, 1, 1),
             ('Laboratorio', 'LAbo', '77777', 0, '{"total": 30, "examen": 15}'::jsonb, '{"largo": 20, "ancho": 6, "alto": 3.4, "unid_med": "metros"}'::jsonb, TRUE, 1, 2),
-            ('Laboratorio de redes 1', 'LabRed', '55555', 0, {"total": 15, "examen": 1}'::jsonb, '{"largo": 15, "ancho": 8, "alto": 3.4, "unid_med": "metros"}'::jsonb, TRUE, 3, 2);
+            ('Laboratorio de redes 1', 'LabRed', '55555', 0, '{"total": 15, "examen": 1}'::jsonb, '{"largo": 15, "ancho": 8, "alto": 3.4, "unid_med": "metros"}'::jsonb, TRUE, 3, 2);
         `,
       );
     } catch (error) {
