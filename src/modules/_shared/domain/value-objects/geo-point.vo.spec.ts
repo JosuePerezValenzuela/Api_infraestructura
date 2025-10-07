@@ -22,9 +22,12 @@ describe('GeoPoint', () => {
     // Definimos solo la latitud para simular un dato incompleto.
     const latitud = -17.0;
     // Usamos una funcion flecha para capturar la excepcion que esperamos que se lance.
-    const crearSinLongitud = () => GeoPoint.create({ lat: latitud, lng: undefined as unknown as number });
+    const crearSinLongitud = () =>
+      GeoPoint.create({ lat: latitud, lng: undefined as unknown as number });
     // Validamos que la funcion dispare un error con el mensaje indicado en las reglas de la HU.
-    expect(crearSinLongitud).toThrow('Si se envia lat tambien se debe enviar lng y viceversa');
+    expect(crearSinLongitud).toThrow(
+      'Si se envia lat tambien se debe enviar lng y viceversa',
+    );
   });
 
   // Este caso cubre el error cuando la latitud esta fuera del rango permitido por la Tierra.
@@ -34,9 +37,10 @@ describe('GeoPoint', () => {
     // Definimos una longitud cualquiera valida porque el problema esta en la latitud.
     const longitudValida = -66.15;
     // Preparamos la funcion que intenta crear el punto con la latitud invalida.
-    const crearLatitudInvalida = () => GeoPoint.create({ lat: latitudInvalida, lng: longitudValida });
+    const crearLatitudInvalida = () =>
+      GeoPoint.create({ lat: latitudInvalida, lng: longitudValida });
     // Comprobamos que se lance el mensaje de error que explica que la latitud no es valida.
-    expect(crearLatitudInvalida).toThrow('Latitud invalida');
+    expect(crearLatitudInvalida).toThrow('Latitud fuera del rango valido');
   });
 
   // Este caso cubre el error cuando la longitud esta fuera del rango permitido.
@@ -46,9 +50,10 @@ describe('GeoPoint', () => {
     // Definimos una latitud valida porque el problema esta solo en la longitud.
     const latitudValida = -17.3939;
     // Preparamos la funcion que intenta crear el punto con la longitud invalida.
-    const crearLongitudInvalida = () => GeoPoint.create({ lat: latitudValida, lng: longitudInvalida });
+    const crearLongitudInvalida = () =>
+      GeoPoint.create({ lat: latitudValida, lng: longitudInvalida });
     // Verificamos que el mensaje de error explique que la longitud no es valida.
-    expect(crearLongitudInvalida).toThrow('Longitud invalida');
+    expect(crearLongitudInvalida).toThrow('Longitud fuera del rango valido');
   });
 
   // Este caso demuestra como obtener el literal que se usara en PostgreSQL para guardar el punto.
