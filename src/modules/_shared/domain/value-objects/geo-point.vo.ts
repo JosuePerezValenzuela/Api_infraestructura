@@ -1,12 +1,12 @@
 export class GeoPoint {
   //Atributos de la clase
-  private readonly lat;
-  private readonly lng;
+  private readonly latitud: number;
+  private readonly longitud: number;
 
   //Constructor
   private constructor(lat: number, lng: number) {
-    this.lat = lat;
-    this.lng = lng;
+    this.latitud = lat;
+    this.longitud = lng;
   }
 
   static create(params: { lat: number; lng: number }): GeoPoint {
@@ -37,5 +37,18 @@ export class GeoPoint {
     }
 
     return new GeoPoint(lat, lng);
+  }
+
+  get lng(): number {
+    return this.longitud;
+  }
+
+  get lat(): number {
+    return this.latitud;
+  }
+
+  toPostgresPointLiteral(): string {
+    //Composicion de la cadena
+    return `(${this.longitud},${this.latitud})`;
   }
 }
