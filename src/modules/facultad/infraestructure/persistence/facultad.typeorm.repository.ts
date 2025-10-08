@@ -4,7 +4,6 @@ import {
   CreateFacultadData,
   FacultadRepositoryPort,
 } from '../../domain/facultad.repository.port';
-import { string } from 'joi';
 
 export class TypeormFacultadRepository implements FacultadRepositoryPort {
   constructor(
@@ -39,9 +38,10 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       data.campus_id,
     ];
 
-    const rows = (await this.dataSource.query(sql, params)) as Array<{
-      id: string;
-    }>;
+    const rows: Array<{ id: string }> = await this.dataSource.query(
+      sql,
+      params,
+    );
 
     const [row] = rows;
 
