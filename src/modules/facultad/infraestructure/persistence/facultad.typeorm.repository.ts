@@ -22,4 +22,26 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     const rows: [] = await this.dataSource.query(sql, [codigo]);
     return rows.length > 0;
   }
+
+  async create(data: CreateFacultadData): Promise<{ id: number }> {
+    const sql = `
+      INSERT INTO infraestructura.facultades (codigo, nombre, nombre_corto, coordenadas, campus_id)
+      VALUES ($1, $2, $3, point($4), $5)
+      RETURNING id
+    `;
+
+    const params = [
+      data.codigo,
+      data.nombre,
+      data.nombre_corto,
+      data.pointLiteral,
+      data.campus_id,
+    ];
+
+    const row = await this.dataSource.query<{
+      id: number;
+    }>(sql, params);
+
+    return { id: Number(row.id) };
+  }
 }
