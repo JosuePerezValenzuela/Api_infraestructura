@@ -7,7 +7,6 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateFacultadDto {
@@ -40,21 +39,18 @@ export class CreateFacultadDto {
   @ApiProperty({ example: -14.3935, description: 'Latitud (y)' })
   @IsDefined({ message: 'No se ingreso la latitud' })
   @IsNotEmpty({ message: 'El campo latitud no puede estar vacio' })
-  @Type(() => Number)
   @IsNumber({}, { message: 'La latitud debe ser numerico' })
   lat!: number;
 
   @ApiProperty({ example: -66.157, description: 'Longitud (x)' })
   @IsDefined({ message: 'No se ingreso la longitud' })
   @IsNotEmpty({ message: 'El campo longitud no puede estar vacio' })
-  @Type(() => Number)
   @IsNumber({}, { message: 'La longitud debe ser numerico' })
   lng!: number;
 
   @ApiProperty({ example: 1, description: 'Codigo asociado a un campus' })
   @IsDefined({ message: 'No se ingreso el campus_id' })
   @IsNotEmpty({ message: 'El campus_id no puede estar vacio' })
-  @Type(() => Number)
   @IsNumber({}, { message: 'El campus_id debe ser numerico' })
   campus_id!: number;
 }

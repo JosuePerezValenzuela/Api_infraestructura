@@ -30,7 +30,7 @@ async function bootstrap() {
       transform: true,
       transformOptions: { enableImplicitConversion: false },
       exceptionFactory: (errors: ValidationError[] = []) => {
-        // orden de prioridad de mensajes (ajústalo a tu gusto)
+        // orden de prioridad de mensajes
         const prio = [
           'isDefined',
           'isNotEmpty',

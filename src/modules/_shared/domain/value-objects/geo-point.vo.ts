@@ -49,6 +49,6 @@ export class GeoPoint {
 
   toPostgresPointLiteral(): string {
     //Composicion de la cadena
-    return `(${this.longitud},${this.latitud})`;
+    return `${this.longitud},${this.latitud}`;
   }
 }

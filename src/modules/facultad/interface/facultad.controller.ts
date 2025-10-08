@@ -45,6 +45,6 @@ export class FacultadController {
 
     const { id } = await this.createFacultad.execute(command);
 
-    return id;
+    return { id };
   }
 }
