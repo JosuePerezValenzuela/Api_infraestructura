@@ -16,5 +16,6 @@ import { UpdateCampusUseCase } from './application/update-campus.usecase';
     UpdateCampusUseCase,
     { provide: CampusRepositoryPort, useClass: TypeormCampusRepository },
   ],
+  exports: [CampusRepositoryPort],
 })
 export class CampusModule {}

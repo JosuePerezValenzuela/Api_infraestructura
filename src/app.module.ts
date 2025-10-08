@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { envSchema } from './config/validation';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CampusModule } from './modules/campus/campus.module';
+import { FacultadModule } from './modules/facultad/facultad.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CampusModule } from './modules/campus/campus.module';
       }),
     }),
     CampusModule,
+    FacultadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

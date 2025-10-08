@@ -2,5 +2,5 @@ puerto (Port, defien que necesita el caso de uso) -> Que es lo que necesito para
 interfaz HTTP (DTO, Define que acepta la API) -> Que es lo que me mandara el usuario
 use case (Use Case, Ejecuta lo del repository y que devuelve) -> Recibo el DTO y aplico reglas de negocio
 repository (Repository, implementa el metodo para la edicion) -> implementa la interfaz
-Controller (Controller, Expone la ruta y delega al use case) -> Se define la ruta
 Module (Module, cablea)
+Controller (Controller, Expone la ruta y delega al use case) -> Se define la ruta
