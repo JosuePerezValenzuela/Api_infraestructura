@@ -19,6 +19,30 @@ export class CreateFacultadUseCase {
   ) {}
 
   async execute(cmd: CreateFacultadCommand): Promise<{ id: number }> {
+    //Creamos el POINT a guardar en postgres
+    let pointLiteral: string;
+    try {
+      const geoPoint = GeoPoint.create({ lat: cmd.lat, lng: cmd.lng });
+      pointLiteral = geoPoint.toPostgresPointLiteral();
+    } catch (err) {
+      const message = (err as Error).message;
+      let field: string;
+
+      if (message.includes('Latitud')) {
+        field = 'Latitud';
+      } else if (message.includes('Longitud')) {
+        field = 'Longitud';
+      } else {
+        field = 'Campo desconocido';
+      }
+
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field, message }],
+      });
+    }
+
     // Verificamos que campus_id exista
     const campus = await this.campusRepository.findById(cmd.campus_id);
     if (!campus) {
@@ -30,10 +54,6 @@ export class CreateFacultadUseCase {
     if (codeTaken) {
       throw new ConflictException('Ya existe una facultad con el mismo codigo');
     }
-
-    //Creamos el POINT a guardar en postgres
-    const geoPoint = GeoPoint.create({ lat: cmd.lat, lng: cmd.lng });
-    const pointLiteral = geoPoint.toPostgresPointLiteral();
 
     //Ejecutamos al que creara la facultad
     const created = await this.facultadRepository.create({
