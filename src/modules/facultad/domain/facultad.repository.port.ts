@@ -1,4 +1,6 @@
 // Tipos que el caso de uso necesitara
+
+// Tipo que espera el metodo create
 export interface CreateFacultadData {
   codigo: string;
   nombre: string;
@@ -12,5 +14,5 @@ export const FacultadRepositoryPort = Symbol('FacultadRepositoryPort');
 export interface FacultadRepositoryPort {
   create(data: CreateFacultadData): Promise<{ id: number }>;
 
-  isCodeTaken(codigo: string): Promise<{ boolean: boolean }>;
+  isCodeTaken(codigo: string): Promise<{ boolean }>;
 }

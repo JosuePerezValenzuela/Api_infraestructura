@@ -13,7 +13,7 @@ export class CreateCampusDto {
   @IsDefined({ message: 'No se ingreso el campo codigo' })
   @IsNotEmpty({ message: 'El codigo no puede ser vacio' })
   @IsString({ message: 'El codigo debe ser una cadena' })
-  @MaxLength(128, { message: 'El codigo no debe exceder de 16 caracteres' })
+  @MaxLength(16, { message: 'El codigo no debe exceder de 16 caracteres' })
   codigo!: string;
 
   @ApiProperty({ example: 'Campus Central', maxLength: 128 })
