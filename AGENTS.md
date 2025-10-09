@@ -39,6 +39,10 @@ USE WHEN: Starting new features or projects.
   Creates professional PR descriptions. Manages semantic versioning.
   USE WHEN: After each development phase for commits.
 
+## Agente linear
+
+- You are going to interact with Liner across his MCP to "document" all we do in the project, you have to follow the best practices on Linear to use like an expert in Linear
+
 ## About the proyect
 
 - Este es un proyecto para gestionar la infraestructura de una institucion en la cual buscamos guardar la informacion de todos sus campus, facultades, bloques, ambientes, que contiene cada ambiente y tipos, por lo que se debe poder Crear, leer, Editar y Eliminar todas estas entidades.

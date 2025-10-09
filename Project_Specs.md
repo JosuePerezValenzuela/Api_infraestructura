@@ -1,6 +1,256 @@
-## Registrar una facultad
+# Proyecto
 
-# Especificaciones:
+1. Visión general
+
+Nombre: Infraestructura
+Descripción: Plataforma para gestionar la infraestructura física de la institución (campus, facultades, bloques, ambientes, tipos y activos). Permite registrar, listar, editar y eliminar entidades, con validaciones y controles de integridad.
+Beneficio: Centraliza la información, asegura trazabilidad y reduce errores operativos.
+
+2. Objetivos
+
+O1. Inventariar campus, facultades, bloques, ambientes, tipos y activos con datos consistentes.
+
+O2. Soportar operaciones CRUD con validación robusta.
+
+O3. Facilitar búsquedas y filtros (paginación, ordenamiento, texto libre).
+
+O4. Asegurar seguridad por defecto (Security by Default) y por diseño (Security by Design).
+
+O5. Documentar API con Swagger y mantener contratos claros.
+
+O6. Diseñar base de datos normalizada y con performance (índices, triggers de “updated_at”).
+
+3. Alcance (scope)
+   3.1. In scope (versión actual)
+
+Módulo de Infraestructura:
+
+Campus, Facultades, Tipos de Bloques, Bloques, Tipos de Ambientes, Ambientes, Tipos de Activos, Activos.
+
+Operaciones CRUD y listado con paginación/orden/filtro.
+
+Validaciones de negocio (ej.: pares lat/lng, unicidad de codigo, etc.).
+
+Backend con NestJS + TypeORM/SQL crudo + PostgreSQL.
+
+Frontend con Next.js + Tailwind + shadcn/ui, formularios con validación (zod/react-hook-form) y mapas (Leaflet/OSM).
+
+Documentación de API con Swagger (OpenAPI).
+
+3.2. Out of scope
+
+Autenticación/Autorización avanzada y multirrol.
+
+Integraciones externas.
+
+Flujos de aprobación y auditoría avanzada.
+
+Gestión documental (adjuntos, planos).
+
+Móvil nativo.
+
+4. Requisitos funcionales (alto nivel)
+
+RF1. CRUD de Campus (con coordenadas point).
+
+RF2. CRUD de Facultades (referencia a campus).
+
+RF3. CRUD de Tipos de Bloques
+
+RF4. CRUD de Bloques (referencia a facultad).
+
+RF5. CRUD de Tipos de Ambientes
+
+RF6. CRUD Ambientes (referencia a bloque; capacidad y dimensiones en JSONB validadas por triggers).
+
+RF7. CRUD de Tipos de Activos
+
+RF8. CRUD de Activos (referencia a ambiente).
+
+RF9. Listados con paginación, filtro por texto y ordenamiento.
+
+RF10. Validaciones en backend (DTOs, pipes, reglas de negocio).
+
+RF11. Documentación con Swagger.
+
+6. Requisitos no funcionales
+
+RNF1. Seguridad: Helmet, CORS, validación exhaustiva, manejo seguro de errores (sin filtrar detalles internos).
+
+RNF2. Rendimiento: Índices para joins y filtros más comunes; paginación server-side.
+
+RNF3. Confiabilidad: Migraciones versionadas; disparadores de updated_at centrales.
+
+RNF4. Mantenibilidad: Arquitectura Monolito Modular con patrón Hexagonal (puertos/adaptadores).
+
+RNF5. Observabilidad: Logs de errores y auditoría básica (por ahora a nivel de aplicación).
+
+RNF6. UX: Formularios con feedback claro; mapa para capturar lat/lng; componentes consistentes (shadcn/ui).
+
+RNF7. Portabilidad: variables de entorno para configuración.
+
+7. Arquitectura
+
+Estilo: Monolito modular con enfoque Hexagonal (Domain/Application/Infrastructure/Interface).
+
+Backend: NestJS 11, TypeScript, TypeORM/SQL crudo, class-validator, Swagger.
+
+Frontend: Next.js (App Router), Tailwind CSS, shadcn/ui (Radix UI), react-hook-form, zod, Leaflet/OSM.
+
+Base de datos: PostgreSQL (schemas, FKs, índices, triggers de validación y de actualizado_en).
+
+Contratos: REST JSON; documentación OpenAPI (Swagger UI bajo /api/docs).
+
+Configuración: @nestjs/config + Joi para validar .env.
+
+Diagrama lógico (simplificado):
+
+[ Frontend (Next.js) ]
+|
+HTTP/JSON
+|
+[ NestJS (Interface/Controllers) ]
+|
+[ Application (Use Cases) ]
+|
+[ Domain (Ports/Entities) ]
+|
+[ Infrastructure (Repos/SQL) ] --- PostgreSQL
+
+8. Modelo de datos (resumen) (Completo en `src/migration`)
+
+Schema: infraestructura
+
+campus
+
+Campos: id PK, codigo UNIQUE, nombre, direccion, coordenadas point, activo, creado_en, actualizado_en
+
+Índices: por joins y búsqueda (nombre, codigo).
+
+Triggers: tg_touch_actualizado_en para actualizado_en.
+
+facultades
+
+Campos: id PK, codigo UNIQUE, nombre, nombre_corto, coordenadas point, activo, creado_en, actualizado_en, campus_id FK -> campus.id
+
+Índices: campus_id, búsqueda por nombre/codigo.
+
+tipo_bloques | bloques
+
+bloques: id PK, nombre, nombre_corto, codigo, pisos, activo, creado_en, actualizado_en, facultad_id FK, tipo_bloque_id FK, institucion_id FK (opcional).
+
+tipo_ambientes | ambientes
+
+ambientes: id PK, nombre, codigo, piso,
+capacidad jsonb (validación por trigger),
+dimension jsonb (validación por trigger),
+coordenadas point, clases boolean, activo, timestamps,
+tipo_ambiente_id FK, bloque_id FK.
+
+Índices: tipo_ambiente_id, bloque_id, GIN sobre capacidad.
+
+tipo_activos | activos
+
+activos: id (varchar, NIA) PK, nombre, numero_serie, garantia date, tipo_activo_id FK, ambiente_id FK, activo, timestamps.
+
+Normalización:
+
+1FN: Sin atributos multivaluados; JSONB para capacidad/dimension con validación de estructura.
+
+2FN: Atributos dependen de la PK; no hay dependencias parciales.
+
+3FN: No hay dependencias transitivas (catálogos en tablas propias).
+
+Integridad referencial: FKs explícitas.
+
+9. Endpoints (catálogo de alto nivel)
+
+Prefijo global: /api
+
+Campus
+
+POST /campus → crea.
+
+GET /campus → lista (paginación, search, sort).
+
+PATCH /campus/:id → actualiza.
+
+DELETE /campus/:id → elimina.
+
+Facultades, Bloques, Ambientes, Activos
+CRUD análogo.
+
+Convenciones de filtros (GET):
+
+?page=1&limit=10&search=...&sortBy=nombre&sortDir=asc&activo=true&campusId=1
+
+10. Validación y reglas
+
+Backend: DTOs con class-validator/class-transformer, ValidationPipe global (whitelist, transform, mensajes priorizados).
+
+Base de datos: triggers para jsonb y touch de actualizado_en.
+
+Coordenadas: lat [-90, 90], lng [-180, 180]; par lat/lng obligatorio cuando se actualiza posición.
+
+11. Seguridad
+
+HTTP: Helmet, CORS restringido a orígenes locales de dev.
+
+Errores: Respuestas limpias (sin stack ni SQL bruto); códigos correctos (400, 404, 409, 500).
+
+Config: .env validado por Joi; nada de secretos en el repo.
+
+12. Entornos
+
+Desarrollo: PostgreSQL local, pnpm start:dev (backend), pnpm dev (frontend).
+
+13. Build & Deploy (resumen)
+
+Backend: pnpm build, pnpm start:prod, migraciones pnpm migration:run.
+
+Frontend: pnpm build (Next), despliegue en hosting compatible Node/SSR o estático si aplica.
+
+14. Testing (líneas maestras)
+
+Unit tests: servicios, use cases y repositorios.
+
+Frontend: pruebas de componentes y formularios (React Testing Library + Vitest).
+
+15. Registro y monitoreo
+
+Logs: nivel app (errores y eventos clave).
+
+16. Accesibilidad
+
+A11y: componentes shadcn/Radix (foco/ARIA); contraste y uso de teclado básico.
+
+17. Suposiciones y restricciones
+
+Los catálogos (tipos) son administrados internamente por el sistema.
+
+Las coordenadas provienen del mapa (Leaflet) y se guardan como point.
+
+18. Roadmap
+
+v1: CRUD completos Infraestructura + listados con filtros + Swagger.
+
+19. Glosario
+
+Campus: ubicación principal (ej.: Central).
+
+Facultad: unidad académica dentro de un campus.
+
+Bloque: edificio o conjunto de ambientes que pertenecen a una facultad.
+
+Ambiente: aula/laboratorio/espacio físico en un bloque.
+
+Activo: equipamiento asociado a un ambiente.
+
+Tipo: catálogo de clasificación (bloques/ambientes/activos).
+
+# Registrar una facultad
+
+## Especificaciones:
 
 Vision y alcance:
 
@@ -49,198 +299,9 @@ POST /api/facultades -> 201 { id }
 400 VALIDATION_ERROR con details []
 409 Ya existe una facultad con el mismo codigo
 
-## HU - 5 Registrar una facultad
+# Listar una facultad
 
-Como administrador de infraestructura
-Quiero registrar una nueva facultad asociada a un campus
-Para mantener un inventario centralizado y geolocalizado de la infraestructura
-
-Alcance y reglas (resumen)
-
-Cada facultad pertenece a un campus (campus_id requerido).
-
-codigo es único.
-
-nombre y coordenadas (lat,lng) son obligatorios (lat/lng deben venir juntos y dentro de rangos válidos).
-
-nombre_corto es opcional.
-
-Seguridad por defecto y por diseño (validación de entrada, manejo de errores claro).
-
-Contrato de API
-
-POST /api/facultades → 201 { id }
-
-400 VALIDATION_ERROR con details[]
-
-409 “Ya existe una facultad con el mismo codigo”
-
-Ejemplo de request body
-
-{
-"codigo": "12345",
-"nombre": "Facultad de ciencias y tecnologia",
-"nombre_corto": "FCyT",
-"lat": -17.3939,
-"lng": -66.15,
-"campus_id": 1
-}
-
-Criterios de Aceptación (Gherkin)
-Escenario 1: Registro exitoso
-Scenario: Registrar una facultad válida
-Given existe un campus con id = 1
-And no existe aún una facultad con codigo "12345"
-When envío POST /api/facultades con:
-| codigo | 12345 |
-| nombre | Facultad de ciencias y tecnologia |
-| nombre_corto | FCyT |
-| lat | -17.3939 |
-| lng | -66.15 |
-| campus_id | 1 |
-Then la API responde 201
-And el cuerpo contiene un campo "id" (numérico) de la nueva facultad
-
-Escenario 2: Código duplicado
-Scenario: Intentar registrar con codigo ya existente
-Given existe una facultad con codigo "12345"
-When envío POST /api/facultades con codigo "12345" (y datos válidos)
-Then la API responde 409
-And el mensaje contiene "Ya existe una facultad con el mismo codigo"
-
-Escenario 3: Falta de campos obligatorios (nombre)
-Scenario: Enviar sin nombre
-Given existe un campus con id = 1
-When envío POST /api/facultades sin "nombre"
-Then la API responde 400 (VALIDATION_ERROR)
-And details incluye:
-| field | message |
-| nombre | No se ingresó el campo nombre |
-
-Escenario 4: Lat/Lng ausentes o incompletos
-Scenario Outline: Enviar lat/lng incompletos
-Given existe un campus con id = 1
-When envío POST /api/facultades con "<lat_input>" y "<lng_input>"
-Then la API responde 400 (VALIDATION_ERROR)
-And details incluye:
-| field | message |
-| lat | Si se envía lat también se debe enviar lng y viceversa |
-
-Examples:
-| lat_input | lng_input |
-| -17.39 | (ausente) |
-| (ausente) | -66.15 |
-
-Escenario 5: Rangos inválidos de lat/lng
-Scenario Outline: Validar rangos de coordenadas
-Given existe un campus con id = 1
-When envío POST /api/facultades con lat="<lat>" y lng="<lng>"
-Then la API responde 400 (VALIDATION_ERROR)
-
-Examples:
-| lat | lng | Esperado |
-| -91 | -66.15 | lat < -90 → "Latitud inválida" |
-| 91 | -66.15 | lat > 90 → "Latitud inválida" |
-| -17.39 | -181 | lng < -180 → "Longitud inválida" |
-| -17.39 | 181 | lng > 180 → "Longitud inválida" |
-
-Escenario 6: campus_id inexistente
-Scenario: Campus no encontrado
-Given no existe campus con id = 999
-When envío POST /api/facultades con campus_id = 999 (y demás datos válidos)
-Then la API responde 400 (VALIDATION_ERROR)
-And details incluye:
-| field | message |
-| campus_id | El campus especificado no existe |
-
-Escenario 7: nombre_corto opcional
-Scenario: Registrar sin nombre_corto
-Given existe un campus con id = 1
-When envío POST /api/facultades con nombre_corto omitido
-Then la API responde 201
-And se registra la facultad con nombre_corto = null (o vacío)
-
-Validaciones específicas (campo por campo)
-
-codigo
-
-Tipo: string, longitud 1..16, único.
-
-Errores:
-
-El codigo debe ser una cadena
-
-El codigo debe tener entre 1 y 16 caracteres
-
-Ya existe una facultad con el mismo codigo (409)
-
-nombre
-
-Tipo: string, longitud 1..128, obligatorio.
-
-Errores:
-
-No se ingresó el campo nombre
-
-El nombre debe ser una cadena
-
-El nombre no debe exceder 128 caracteres
-
-nombre_corto
-
-Tipo: string, longitud 1..16, opcional.
-
-Errores (si se envía):
-
-El nombre_corto debe ser una cadena
-
-El nombre_corto no debe exceder 16 caracteres
-
-lat / lng
-
-Deben venir juntos.
-
-lat: número en [-90, 90]
-
-lng: número en [-180, 180]
-
-Errores:
-
-Si se envía lat también se debe enviar lng y viceversa
-
-La latitud debe ser numérica
-
-Latitud inválida
-
-La longitud debe ser numérica
-
-Longitud inválida
-
-campus_id
-
-Tipo: number, obligatorio, debe existir en campus.
-
-Errores:
-
-No se ingresó el campus_id
-
-El campus especificado no existe
-
-Definición de Hecho (DoD)
-
-Validación de entrada en backend (mensajes claros en español).
-
-Convertir lat/lng a POINT al persistir.
-
-Manejo de duplicados (409) y errores de validación (400).
-
-Endpoint documentado en Swagger con ejemplos.
-
-Pruebas: éxito, duplicado, faltantes, rangos, lat/lng incompletos, campus inexistente.
-
-## Listar una facultad
-
-# Especificaciones:
+## Especificaciones:
 
 Vision y alcance:
 
@@ -303,160 +364,3 @@ CONSTRAINT fk_facultades_campus FOREIGN KEY ( campus_id ) REFERENCES infraestruc
 
 Contratos de API
 POST /api/facultades -> 200
-
-## HU - 6 Listar una facultad
-
-Como administrador de infraestructura
-Quiero visualizar y gestionar un listado paginado de facultades con filtros, ordenamiento y control de columnas
-Para consultar rápidamente la información y acceder al registro de nuevas facultades
-
-Alcance y reglas (resumen)
-
-La lista se muestra en tabla con paginación (por defecto 8 por página).
-Filtros por distintos campos y ordenamiento por columnas.
-
-Ocultar/mostrar columnas desde la interfaz.
-
-Botón encima a la derecha para registrar una nueva facultad.
-
-No se muestran en la tabla: id, coordenadas, actualizado_en, campus_id.
-
-En lugar de campus_id, se muestra el nombre del campus.
-
-Seguridad por defecto y por diseño (validación de entrada, límites de paginación, manejo de errores, CORS, etc.).
-
-Contrato de API
-GET /api/facultades
-
-Query params (opcionales):
-
-page (número, por defecto 1)
-
-limit (número, por defecto 8, máx. recomendado 100)
-
-search (string; coincide por codigo, nombre, nombre_corto, o campus_nombre)
-
-sortBy (uno de: codigo|nombre|nombre_corto|campus_nombre|creado_en, por defecto nombre)
-
-sortDir (asc|desc, por defecto asc)
-
-(Los ordenamientos y direccion se puede hacer desde el frontend mediante la tabla y shadcn que permite cambiar la direccion segun una columna)
-
-activo (true | false)
-
-campusId (número) — filtro exacto
-
-Respuesta 200:
-
-{
-"items": [
-{
-"id": 1,
-"codigo": "12345",
-"nombre": "Facultad de ciencias y tecnologia",
-"nombre_corto": "FCyT",
-"campus_nombre": "Campus Central",
-"activo": true,
-"creado_en": "2025-09-24T15:20:30.767Z"
-}
-],
-"meta": {
-"total": 50,
-"page": 1,
-"take": 8,
-"pages": 7,
-"hasNextPage": true,
-"hasPreviousPage": false
-}
-}
-
-Códigos de error:
-
-400 VALIDATION_ERROR (parámetros inválidos: página/limit fuera de rango, sortBy desconocido, etc.)
-
-500 INTERNAL_ERROR (fallos inesperados)
-
-Columnas visibles por defecto en la tabla
-
-codigo
-nombre
-nombre_corto
-campus_nombre (derivado por JOIN con campus)
-activo
-creado_en (formato legible en el front)
-
-Criterios de Aceptación (Gherkin)
-Escenario 1: Listado por defecto (8 por página)
-Scenario: Ver primera página con tamaño por defecto
-Given existen más de 8 facultades registradas
-When hago GET /api/facultades sin parámetros
-Then la API responde 200
-And meta.take = 8
-And meta.page = 1
-And items.length <= 8
-And cada item NO incluye id, coordenadas ni actualizado_en ni campus_id
-And cada item incluye campus_nombre
-
-Escenario 2: Paginación
-Scenario: Cambiar de página
-Given existen al menos 16 facultades
-When hago GET /api/facultades?page=2&limit=8
-Then la API responde 200
-And meta.page = 2
-And meta.take = 8
-And items.length <= 8
-
-Escenario 3: Búsqueda por texto (search)
-Scenario Outline: Buscar por codigo/nombre/nombre_corto/campus_nombre
-Given existen facultades con distintos campos poblados
-When hago GET /api/facultades?search=<term>
-Then la API responde 200
-And todos los items contienen <term> en alguno de: codigo, nombre, nombre_corto o campus_nombre (case-insensitive)
-
-Examples:
-| term |
-| 12345 |
-| FCyT |
-| Central|
-
-Escenario 5: Filtros exactos (activo, campusId)
-Scenario: Filtrar por activo
-Given existen facultades activas e inactivas
-When hago GET /api/facultades?activo=false
-Then la API responde 200
-And todos los items tienen activo = false
-
-Scenario: Filtrar por campusId
-Given existen facultades en distintos campus
-When hago GET /api/facultades?campusId=1
-Then la API responde 200
-And todos los items pertenecen al campus con id = 1 (campus_nombre consistente)
-
-Escenario 6: Ocultar columnas (UI)
-Scenario: Ocultar/mostrar columnas desde la tabla
-Given la tabla muestra columnas por defecto
-When oculto la columna "nombre_corto" desde el control de columnas
-Then la columna "nombre_corto" deja de mostrarse
-And el resto de columnas permanecen visibles
-
-Escenario 7: Botón “Registrar facultad”
-Scenario: Navegar a registro de facultad
-Given estoy en la lista de facultades
-When hago clic en el botón "Registrar facultad" encima a la derecha
-Then se abre el flujo de registro (modal de creación)
-
-Escenario 8: Validación de parámetros de consulta
-Scenario Outline: Parámetros inválidos
-When hago GET /api/facultades con <param> inválido
-Then la API responde 400 VALIDATION_ERROR
-
-Examples:
-| param |
-| page=0 |
-| page=-1 |
-| limit=0 |
-| limit=1000 |
-| sortBy=campo_que_no_existe |
-| sortDir=invalido |
-| activo=quizas |
-| campusId=texto |
