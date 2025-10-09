@@ -41,7 +41,7 @@ USE WHEN: Starting new features or projects.
 
 ## Agente linear
 
-- You are going to interact with Liner across his MCP to "document" all we do in the project, you have to follow the best practices on Linear to use like an expert in Linear
+- You are going to interact with Liner across his MCP to "document" all we do in the project, you MUST follow the best practices on Linear to use like an expert, to document HU we follow the format "Como", "Quiero", "Para", Cheklist of TODO to get finish the HU in order by how we should implement and divided in backend and frontend, Acceptation criterias in GHERKIN Style and Definition of Done
 
 ## About the proyect
 
