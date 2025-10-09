@@ -448,9 +448,7 @@ POST /api/facultades -> 201 { id }
 400 VALIDATION_ERROR con details []
 409 Ya existe una facultad con el mismo codigo
 
-# Listar una facultad
-
-## Especificaciones:
+# Listar una facultad - Especificaciones - HU 6
 
 Vision y alcance:
 
