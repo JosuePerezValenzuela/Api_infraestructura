@@ -1,5 +1,10 @@
 // Tipos que el caso de uso necesitara
 
+import type {
+  ListFacultadesQuery,
+  ListFacultadesResult,
+} from './facultad.list.types';
+
 // Tipo que espera el metodo create
 export interface CreateFacultadData {
   codigo: string;
@@ -7,37 +12,6 @@ export interface CreateFacultadData {
   nombre_corto: string | null;
   pointLiteral: string;
   campus_id: number;
-}
-
-export interface ListFacultadesQuery {
-  page: number;
-  take: number;
-  search?: string;
-  orderBy?: 'nombre' | 'codigo' | 'creado_en';
-  orderDir?: 'asc' | 'desc';
-}
-
-export interface ListFacultadesItem {
-  id: number;
-  codigo: string;
-  nombre: string;
-  nombre_corto: string | null;
-  campus_nombre: string;
-  activo: boolean;
-  creado_en: Date;
-}
-
-export interface ListFacultadesMeta {
-  total: number;
-  page: number;
-  take: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
-
-export interface ListFacultadesResult {
-  items: ListFacultadesItem[];
-  meta: ListFacultadesMeta;
 }
 
 export const FacultadRepositoryPort = Symbol('FacultadRepositoryPort');

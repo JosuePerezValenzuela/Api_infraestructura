@@ -1,0 +1,31 @@
+// Este archivo agrupa los tipos compartidos para listar facultades y facilita reutilizarlos en distintas capas.
+export interface ListFacultadesQuery {
+  page: number;
+  take: number;
+  search?: string | null;
+  orderBy: 'nombre' | 'codigo' | 'creado_en';
+  orderDir: 'asc' | 'desc';
+}
+
+export interface ListFacultadesItem {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  campus_nombre: string;
+  activo: boolean;
+  creado_en: string;
+}
+
+export interface ListFacultadesMeta {
+  total: number;
+  page: number;
+  take: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface ListFacultadesResult {
+  items: ListFacultadesItem[];
+  meta: ListFacultadesMeta;
+}
