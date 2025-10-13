@@ -407,6 +407,8 @@ Editar campus existentes para mantener información actualizada.
 
 Edición en menos de 2 minutos, con mensajes de validación claros.
 
+Al editar el atributo Activo de un campus que tiene dependientes Facultades -> bloques -> Ambientes, todos sus dependientes deben pasar a ser inactivos
+
 Security by default/design: validación estricta, errores tipificados y control de colisiones (conflictos por duplicados).
 
 Glosario y modelo conceptual:
@@ -420,6 +422,8 @@ codigo identifica únicamente a cada campus (no se repite).
 Reglas de negocio:
 
 La edición es parcial (solo campos enviados se actualizan).
+
+Si se edita el atributo Activo de un campus sus dependientes como sus Facultades -> Bloques y Ambientes pasar a estar inactivos.
 
 codigo (si se envía) debe ser único entre todos los campus.
 
