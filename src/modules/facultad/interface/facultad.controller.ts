@@ -1,18 +1,32 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateFacultadUseCase } from '../application/create-facultad.usecase';
+import { ListFacultadesUseCase } from '../application/list-facultades.usecase';
 import { CreateFacultadDto } from './dto/create-facultad.dto';
+import { ListFacultadesQueryDto } from './dto/list-facultades-query.dto';
 import { CreateFacultadCommand } from '../application/dto/create-facultad.command';
 
 @ApiTags('Facultades')
 @Controller('facultades')
 export class FacultadController {
-  constructor(private readonly createFacultad: CreateFacultadUseCase) {}
+  constructor(
+    private readonly createFacultad: CreateFacultadUseCase,
+    private readonly listFacultades: ListFacultadesUseCase,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -46,5 +60,57 @@ export class FacultadController {
     const { id } = await this.createFacultad.execute(command);
 
     return { id };
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Listado de las facultades' })
+  @ApiOkResponse({
+    description: 'Facultades listadas correctamente',
+    schema: {
+      example: {
+        items: [
+          {
+            id: 7,
+            codigo: 'FCYT-01',
+            nombre: 'Facultad de Ciencias y Tecnología',
+            nombre_corto: 'FCyT',
+            campus_nombre: 'Campus Central',
+            activo: true,
+            creado_en: '2025-10-10T15:30:00.000Z',
+          },
+        ],
+        meta: {
+          total: 12,
+          page: 1,
+          take: 8,
+          hasNextPage: true,
+          hasPreviousPage: false,
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Filtros inválidos',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          { field: 'orderBy', message: 'No se puede ordenar por este campo' },
+        ],
+      },
+    },
+  })
+  async findPaginated(@Query() query: ListFacultadesQueryDto) {
+    const filters = {
+      page: query.page ?? 1,
+      take: query.limit ?? 8,
+      search: query.search?.trim()?.length ? query.search.trim() : null,
+      orderBy: query.orderBy ?? 'nombre',
+      orderDir: query.orderDir ?? 'asc',
+    };
+    const result = await this.listFacultades.execute(filters);
+    return result;
   }
 }
