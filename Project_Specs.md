@@ -182,7 +182,7 @@ CRUD análogo.
 
 Convenciones de filtros (GET):
 
-?page=1&limit=10&search=...&sortBy=nombre&sortDir=asc&activo=true&campusId=1
+?page=1&limit=10&search=...&sortBy=nombre&sortDir=asc&activo=true
 
 10. Validación y reglas
 
