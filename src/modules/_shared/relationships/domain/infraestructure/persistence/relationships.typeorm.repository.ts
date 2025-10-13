@@ -26,7 +26,23 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
   }
 
   async markCampusCascadeIncative(campusId: number): Promise<void> {
-    throw new Error('Sin implementar');
+    await this.runInTransaction(async (runner) => {
+      const facultyRows: Array<{ id: number }> = await runner.query(
+        `
+          UPDATE infraestructura.facultades
+          SET activo = FALSE
+          WHERE campus_id = $1
+          RETURNING id
+        `,
+        [campusId],
+      );
+
+      const facutyIds = facultyRows.map((row) => Number(row.id));
+      if (facutyIds.length === 0) {
+        return;
+      }
+      await this.markFacultadesDependenciesInactive(facutyIds, runner);
+    });
   }
 
   async markFacultadCascadeInactive(facultadId: number): Promise<void> {
