@@ -71,8 +71,12 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
 
       const nombreIndex = filterParams.length + 1;
       filterParams.push(pattern);
+
+      const campusIndex = filterParams.length + 1;
+      filterParams.push(pattern);
+
       whereClauses.push(
-        `(f.codigo ILIKE $${codigoIndex} OR f.nombre ILIKE $${nombreIndex})`,
+        `(f.codigo ILIKE $${codigoIndex} OR f.nombre ILIKE $${nombreIndex} OR c.nombre ILIKE $${campusIndex})`,
       );
     }
 
