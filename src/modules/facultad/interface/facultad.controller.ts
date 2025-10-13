@@ -28,40 +28,6 @@ export class FacultadController {
     private readonly listFacultades: ListFacultadesUseCase,
   ) {}
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Registrar una nueva facultad' })
-  @ApiCreatedResponse({
-    description: 'Facultad creada',
-    schema: { example: { id: 1 } },
-  })
-  @ApiBadRequestResponse({
-    description: 'Datos iinvalidos o relaciones inexistentes',
-    schema: {
-      example: {
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [
-          { field: 'campus_id', message: 'El campus indicado no existe' },
-        ],
-      },
-    },
-  })
-  async create(@Body() dto: CreateFacultadDto) {
-    const command = new CreateFacultadCommand({
-      codigo: dto.codigo,
-      nombre: dto.nombre,
-      nombre_corto: dto.nombre_corto ?? null,
-      lat: dto.lat,
-      lng: dto.lng,
-      campus_id: dto.campus_id,
-    });
-
-    const { id } = await this.createFacultad.execute(command);
-
-    return { id };
-  }
-
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Listado de las facultades' })
@@ -112,5 +78,39 @@ export class FacultadController {
     };
     const result = await this.listFacultades.execute(filters);
     return result;
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Registrar una nueva facultad' })
+  @ApiCreatedResponse({
+    description: 'Facultad creada',
+    schema: { example: { id: 1 } },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos iinvalidos o relaciones inexistentes',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          { field: 'campus_id', message: 'El campus indicado no existe' },
+        ],
+      },
+    },
+  })
+  async create(@Body() dto: CreateFacultadDto) {
+    const command = new CreateFacultadCommand({
+      codigo: dto.codigo,
+      nombre: dto.nombre,
+      nombre_corto: dto.nombre_corto ?? null,
+      lat: dto.lat,
+      lng: dto.lng,
+      campus_id: dto.campus_id,
+    });
+
+    const { id } = await this.createFacultad.execute(command);
+
+    return { id };
   }
 }
