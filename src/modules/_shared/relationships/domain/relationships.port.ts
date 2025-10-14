@@ -7,6 +7,4 @@ export interface RelationshipsPort {
   markFacultadCascadeInactive(facultadId: number): Promise<void>;
 
   markBloquesCascadeInactive(bloqueId: number): Promise<void>;
-
-  markAmbientesCascadeInactive(ambientId: number): Promise<void>;
 }

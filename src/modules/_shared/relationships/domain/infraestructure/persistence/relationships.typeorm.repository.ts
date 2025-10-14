@@ -27,7 +27,7 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
 
   async markCampusCascadeIncative(campusId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
-      const facultyRows: Array<{ id: number }> = await runner.query(
+      const rawFacultyRows: unknown = await runner.query(
         `
           UPDATE infraestructura.facultades
           SET activo = FALSE
@@ -37,23 +37,116 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
         [campusId],
       );
 
-      const facutyIds = facultyRows.map((row) => Number(row.id));
-      if (facutyIds.length === 0) {
+      const facultyRows = this.mapRowsWithId(rawFacultyRows, 'facultades');
+      const facultyIds = facultyRows.map((row) => Number(row.id));
+      if (facultyIds.length === 0) {
         return;
       }
-      await this.markFacultadesDependenciesInactive(facutyIds, runner);
+      await this.markFacultadesDependenciesInactive(facultyIds, runner);
     });
   }
 
   async markFacultadCascadeInactive(facultadId: number): Promise<void> {
-    throw new Error('Sin implementar');
+    await this.runInTransaction(async (runner) => {
+      const rawBlocksRows: unknown = await runner.query(
+        `
+          UPDATE infraestructura.bloques
+          SET activo = FALSE
+          WHERE facultad_id = $1
+          RETURNING id
+        `,
+        [facultadId],
+      );
+
+      const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
+      const blockIds = blockRows.map((row) => Number(row.id));
+      if (blockIds.length === 0) {
+        return;
+      }
+      await this.markBloquesDependenciesInactive(blockIds, runner);
+    });
   }
 
   async markBloquesCascadeInactive(bloqueId: number): Promise<void> {
-    throw new Error('Sin implementar');
+    await this.runInTransaction(async (runner) => {
+      await this.markBloquesDependenciesInactive([bloqueId], runner);
+    });
   }
 
-  async markAmbientesCascadeInactive(ambientId: number): Promise<void> {
-    throw new Error('Sin implementar');
+  private async markFacultadesDependenciesInactive(
+    facultadIds: number[],
+    runner: QueryRunner,
+  ): Promise<void> {
+    const rawBlocksRows: unknown = await runner.query(
+      `
+        UPDATE infraestructura.bloques
+        SET activo = FALSE
+        WHERE facultad_id = ANY($1)
+        RETURNING id
+      `,
+      [facultadIds],
+    );
+
+    const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
+    const blocksIds = blockRows.map((row) => Number(row.id));
+    if (blocksIds.length === 0) {
+      return;
+    }
+
+    await this.markBloquesDependenciesInactive(blocksIds, runner);
+  }
+
+  private async markBloquesDependenciesInactive(
+    blocksIds: number[],
+    runner: QueryRunner,
+  ): Promise<void> {
+    if (blocksIds.length === 0) {
+      return;
+    }
+
+    await runner.query(
+      `
+        UPDATE infraestructura.ambientes
+        SET activo = FALSE
+        WHERE bloque_id = ANY($1)
+      `,
+      [blocksIds],
+    );
+  }
+
+  private mapRowsWithId(raw: unknown, context: string): Array<{ id: number }> {
+    const rows = this.normalizeRows(raw, context);
+    return rows.map((row, index) => {
+      if (!row || typeof row !== 'object' || !('id' in row)) {
+        throw new Error(`Fila ${index + 1} en ${context} no trae id`);
+      }
+
+      const id = Number((row as { id: unknown }).id);
+      if (!Number.isFinite(id)) {
+        throw new Error(`Fila ${index + 1} en ${context} tiene id invalido`);
+      }
+
+      return { id };
+    });
+  }
+
+  private normalizeRows(raw: unknown, context: string): unknown[] {
+    if (Array.isArray(raw)) {
+      const rows = raw.find((item) => Array.isArray(item)) ?? raw;
+      return rows.filter((item) => item && typeof item === 'object');
+    }
+
+    if (raw && typeof raw === 'object') {
+      const candidate = raw as Record<string, unknown>;
+      if (Array.isArray(candidate.rows)) {
+        return candidate.rows;
+      }
+      if (Array.isArray(candidate[0])) {
+        return (candidate[0] as unknown[]).filter(
+          (item) => item && typeof item === 'object',
+        );
+      }
+    }
+    throw new Error(`Resultado inesperado de ${context}: no es un array`);
   }
 }
