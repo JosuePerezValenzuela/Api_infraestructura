@@ -101,6 +101,27 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
     );
   }
 
+  //Eliminaciones en cadena
+  async deleteCampusCascade(campusId: number): Promise<void> {
+    await this.runInTransaction(async (runner) => {
+      const rawFacultyRows: unknown = await runner.query(
+        `
+          DELETE FROM infraestructura.facultades
+          WHERE campus_id = $1
+          RETURNING id
+        `,
+        [campusId],
+      );
+
+      const facultyRows = this.mapRowsWithId(rawFacultyRows, 'facultades');
+      const facultyIds = facultyRows.map((row) => row.id);
+      if (facultyIds.length === 0) {
+        return;
+      }
+      await deleteFacultiesDependencies(facultyIds, runner);
+    });
+  }
+
   // HELPERS DE CONVERSIONES
   private mapRowsWithId(raw: unknown, context: string): Array<{ id: number }> {
     const rows = this.normalizeRows(raw, context);
