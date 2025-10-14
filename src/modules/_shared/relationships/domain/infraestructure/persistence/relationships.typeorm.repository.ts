@@ -48,22 +48,7 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
 
   async markFacultadCascadeInactive(facultadId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
-      const rawBlocksRows: unknown = await runner.query(
-        `
-          UPDATE infraestructura.bloques
-          SET activo = FALSE
-          WHERE facultad_id = $1
-          RETURNING id
-        `,
-        [facultadId],
-      );
-
-      const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
-      const blockIds = blockRows.map((row) => Number(row.id));
-      if (blockIds.length === 0) {
-        return;
-      }
-      await this.markBloquesDependenciesInactive(blockIds, runner);
+      await this.markFacultadesDependenciesInactive([facultadId], runner);
     });
   }
 
