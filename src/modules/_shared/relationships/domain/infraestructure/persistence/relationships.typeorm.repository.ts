@@ -107,19 +107,34 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
     await this.runInTransaction(async (runner) => {
       const rawFacultyRows: unknown = await runner.query(
         `
-          DELETE FROM infraestructura.facultades
+          SELECT id
+          FROM infraestructura.facultades
           WHERE campus_id = $1
-          RETURNING id
         `,
         [campusId],
       );
 
       const facultyRows = this.mapRowsWithId(rawFacultyRows, 'facultades');
-      const facultyIds = facultyRows.map((row) => row.id);
-      if (facultyIds.length === 0) {
-        return;
+      const facultyIds = facultyRows.map((row) => Number(row.id));
+      if (facultyIds.length > 0) {
+        await this.deleteFacultiesDependencies(facultyIds, runner);
+
+        await runner.query(
+          `
+            DELETE FROM infraestructura.facultades
+            WHERE id = ANY($1)
+          `,
+          [facultyIds],
+        );
       }
-      await this.deleteFacultiesDependencies(facultyIds, runner);
+
+      await runner.query(
+        `
+          DELETE FROM infraestructura.campus
+          WHERE id = $1
+        `,
+        [campusId],
+      );
     });
   }
 
@@ -129,26 +144,39 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
   ): Promise<void> {
     const rawBlocksRows: unknown = await runner.query(
       `
-        DELETE FROM infraestructura.bloques
+        SELECT id
+        FROM infraestructura.bloques
         WHERE facultad_id = ANY($1)
-        RETURNING id
       `,
       [facultyIds],
     );
 
     const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
-    const blocksIds = blockRows.map((row) => row.id);
+    const blocksIds = blockRows.map((row) => Number(row.id));
 
     if (blocksIds.length === 0) {
       return;
     }
-    await this.deleteblocksDependencies(blocksIds, runner);
+
+    await this.deleteBlocksDependencies(blocksIds, runner);
+
+    await runner.query(
+      `
+        DELETE FROM infraestructura.bloques
+        WHERE id = ANY($1)
+      `,
+      [blocksIds],
+    );
   }
 
-  private async deleteblocksDependencies(
+  private async deleteBlocksDependencies(
     blocksIds: number[],
     runner: QueryRunner,
   ): Promise<void> {
+    if (blocksIds.length === 0) {
+      return;
+    }
+
     await runner.query(
       `
         DELETE FROM infraestructura.ambientes
