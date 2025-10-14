@@ -8,6 +8,7 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
     private readonly dataSource: DataSource,
   ) {}
 
+  //Ejecutador de transacciones
   private async runInTransaction(
     work: (runner: QueryRunner) => Promise<void>,
   ): Promise<void> {
@@ -25,6 +26,7 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
     }
   }
 
+  //Actualizacion de estados en cadena
   async markCampusCascadeIncative(campusId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
       const rawFacultyRows: unknown = await runner.query(
@@ -99,6 +101,7 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
     );
   }
 
+  // HELPERS DE CONVERSIONES
   private mapRowsWithId(raw: unknown, context: string): Array<{ id: number }> {
     const rows = this.normalizeRows(raw, context);
     return rows.map((row, index) => {
