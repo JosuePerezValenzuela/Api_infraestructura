@@ -162,8 +162,9 @@ export class CampusController {
     }
   }
 
-  @Delete()
+  @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminaicon de un campus por id' })
   @ApiParam({ name: 'id', type: Number })
   @ApiNoContentResponse({ description: 'El campus fue eliminado' })
   @ApiBadRequestResponse({
