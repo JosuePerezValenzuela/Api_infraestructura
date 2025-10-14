@@ -529,7 +529,7 @@ codigo identifica únicamente a cada campus (no se repite).
 
 Reglas de negocio:
 
-Si se edita el atributo Activo de un campus sus dependientes como sus Facultades -> Bloques y Ambientes pasar a estar inactivos.
+Si se elimina un campus sus dependientes como sus Facultades -> Bloques y Ambientes pasar a ser eliminados.
 
 Esquema:
 
