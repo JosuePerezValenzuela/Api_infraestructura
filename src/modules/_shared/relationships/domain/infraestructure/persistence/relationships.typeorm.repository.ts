@@ -102,6 +102,7 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
   }
 
   //Eliminaciones en cadena
+
   async deleteCampusCascade(campusId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
       const rawFacultyRows: unknown = await runner.query(
@@ -118,8 +119,43 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
       if (facultyIds.length === 0) {
         return;
       }
-      await deleteFacultiesDependencies(facultyIds, runner);
+      await this.deleteFacultiesDependencies(facultyIds, runner);
     });
+  }
+
+  private async deleteFacultiesDependencies(
+    facultyIds: number[],
+    runner: QueryRunner,
+  ): Promise<void> {
+    const rawBlocksRows: unknown = await runner.query(
+      `
+        DELETE FROM infraestructura.bloques
+        WHERE facultad_id = ANY($1)
+        RETURNING id
+      `,
+      [facultyIds],
+    );
+
+    const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
+    const blocksIds = blockRows.map((row) => row.id);
+
+    if (blocksIds.length === 0) {
+      return;
+    }
+    await this.deleteblocksDependencies(blocksIds, runner);
+  }
+
+  private async deleteblocksDependencies(
+    blocksIds: number[],
+    runner: QueryRunner,
+  ): Promise<void> {
+    await runner.query(
+      `
+        DELETE FROM infraestructura.ambientes
+        WHERE bloque_id = ANY($1)
+      `,
+      [blocksIds],
+    );
   }
 
   // HELPERS DE CONVERSIONES
