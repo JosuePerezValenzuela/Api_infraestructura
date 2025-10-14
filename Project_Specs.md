@@ -515,6 +515,8 @@ Eliminar campus existentes para mantener información actualizada.
 
 Eliminacion en menos de 2 minutos, con mensajes de validación claros.
 
+La Eliminacion de un campus debe hacerlo en cadena, por lo que eliminaria sus Facultades -> Bloques y Ambientes
+
 Security by default/design: validación estricta, errores tipificados y control de colisiones (conflictos por duplicados).
 
 Glosario y modelo conceptual:
@@ -527,7 +529,7 @@ codigo identifica únicamente a cada campus (no se repite).
 
 Reglas de negocio:
 
-## AQUI FALTA DEFINIR
+Si se edita el atributo Activo de un campus sus dependientes como sus Facultades -> Bloques y Ambientes pasar a estar inactivos.
 
 Esquema:
 
