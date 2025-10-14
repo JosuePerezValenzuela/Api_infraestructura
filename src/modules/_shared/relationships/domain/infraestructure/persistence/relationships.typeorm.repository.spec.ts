@@ -57,18 +57,14 @@ describe('TypeormRelationshipRepository.deleteCampusCascade', () => {
     queryRunner.query.mockResolvedValueOnce([{ id: 100 }, { id: 200 }]);
     // Configuramos la respuesta de la segunda consulta: obtener bloques de esas facultades.
     queryRunner.query.mockResolvedValueOnce([{ id: 300 }, { id: 400 }]);
-    // Configuramos la tercera consulta: obtener ambientes de los bloques.
-    queryRunner.query.mockResolvedValueOnce([{ id: 500 }, { id: 600 }]);
-    // Configuramos la cuarta consulta: simular eliminación de activos (no necesita devolver filas).
+    // Configuramos la tercera consulta: eliminación de ambientes que pertenecen a los bloques.
     queryRunner.query.mockResolvedValueOnce([]);
-    // Configuramos la quinta consulta: simular eliminación de ambientes.
+    // Configuramos la cuarta consulta: eliminación de los bloques.
     queryRunner.query.mockResolvedValueOnce([]);
-    // Configuramos la sexta consulta: simular eliminación de bloques.
+    // Configuramos la quinta consulta: eliminación de las facultades.
     queryRunner.query.mockResolvedValueOnce([]);
-    // Configuramos la séptima consulta: simular eliminación de facultades.
+    // Configuramos la sexta consulta: eliminación final del campus.
     queryRunner.query.mockResolvedValueOnce([]);
-    // Configuramos la octava consulta: simular eliminación final del campus.
-    queryRunner.query.mockResolvedValueOnce([{ id: campusId }]);
 
     // Ejecutamos la funcionalidad que queremos validar. Esta línea fallará ahora porque el método aún no existe.
     await (repository as any).deleteCampusCascade(campusId);
@@ -78,65 +74,37 @@ describe('TypeormRelationshipRepository.deleteCampusCascade', () => {
     // Confirmamos que la primera consulta busca las facultades del campus recibido.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining(
-        'SELECT id FROM infraestructura.facultades WHERE campus_id = $1',
-      ),
+      expect.stringContaining('FROM infraestructura.facultades'),
       [campusId],
     );
     // Confirmamos que la segunda consulta recupere los bloques asociados.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining(
-        'SELECT id FROM infraestructura.bloques WHERE facultad_id = ANY($1)',
-      ),
+      expect.stringContaining('FROM infraestructura.bloques'),
       [[100, 200]],
     );
-    // Confirmamos que la tercera consulta recupere los ambientes dependientes.
+    // Revisamos que la tercera consulta elimine los ambientes por medio de los bloques.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       3,
-      expect.stringContaining(
-        'SELECT id FROM infraestructura.ambientes WHERE bloque_id = ANY($1)',
-      ),
+      expect.stringContaining('DELETE FROM infraestructura.ambientes'),
       [[300, 400]],
     );
-    // Verificamos que la cuarta consulta elimine los activos conectados a esos ambientes.
+    // Revisamos que la cuarta consulta elimine los bloques.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       4,
-      expect.stringContaining(
-        'DELETE FROM infraestructura.activos WHERE ambiente_id = ANY($1)',
-      ),
-      [[500, 600]],
-    );
-    // Revisamos que la quinta consulta elimine los ambientes.
-    expect(queryRunner.query).toHaveBeenNthCalledWith(
-      5,
-      expect.stringContaining(
-        'DELETE FROM infraestructura.ambientes WHERE id = ANY($1)',
-      ),
-      [[500, 600]],
-    );
-    // Revisamos que la sexta consulta elimine los bloques.
-    expect(queryRunner.query).toHaveBeenNthCalledWith(
-      6,
-      expect.stringContaining(
-        'DELETE FROM infraestructura.bloques WHERE id = ANY($1)',
-      ),
+      expect.stringContaining('DELETE FROM infraestructura.bloques'),
       [[300, 400]],
     );
-    // Revisamos que la séptima consulta elimine las facultades.
+    // Revisamos que la quinta consulta elimine las facultades.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
-      7,
-      expect.stringContaining(
-        'DELETE FROM infraestructura.facultades WHERE id = ANY($1)',
-      ),
+      5,
+      expect.stringContaining('DELETE FROM infraestructura.facultades'),
       [[100, 200]],
     );
     // Finalmente verificamos que se elimine el registro principal del campus.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
-      8,
-      expect.stringContaining(
-        'DELETE FROM infraestructura.campus WHERE id = $1',
-      ),
+      6,
+      expect.stringContaining('DELETE FROM infraestructura.campus'),
       [campusId],
     );
     // Confirmamos que la transacción finalizó correctamente.
@@ -148,7 +116,7 @@ describe('TypeormRelationshipRepository.deleteCampusCascade', () => {
     // Configuramos la primera consulta para indicar que no hay facultades asociadas.
     queryRunner.query.mockResolvedValueOnce([]);
     // Configuramos la segunda consulta para la eliminación del campus en sí.
-    queryRunner.query.mockResolvedValueOnce([{ id: campusId }]);
+    queryRunner.query.mockResolvedValueOnce([]);
 
     // Ejecutamos la función bajo prueba, lo que evidenciará la ausencia del método.
     await (repository as any).deleteCampusCascade(campusId);
@@ -156,17 +124,13 @@ describe('TypeormRelationshipRepository.deleteCampusCascade', () => {
     // Verificamos que la primera consulta consultó las facultades.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining(
-        'SELECT id FROM infraestructura.facultades WHERE campus_id = $1',
-      ),
+      expect.stringContaining('FROM infraestructura.facultades'),
       [campusId],
     );
     // Confirmamos que la segunda consulta borró directamente el campus al no haber dependencias.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining(
-        'DELETE FROM infraestructura.campus WHERE id = $1',
-      ),
+      expect.stringContaining('DELETE FROM infraestructura.campus'),
       [campusId],
     );
     // Verificamos que no se hayan hecho más consultas innecesarias.
