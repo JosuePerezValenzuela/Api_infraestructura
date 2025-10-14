@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   HttpCode,
   HttpException,
   HttpStatus,
@@ -19,6 +20,7 @@ import {
   ApiParam,
   ApiBody,
   ApiOkResponse,
+  ApiNoContentResponse,
 } from '@nestjs/swagger';
 import { CreateCampusUseCase } from '../application/create-campus.usecase';
 import { CreateCampusDto } from './dto/create-campus.dto';
@@ -26,6 +28,8 @@ import { ListCampusQueryDto } from './dto/list-campus.query';
 import { ListCampusUseCase } from '../application/list-campus.usecase';
 import { UpdateCampusUseCase } from '../application/update-campus.usecase';
 import { UpdateCampusDto } from './dto/update-campus.dto';
+import { DeleteCampusDTO } from './dto/delete-campus.dto';
+import { DeleteCampusUseCase } from '../application/delete-campus.usecase';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 @ApiTags('Campus')
@@ -35,6 +39,7 @@ export class CampusController {
     private readonly createCampus: CreateCampusUseCase,
     private readonly listCampus: ListCampusUseCase,
     private readonly updateCampus: UpdateCampusUseCase,
+    private readonly deleteCampus: DeleteCampusUseCase,
   ) {}
 
   @Get()
@@ -152,6 +157,37 @@ export class CampusController {
       }
       if (err instanceof BadRequestException) {
         throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
+      }
+      throw new HttpException('Eror interno', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiParam({ name: 'id', type: Number })
+  @ApiNoContentResponse({ description: 'El campus fue eliminado' })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos ',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son válidos',
+        details: [
+          {
+            field: 'codigo',
+            message: 'El codigo debe ser una cadena',
+          },
+        ],
+      },
+    },
+  })
+  async deleteById(@Param() dto: DeleteCampusDTO) {
+    try {
+      const resp = await this.deleteCampus.execute({ id: dto.id });
+      return resp;
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new HttpException(err.message, HttpStatus.NOT_FOUND);
       }
       throw new HttpException('Eror interno', HttpStatus.INTERNAL_SERVER_ERROR);
     }
