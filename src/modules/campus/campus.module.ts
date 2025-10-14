@@ -8,6 +8,7 @@ import { CampusRepositoryPort } from './domain/campus.repository.port';
 import { CreateCampusUseCase } from './application/create-campus.usecase';
 import { ListCampusUseCase } from './application/list-campus.usecase';
 import { UpdateCampusUseCase } from './application/update-campus.usecase';
+import { DeleteCampusUseCase } from './application/delete-campus.usecase';
 
 import { CampusController } from './interface/campus.controller';
 
@@ -19,6 +20,7 @@ import { RelationshipsModule } from '../_shared/relationships/relationships.modu
     CreateCampusUseCase,
     ListCampusUseCase,
     UpdateCampusUseCase,
+    DeleteCampusUseCase,
     { provide: CampusRepositoryPort, useClass: TypeormCampusRepository },
   ],
   exports: [CampusRepositoryPort],
