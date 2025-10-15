@@ -29,3 +29,13 @@ export interface ListFacultadesResult {
   items: ListFacultadesItem[];
   meta: ListFacultadesMeta;
 }
+
+export interface UpdateFacultadesInput {
+  codigo?: string;
+  nombre?: string;
+  nombre_corto?: string;
+  lat?: number;
+  lng?: number;
+  activo?: boolean;
+  campus_id?: number;
+}
