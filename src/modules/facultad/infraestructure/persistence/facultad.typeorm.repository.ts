@@ -159,7 +159,9 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
         f.nombre_corto,
         c.nombre AS campus_nombre,
         f.activo,
-        f.creado_en
+        f.creado_en,
+        f.coordenadas[1]::float8 AS lat,
+        f.coordenadas[0]::float8 AS lng
       FROM infraestructura.facultades f
       JOIN infraestructura.campus c ON c.id = f.campus_id
       ${whereSql}
@@ -177,6 +179,8 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       campus_nombre: string;
       activo: boolean;
       creado_en: string | Date;
+      lng: number;
+      lat: number;
     }> = await this.dataSource.query(dataSql, dataParams);
 
     const items = rows.map((row) => ({
@@ -187,6 +191,8 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       campus_nombre: row.campus_nombre,
       activo: row.activo,
       creado_en: new Date(row.creado_en).toISOString(),
+      lat: row.lat,
+      lng: row.lng,
     }));
 
     // Calculamos si existe siguiente pagina

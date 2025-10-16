@@ -26,6 +26,8 @@ export interface ListFacultadesItem {
   campus_nombre: string;
   activo: boolean;
   creado_en: string;
+  lat: number;
+  lng: number;
 }
 
 export interface ListFacultadesMeta {
