@@ -74,7 +74,7 @@ export class UpdateCampusUseCase {
     await this.repo.update(id, data);
 
     if (shouldDeactivateDependents) {
-      await this.relationships.markCampusCascadeIncative(id);
+      await this.relationships.markCampusCascadeInactive(id);
     }
 
     return { idResp: id };
