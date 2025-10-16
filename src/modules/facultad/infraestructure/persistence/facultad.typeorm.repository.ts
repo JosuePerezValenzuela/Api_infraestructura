@@ -5,8 +5,10 @@ import {
   FacultadRepositoryPort,
 } from '../../domain/facultad.repository.port';
 import {
+  facultadCompleta,
   ListFacultadesQuery,
   ListFacultadesResult,
+  UpdateFacultadesInput,
 } from '../../domain/facultad.list.types';
 
 export class TypeormFacultadRepository implements FacultadRepositoryPort {
@@ -50,6 +52,29 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     const [row] = rows;
 
     return { id: Number(row.id) };
+  }
+
+  async findById(id: number): Promise<facultadCompleta | null> {
+    const sql = `
+    SELECT
+      f.id,
+      f.codigo,
+      f.nombre,
+      f.nombre_corto,
+      f.coordenadas[1]::float8 AS lat,
+      f.coordenadas[0]::float8 AS lng,
+      f.activo,
+    FROM infraestructura.facultades f
+    WHERE f.id = $1
+    LIMIT 1
+    `;
+
+    const row = await this.dataSource.query<facultadCompleta[]>(sql, [id]);
+    if (row.length === 0) {
+      return null;
+    }
+
+    return row[0];
   }
 
   async findPaginated(
@@ -173,5 +198,9 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
         hasPreviousPage,
       },
     };
+  }
+
+  update(id: number, input: UpdateFacultadesInput): Promise<{ id: number }> {
+    throw new Error('Sin implementar');
   }
 }
