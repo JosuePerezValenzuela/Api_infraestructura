@@ -10,6 +10,8 @@ import {
   ListFacultadesResult,
   UpdateFacultadesInput,
 } from '../../domain/facultad.list.types';
+import { GeoPoint } from '../../../_shared/domain/value-objects/geo-point.vo';
+import { BadRequestException } from '@nestjs/common';
 
 export class TypeormFacultadRepository implements FacultadRepositoryPort {
   constructor(
@@ -17,15 +19,19 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     private readonly dataSource: DataSource,
   ) {}
 
-  async isCodeTaken(codigo: string): Promise<boolean> {
-    const sql = `
-      SELECT 1
+  async isCodeTaken(codigo: string, excludeId?: number): Promise<boolean> {
+    let sql = `
+      SELECT 1 AS existe
       FROM infraestructura.facultades
       WHERE codigo = $1
-      LIMIT 1
     `;
+    const params: any[] = [codigo];
+    if (excludeId) {
+      sql += ' AND id != $2';
+      params.push(excludeId);
+    }
 
-    const rows: [] = await this.dataSource.query(sql, [codigo]);
+    const rows: [] = await this.dataSource.query(sql, params);
     return rows.length > 0;
   }
 
@@ -64,6 +70,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       f.coordenadas[1]::float8 AS lat,
       f.coordenadas[0]::float8 AS lng,
       f.activo,
+      f.campus_id
     FROM infraestructura.facultades f
     WHERE f.id = $1
     LIMIT 1
@@ -200,7 +207,81 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     };
   }
 
-  update(id: number, input: UpdateFacultadesInput): Promise<{ id: number }> {
-    throw new Error('Sin implementar');
+  async update(
+    id: number,
+    input: UpdateFacultadesInput,
+  ): Promise<{ id: number }> {
+    //Creamos el POINT A GUARDAR EN POSTGRES
+    let pointLiteral: string | null;
+    try {
+      if (input.lat !== undefined && input.lng !== undefined) {
+        const geoPoint = GeoPoint.create({ lat: input.lat, lng: input.lng });
+        pointLiteral = geoPoint.toPostgresPointLiteral();
+      } else {
+        pointLiteral = null;
+      }
+    } catch (err) {
+      const message = (err as Error).message;
+      let field: string;
+
+      if (message.includes('Latitud')) {
+        field = 'Latitud';
+      } else if (message.includes('Longitud')) {
+        field = 'Longitud';
+      } else {
+        field = 'Campo desconocido';
+      }
+
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field, message }],
+      });
+    }
+
+    const sets: string[] = [];
+    const params: any[] = [];
+    let i = 1;
+
+    if (input.codigo !== undefined) {
+      sets.push(`codigo = $${i++}`);
+      params.push(input.codigo);
+    }
+
+    if (input.nombre !== undefined) {
+      sets.push(`nombre = $${i++}`);
+      params.push(input.nombre);
+    }
+
+    if (input.nombre_corto !== undefined) {
+      sets.push(`nombre_corto = $${i++}`);
+      params.push(input.nombre_corto);
+    }
+
+    if (pointLiteral !== null) {
+      sets.push(`coordenadas = $${i++}`);
+      params.push(pointLiteral);
+    }
+
+    if (input.activo !== undefined) {
+      sets.push(`activo = $${i++}`);
+      params.push(input.activo);
+    }
+
+    if (input.campus_id !== undefined) {
+      sets.push(`campus_id = $${i++}`);
+      params.push(input.campus_id);
+    }
+
+    const sql = `
+      UPDATE infraestructura.facultades
+      SET ${sets.join(', ')}
+      WHERE id = $${i}
+      RETURNING id
+    `;
+    params.push(id);
+
+    await this.dataSource.query(sql, params);
+    return { id };
   }
 }
