@@ -27,7 +27,7 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
   }
 
   //Actualizacion de estados en cadena
-  async markCampusCascadeIncative(campusId: number): Promise<void> {
+  async markCampusCascadeInactive(campusId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
       const rawFacultyRows: unknown = await runner.query(
         `
