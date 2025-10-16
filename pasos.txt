@@ -1,7 +1,7 @@
 Pruebas
-puerto / command (Port, defien que necesita el repository) -> Que es lo que necesito para realizar la logica solo la interfaz
+puerto / command (Port, defien que necesita el use case) -> Que es lo que necesito para realizar la logica solo la interfaz
 interfaz HTTP (DTO, Define que acepta la API) -> Que es lo que me mandara el usuario
+Controller (Controller, Expone la ruta y delega al use case) -> Se define la ruta
 use case (Use Case, Ejecuta lo del repository y que devuelve) -> Aplico reglas de negocio
 repository (Repository, implementa el metodo para la edicion) -> implementa la interfaz
 Module (Module, cablea)
-Controller (Controller, Expone la ruta y delega al use case) -> Se define la ruta

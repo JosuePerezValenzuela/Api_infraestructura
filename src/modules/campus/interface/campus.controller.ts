@@ -158,7 +158,10 @@ export class CampusController {
       if (err instanceof BadRequestException) {
         throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
       }
-      throw new HttpException('Eror interno', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Error interno',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
