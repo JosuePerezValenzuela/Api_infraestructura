@@ -4,7 +4,7 @@ import type {
   ListFacultadesQuery,
   ListFacultadesResult,
   UpdateFacultadesInput,
-  ListFacultadesItem,
+  facultadCompleta,
 } from './facultad.list.types';
 
 // Tipo que espera el metodo create
@@ -23,7 +23,7 @@ export interface FacultadRepositoryPort {
 
   isCodeTaken(codigo: string): Promise<boolean>;
 
-  findById(id: number): Promise<ListFacultadesItem | null>;
+  findById(id: number): Promise<facultadCompleta | null>;
 
   findPaginated(opts: ListFacultadesQuery): Promise<ListFacultadesResult>;
 

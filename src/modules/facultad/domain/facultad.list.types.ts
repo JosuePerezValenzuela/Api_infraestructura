@@ -1,4 +1,15 @@
 // Este archivo agrupa los tipos compartidos para listar facultades y facilita reutilizarlos en distintas capas.
+
+export interface facultadCompleta {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  lat: number;
+  lng: number;
+  activo: boolean;
+  campus_id: number;
+}
 export interface ListFacultadesQuery {
   page: number;
   take: number;
