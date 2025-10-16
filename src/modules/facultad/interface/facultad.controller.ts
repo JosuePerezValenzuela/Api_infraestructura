@@ -127,7 +127,14 @@ export class FacultadController {
   @ApiOperation({ summary: 'Actualizar una facultad' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdateFacultadesDTO })
-  @ApiOkResponse({ description: 'Campus actualizado' })
+  @ApiOkResponse({
+    description: 'Campus actualizado',
+    schema: {
+      example: {
+        id: 3,
+      },
+    },
+  })
   @ApiBadRequestResponse({
     description: 'Datos iinvalidos o relaciones inexistentes',
     schema: {
