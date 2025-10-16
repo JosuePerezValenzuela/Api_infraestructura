@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { CreateFacultadUseCase } from '../application/create-facultad.usecase';
 import { ListFacultadesUseCase } from '../application/list-facultades.usecase';
+import { UpdateFacultadUseCase } from '../application/update-facultad.usecase';
 import { CreateFacultadDto } from './dto/create-facultad.dto';
 import { ListFacultadesQueryDto } from './dto/list-facultades-query.dto';
 import { CreateFacultadCommand } from '../application/dto/create-facultad.command';
@@ -32,6 +33,7 @@ export class FacultadController {
   constructor(
     private readonly createFacultad: CreateFacultadUseCase,
     private readonly listFacultades: ListFacultadesUseCase,
+    private readonly updateFacultad: UpdateFacultadUseCase,
   ) {}
 
   @Get()
@@ -140,10 +142,9 @@ export class FacultadController {
   })
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateFacultadesDTO,
+    @Body() input: UpdateFacultadesDTO,
   ) {
-    // SIn implementar
-    const resp = 5;
-    return { id: resp };
+    const resp = await this.updateFacultad.execute({ id, input });
+    return { id: resp.id };
   }
 }
