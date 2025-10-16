@@ -4,21 +4,27 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  ParseIntPipe,
   Post,
+  Patch,
   Query,
+  Param,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags,
+  ApiBody,
 } from '@nestjs/swagger';
 import { CreateFacultadUseCase } from '../application/create-facultad.usecase';
 import { ListFacultadesUseCase } from '../application/list-facultades.usecase';
 import { CreateFacultadDto } from './dto/create-facultad.dto';
 import { ListFacultadesQueryDto } from './dto/list-facultades-query.dto';
 import { CreateFacultadCommand } from '../application/dto/create-facultad.command';
+import { UpdateFacultadesDTO } from './dto/update-facultad.dto';
 
 @ApiTags('Facultades')
 @Controller('facultades')
@@ -112,5 +118,32 @@ export class FacultadController {
     const { id } = await this.createFacultad.execute(command);
 
     return { id };
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Actualizar una facultad' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiBody({ type: UpdateFacultadesDTO })
+  @ApiOkResponse({ description: 'Campus actualizado' })
+  @ApiBadRequestResponse({
+    description: 'Datos iinvalidos o relaciones inexistentes',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          { field: 'campus_id', message: 'El campus indicado no existe' },
+        ],
+      },
+    },
+  })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateFacultadesDTO,
+  ) {
+    // SIn implementar
+    const resp = 5;
+    return { id: resp };
   }
 }
