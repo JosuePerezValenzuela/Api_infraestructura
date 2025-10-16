@@ -21,7 +21,7 @@ export const FacultadRepositoryPort = Symbol('FacultadRepositoryPort');
 export interface FacultadRepositoryPort {
   create(data: CreateFacultadData): Promise<{ id: number }>;
 
-  isCodeTaken(codigo: string): Promise<boolean>;
+  isCodeTaken(codigo: string, excludeId?: number): Promise<boolean>;
 
   findById(id: number): Promise<facultadCompleta | null>;
 
