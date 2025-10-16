@@ -39,3 +39,8 @@ export interface UpdateFacultadesInput {
   activo?: boolean;
   campus_id?: number;
 }
+
+export interface UpdateFacultadesInputAndId {
+  id: number;
+  input: Partial<UpdateFacultadesInput>;
+}
