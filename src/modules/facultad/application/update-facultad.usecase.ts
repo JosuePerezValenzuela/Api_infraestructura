@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { FacultadRepositoryPort } from '../domain/facultad.repository.port';
 import { RelationshipsPort } from '../../_shared/relationships/domain/relationships.port';
+import { CampusRepositoryPort } from 'src/modules/campus/domain/campus.repository.port';
 import {
   facultadCompleta,
   UpdateFacultadesInputAndId,
@@ -19,6 +20,8 @@ export class UpdateFacultadUseCase {
     private readonly facultadRepo: FacultadRepositoryPort,
     @Inject(RelationshipsPort)
     private readonly relationshipRepo: RelationshipsPort,
+    @Inject(CampusRepositoryPort)
+    private readonly campusRepo: CampusRepositoryPort,
   ) {}
 
   async execute({
@@ -43,7 +46,8 @@ export class UpdateFacultadUseCase {
       input.nombre_corto === undefined &&
       input.lng === undefined &&
       input.lat === undefined &&
-      input.activo === undefined
+      input.activo === undefined &&
+      input.campus_id === undefined
     ) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
@@ -78,6 +82,18 @@ export class UpdateFacultadUseCase {
           error: 'VALIDATION_ERROR',
           message: 'El codigo ya existe',
           details: [{ field: 'codigo', message: 'EL codigo es duplicado' }],
+        });
+      }
+    }
+
+    // Validamos que el nuevo campus_id exista
+    if (input.campus_id !== undefined) {
+      const existCampus = await this.campusRepo.findById(input.campus_id);
+      if (existCampus === null) {
+        throw new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'El campus no existe',
+          details: [{ field: 'campus_id', message: 'Campus inexistente' }],
         });
       }
     }
