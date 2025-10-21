@@ -156,3 +156,113 @@ describe('TypeormRelationshipRepository.deleteCampusCascade', () => {
     expect(queryRunner.release).toHaveBeenCalledTimes(1);
   });
 });
+
+// Ahora documentamos y probamos el nuevo metodo deleteFacultadCascade.
+describe('TypeormRelationshipRepository.deleteFacultadCascade', () => {
+  const facultadId = 77; // Usamos 77 para representar la facultad objetivo.
+
+  let queryRunner: jest.Mocked<QueryRunner>;
+  let dataSource: { createQueryRunner: jest.Mock };
+  let repository: TypeormRelationshipRepository;
+
+  beforeEach(() => {
+    queryRunner = {
+      connect: jest.fn().mockResolvedValue(undefined),
+      startTransaction: jest.fn().mockResolvedValue(undefined),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+      release: jest.fn().mockResolvedValue(undefined),
+      query: jest.fn(),
+      manager: undefined,
+      data: undefined,
+      isReleased: false,
+      isTransactionActive: false,
+      isTransactionActiveRecursive: false,
+      isTransactionRunning: false,
+      isClosed: false,
+      connection: undefined as unknown as any,
+      database: undefined,
+      loadedTables: [],
+      loadedSchemas: [],
+      instance: undefined,
+      queryRunner: undefined as unknown as any,
+      driver: undefined as unknown as any,
+    } as unknown as jest.Mocked<QueryRunner>;
+
+    dataSource = {
+      createQueryRunner: jest.fn().mockReturnValue(queryRunner),
+    };
+
+    repository = new TypeormRelationshipRepository(
+      dataSource as unknown as DataSource,
+    );
+  });
+
+  it('elimina ambientes, bloques y la facultad cuando existen dependencias', async () => {
+    // 1) Seleccionamos los bloques dependientes de la facultad.
+    queryRunner.query.mockResolvedValueOnce([{ id: 501 }, { id: 502 }]);
+    // 2) Eliminamos ambientes de los bloques seleccionados.
+    queryRunner.query.mockResolvedValueOnce([]);
+    // 3) Eliminamos los bloques asociados.
+    queryRunner.query.mockResolvedValueOnce([]);
+    // 4) Eliminamos la facultad en si misma.
+    queryRunner.query.mockResolvedValueOnce([]);
+
+    await repository.deleteFacultadCascade(facultadId);
+
+    expect(queryRunner.startTransaction).toHaveBeenCalledTimes(1);
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('FROM infraestructura.bloques'),
+      [[facultadId]],
+    );
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('DELETE FROM infraestructura.ambientes'),
+      [[501, 502]],
+    );
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('DELETE FROM infraestructura.bloques'),
+      [[501, 502]],
+    );
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining('DELETE FROM infraestructura.facultades'),
+      [[facultadId]],
+    );
+    expect(queryRunner.commitTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('elimina la facultad aun cuando no encuentra bloques relacionados', async () => {
+    // 1) No se encontraron bloques para esta facultad.
+    queryRunner.query.mockResolvedValueOnce([]);
+    // 2) Se debe eliminar la facultad directamente.
+    queryRunner.query.mockResolvedValueOnce([]);
+
+    await repository.deleteFacultadCascade(facultadId);
+
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('FROM infraestructura.bloques'),
+      [[facultadId]],
+    );
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('DELETE FROM infraestructura.facultades'),
+      [[facultadId]],
+    );
+    expect(queryRunner.query).toHaveBeenCalledTimes(2);
+  });
+
+  it('realiza rollback y lanza el error cuando la cascada falla', async () => {
+    const fakeError = new Error('Fallo de base de datos');
+    queryRunner.query.mockRejectedValueOnce(fakeError);
+
+    await expect(repository.deleteFacultadCascade(facultadId)).rejects.toThrow(
+      fakeError,
+    );
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalledTimes(1);
+    expect(queryRunner.release).toHaveBeenCalledTimes(1);
+  });
+});
