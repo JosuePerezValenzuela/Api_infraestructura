@@ -20,6 +20,12 @@ interface FakeListFacultadesUseCase {
   >;
 }
 
+// Definimos la forma del caso de uso de eliminacion falso.
+interface FakeDeleteFacultadUseCase {
+  // Esta funcion simulara la eliminacion real para comprobar que el controlador la invoca correctamente.
+  execute: jest.Mock<Promise<{ id: number }>, [{ id: number }]>;
+}
+
 describe('FacultadController - findPaginated', () => {
   // Funcion auxiliar que construye el sistema de prueba con dependencias simuladas.
   const buildController = () => {
@@ -29,13 +35,27 @@ describe('FacultadController - findPaginated', () => {
     const listFacultadesUseCase: FakeListFacultadesUseCase = {
       execute: jest.fn(),
     };
+    // Preparamos un caso de uso de actualizacion falso para completar el constructor.
+    const updateFacultadUseCase = { execute: jest.fn() };
+    // Preparamos el caso de uso de eliminacion falso para las pruebas del DELETE.
+    const deleteFacultadUseCase: FakeDeleteFacultadUseCase = {
+      execute: jest.fn(),
+    };
     // Instanciamos el controlador real pasando los casos de uso falsos.
     const controller = new FacultadController(
       createFacultadUseCase as any,
       listFacultadesUseCase as any,
+      updateFacultadUseCase as any,
+      deleteFacultadUseCase as any,
     );
     // Retornamos todas las piezas para que cada prueba las utilice.
-    return { controller, createFacultadUseCase, listFacultadesUseCase };
+    return {
+      controller,
+      createFacultadUseCase,
+      listFacultadesUseCase,
+      updateFacultadUseCase,
+      deleteFacultadUseCase,
+    };
   };
 
   // Esta prueba representa la historia: "Como administrador quiero listar las facultades paginadas para revisar su informacion".
@@ -51,6 +71,9 @@ describe('FacultadController - findPaginated', () => {
         nombre_corto: 'FCyT',
         campus_nombre: 'Campus Central',
         activo: true,
+        lat: -16,
+        lng: -16,
+        campus_id: 1,
         creado_en: '2025-10-10T15:30:00.000Z',
       },
     ];
@@ -118,5 +141,56 @@ describe('FacultadController - findPaginated', () => {
     expect(params.take).toBe(8);
     // Confirmamos que page tambien respeta el default igual a 1.
     expect(params.page).toBe(1);
+  });
+});
+
+// Agrupamos las pruebas del nuevo endpoint DELETE para mantenerlas ordenadas.
+describe('FacultadController - delete', () => {
+  // Funcion auxiliar que reutiliza el mismo constructor simulado.
+  const buildController = () => {
+    const createFacultadUseCase = { execute: jest.fn() };
+    const listFacultadesUseCase = { execute: jest.fn() };
+    const updateFacultadUseCase = { execute: jest.fn() };
+    const deleteFacultadUseCase: FakeDeleteFacultadUseCase = {
+      execute: jest.fn(),
+    };
+    const controller = new FacultadController(
+      createFacultadUseCase as any,
+      listFacultadesUseCase as any,
+      updateFacultadUseCase as any,
+      deleteFacultadUseCase as any,
+    );
+    return {
+      controller,
+      deleteFacultadUseCase,
+    };
+  };
+
+  // Esta prueba describe el escenario feliz: eliminar una facultad existente debe invocar el caso de uso y no devolver contenido.
+  it('invoca el caso de uso de eliminacion y retorna void en el flujo feliz', async () => {
+    // Instanciamos el controlador con el caso de uso de eliminacion falso.
+    const { controller, deleteFacultadUseCase } = buildController();
+    // Configuramos el caso de uso para resolver simulando una eliminacion exitosa.
+    deleteFacultadUseCase.execute.mockResolvedValue({ id: 33 });
+    // Ejecutamos el metodo DELETE con un identificador valido.
+    const response = await controller.delete(33 as any);
+    // Verificamos que el caso de uso recibio exactamente el identificador que le pasamos al controlador.
+    expect(deleteFacultadUseCase.execute).toHaveBeenCalledWith({ id: 33 });
+    // Confirmamos que el controlador no retorno contenido (Nest enviara 204 No Content).
+    expect(response).toBeUndefined();
+  });
+
+  // Esta prueba valida que los errores, como la ausencia de la facultad, se propaguen al caller.
+  it('propaga la excepcion cuando el caso de uso reporta que la facultad no existe', async () => {
+    // Instanciamos el controlador con dependencias simuladas.
+    const { controller, deleteFacultadUseCase } = buildController();
+    // Creamos una excepcion simulada similar a la que se lanzaria en el caso de uso real.
+    const notFoundError = new Error('No se encontro la facultad');
+    // Configuramos el caso de uso para rechazar la promesa con dicha excepcion.
+    deleteFacultadUseCase.execute.mockRejectedValue(notFoundError);
+    // Ejecutamos el metodo DELETE y verificamos que el error se propaga.
+    await expect(controller.delete(99 as any)).rejects.toBe(
+      notFoundError,
+    );
   });
 });
