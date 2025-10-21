@@ -1,7 +1,7 @@
 // Archivo de pruebas para DeleteFacultadUseCase.
 
 import { NotFoundException } from '@nestjs/common';
-import { DeleteFacultadUseCase } from './delete-facultad.usecase';
+import { DeleteFacultadUseCase } from '../application/delete-facultad.usecase';
 import type { facultadCompleta } from '../domain/facultad.list.types';
 import type { FacultadRepositoryPort } from '../domain/facultad.repository.port';
 import type { RelationshipsPort } from '../../_shared/relationships/domain/relationships.port';
