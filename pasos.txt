@@ -1,4 +1,8 @@
 Pruebas
+Use case (Ejecuta lo del repository y que devuelve) -> implementa la interfaz
+Repository (Implementa la logica) -> Implementa la interfaz
+Controller (Expone la ruta y delega el trabajo al use case) -> Define la ruta de la api
+
 puerto / command (Port, defien que necesita el use case) -> Que es lo que necesito para realizar la logica solo la interfaz
 interfaz HTTP (DTO, Define que acepta la API) -> Que es lo que me mandara el usuario
 Controller (Controller, Expone la ruta y delega al use case) -> Se define la ruta
