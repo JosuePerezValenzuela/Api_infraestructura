@@ -189,8 +189,6 @@ describe('FacultadController - delete', () => {
     // Configuramos el caso de uso para rechazar la promesa con dicha excepcion.
     deleteFacultadUseCase.execute.mockRejectedValue(notFoundError);
     // Ejecutamos el metodo DELETE y verificamos que el error se propaga.
-    await expect(controller.delete(99 as any)).rejects.toBe(
-      notFoundError,
-    );
+    await expect(controller.delete(99 as any)).rejects.toBe(notFoundError);
   });
 });

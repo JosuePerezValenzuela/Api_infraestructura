@@ -5,6 +5,7 @@ import { RelationshipsModule } from '../_shared/relationships/relationships.modu
 import { CreateFacultadUseCase } from './application/create-facultad.usecase';
 import { ListFacultadesUseCase } from './application/list-facultades.usecase';
 import { UpdateFacultadUseCase } from './application/update-facultad.usecase';
+import { DeleteFacultadUseCase } from './application/delete-facultad.usecase';
 
 import { FacultadRepositoryPort } from './domain/facultad.repository.port';
 
@@ -19,6 +20,7 @@ import { FacultadController } from './interface/facultad.controller';
     CreateFacultadUseCase,
     ListFacultadesUseCase,
     UpdateFacultadUseCase,
+    DeleteFacultadUseCase,
     {
       provide: FacultadRepositoryPort,
       useClass: TypeormFacultadRepository,
@@ -28,6 +30,7 @@ import { FacultadController } from './interface/facultad.controller';
     CreateFacultadUseCase,
     ListFacultadesUseCase,
     UpdateFacultadUseCase,
+    DeleteFacultadUseCase,
   ],
 })
 export class FacultadModule {}
