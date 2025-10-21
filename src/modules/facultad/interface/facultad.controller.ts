@@ -9,6 +9,7 @@ import {
   Patch,
   Query,
   Param,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -18,10 +19,14 @@ import {
   ApiParam,
   ApiTags,
   ApiBody,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
 } from '@nestjs/swagger';
 import { CreateFacultadUseCase } from '../application/create-facultad.usecase';
 import { ListFacultadesUseCase } from '../application/list-facultades.usecase';
 import { UpdateFacultadUseCase } from '../application/update-facultad.usecase';
+import { DeleteFacultadUseCase } from '../application/delete-facultad.usecase';
+
 import { CreateFacultadDto } from './dto/create-facultad.dto';
 import { ListFacultadesQueryDto } from './dto/list-facultades-query.dto';
 import { CreateFacultadCommand } from '../application/dto/create-facultad.command';
@@ -34,6 +39,7 @@ export class FacultadController {
     private readonly createFacultad: CreateFacultadUseCase,
     private readonly listFacultades: ListFacultadesUseCase,
     private readonly updateFacultad: UpdateFacultadUseCase,
+    private readonly deleteFacultad: DeleteFacultadUseCase,
   ) {}
 
   @Get()
@@ -128,7 +134,7 @@ export class FacultadController {
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdateFacultadesDTO })
   @ApiOkResponse({
-    description: 'Campus actualizado',
+    description: 'Facultad actualizada',
     schema: {
       example: {
         id: 3,
@@ -153,5 +159,27 @@ export class FacultadController {
   ) {
     const resp = await this.updateFacultad.execute({ id, input });
     return { id: resp.id };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Elimina la facultad' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiNoContentResponse({
+    description: 'Facultad eliminada',
+  })
+  @ApiNotFoundResponse({
+    description: 'No se encontro el codigo',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontro la facultad',
+        details: [{ field: 'id', message: 'La facultad indicada no existe' }],
+      },
+    },
+  })
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    await this.deleteFacultad.execute({ id });
+    return;
   }
 }
