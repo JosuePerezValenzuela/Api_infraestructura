@@ -141,6 +141,13 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
   async deleteFacultadCascade(facultadId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
       await this.deleteFacultiesDependencies([facultadId], runner);
+      await runner.query(
+        `
+          DELETE FROM infraestructura.facultades
+          WHERE id = ANY($1)
+        `,
+        [[facultadId]],
+      );
     });
   }
 
