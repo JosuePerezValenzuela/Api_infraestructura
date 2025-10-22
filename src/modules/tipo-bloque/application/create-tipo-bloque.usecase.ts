@@ -44,7 +44,7 @@ export class CreateTipoBloqueUseCase {
     const nameTaken = await this.repo.isNameTaken(nombre);
     if (nameTaken) {
       throw new ConflictException({
-        error: 'CONF_ERROR',
+        error: 'CONFLICT_ERROR',
         message: 'Los datos enviados no son validos',
         details: ['name', 'El nombre debe ser unico'],
       });
