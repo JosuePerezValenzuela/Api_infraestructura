@@ -17,10 +17,10 @@ export class CreateTipoBloqueUseCase {
   async execute(input: {
     nombre: string;
     descripcion: string;
-    activo: boolean;
+    activo?: boolean;
   }): Promise<{ id: number }> {
     const nombre = input.nombre?.trim() ?? '';
-    const descripcion = input.descripcion.trim() ?? '';
+    const descripcion = input.descripcion?.trim() ?? '';
 
     const validationError = (field: string, message: string) => {
       throw new BadRequestException({
