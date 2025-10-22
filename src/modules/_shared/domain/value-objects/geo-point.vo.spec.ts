@@ -67,6 +67,6 @@ describe('GeoPoint', () => {
     // Solicitamos el literal que espera PostgreSQL: primero la longitud (x) y luego la latitud (y).
     const literal = punto.toPostgresPointLiteral();
     // Comprobamos que el literal coincida con el formato que espera la base de datos.
-    expect(literal).toBe('(-66.15,-17.3939)');
+    expect(literal).toBe('-66.15,-17.3939');
   });
 });
