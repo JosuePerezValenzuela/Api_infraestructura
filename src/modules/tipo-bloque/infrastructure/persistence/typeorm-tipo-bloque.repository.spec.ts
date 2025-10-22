@@ -41,7 +41,8 @@ describe('TypeormTipoBloqueRepository', () => {
       activo: true,
     });
     // Recuperamos la primera llamada que recibio el metodo query para verificar la sentencia SQL.
-    const [sql, params] = dataSource.query.mock.calls[0];
+    const [rawSql, params] = dataSource.query.mock.calls[0];
+    const sql = rawSql.replace(/\s+/g, ' ').trim();
     // Comprobamos que la sentencia contiene el INSERT esperado sobre la tabla infraestructura.tipo_bloques.
     expect(sql).toContain(
       'INSERT INTO infraestructura.tipo_bloques (nombre, descripcion, activo)',
@@ -84,7 +85,8 @@ describe('TypeormTipoBloqueRepository', () => {
     // Ejecutamos isNameTaken con un nombre cualquiera.
     const taken = await repository.isNameTaken('Laboratorios');
     // Verificamos que el metodo haya construido la consulta correcta contra la tabla.
-    const [sql, params] = dataSource.query.mock.calls[0];
+    const [rawSql, params] = dataSource.query.mock.calls[0];
+    const sql = rawSql.replace(/\s+/g, ' ').trim();
     // La consulta debe seleccionar desde infraestructura.tipo_bloques comparando por nombre.
     expect(sql).toContain(
       'SELECT 1 AS existe FROM infraestructura.tipo_bloques WHERE nombre = $1',
@@ -104,7 +106,8 @@ describe('TypeormTipoBloqueRepository', () => {
     // Ejecutamos la verificacion para un nombre cualquiera.
     const taken = await repository.isNameTaken('Laboratorios');
     // Verificamos que el metodo use el mismo SQL que en el caso anterior.
-    const [sql] = dataSource.query.mock.calls[0];
+    const [rawSql] = dataSource.query.mock.calls[0];
+    const sql = rawSql.replace(/\s+/g, ' ').trim();
     expect(sql).toContain(
       'SELECT 1 AS existe FROM infraestructura.tipo_bloques WHERE nombre = $1',
     );
