@@ -4,7 +4,7 @@ import { DataSource, QueryFailedError } from 'typeorm';
 // Importamos ConflictException para comprobar la traduccion del error de unicidad.
 import { ConflictException } from '@nestjs/common';
 // Importamos la clase a probar (todavia no implementada) para describir el comportamiento esperado.
-import { TypeormTipoBloqueRepository } from './typeorm-tipo-bloque.repository';
+import { TypeormTipoBloqueRepository } from '../persistence/typeorm-tipo-bloque.repository';
 
 // Definimos un tipo auxiliar que representa el DataSource falso con el metodo query simulado.
 type FakeDataSource = {
