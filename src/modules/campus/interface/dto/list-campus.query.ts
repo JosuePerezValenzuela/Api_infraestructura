@@ -27,7 +27,7 @@ export class ListCampusQueryDto {
   @Type(() => Number)
   @IsInt({ message: 'limite debe ser entero' })
   @Min(1, { message: 'limite minimo es 1' })
-  @Max(100, { message: 'limite maximo es 100' })
+  @Max(1000, { message: 'limite maximo es 1000' })
   limit: number = 10;
 
   //Texto de busqueda para filtar
