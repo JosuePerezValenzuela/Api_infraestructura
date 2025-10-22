@@ -1,4 +1,5 @@
 Pruebas
+Puerto / command (Define que necesita el use case)
 Use case (Ejecuta lo del repository y que devuelve) -> implementa la interfaz
 Repository (Implementa la logica) -> Implementa la interfaz
 Controller (Expone la ruta y delega el trabajo al use case) -> Define la ruta de la api
