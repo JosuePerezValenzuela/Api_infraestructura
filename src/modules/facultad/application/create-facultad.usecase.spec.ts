@@ -99,7 +99,7 @@ describe('CreateFacultadUseCase', () => {
       nombre: 'Facultad de Ciencias y Tecnologia',
       nombre_corto: 'FCyT',
       campus_id: 1,
-      pointLiteral: '(-66.15,-17.3939)',
+      pointLiteral: '-66.15,-17.3939',
     });
     // Verificamos que el caso de uso devuelva el identificador proporcionado por el repositorio.
     expect(resultado).toEqual({ id: 42 });
