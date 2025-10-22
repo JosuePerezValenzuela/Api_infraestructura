@@ -21,7 +21,7 @@ interface FakeCampusRepositoryPort {
 // Definimos una interfaz auxiliar que describe las funciones del puerto de relaciones.
 interface FakeRelationshipsPort {
   // Metodo encargado de marcar inactivas todas las entidades dependientes de un campus.
-  markCampusCascadeIncative: jest.Mock<Promise<void>, [number]>;
+  markCampusCascadeInactive: jest.Mock<Promise<void>, [number]>;
 }
 
 describe('UpdateCampusUseCase', () => {
@@ -34,7 +34,7 @@ describe('UpdateCampusUseCase', () => {
     };
 
     const relationships: FakeRelationshipsPort = {
-      markCampusCascadeIncative: jest.fn(),
+      markCampusCascadeInactive: jest.fn(),
     };
 
     const useCase = new (UpdateCampusUseCase as any)(
@@ -68,9 +68,9 @@ describe('UpdateCampusUseCase', () => {
     // Ejecutamos el caso de uso solicitando que el campus pase a inactivo.
     await useCase.execute({ id: 77, data: { activo: false } });
     // Verificamos que el puerto de relaciones fue invocado exactamente una vez.
-    expect(relationships.markCampusCascadeIncative).toHaveBeenCalledTimes(1);
+    expect(relationships.markCampusCascadeInactive).toHaveBeenCalledTimes(1);
     // Comprobamos que el metodo recibio el identificador correcto del campus.
-    expect(relationships.markCampusCascadeIncative).toHaveBeenCalledWith(77);
+    expect(relationships.markCampusCascadeInactive).toHaveBeenCalledWith(77);
     // Revisamos que el repositorio actualizo el campo activo a false.
     expect(campusRepo.update).toHaveBeenCalledWith(77, { activo: false });
   });
@@ -98,7 +98,7 @@ describe('UpdateCampusUseCase', () => {
     // Ejecutamos el caso de uso pasando activo en true.
     await useCase.execute({ id: 55, data: { activo: true } });
     // Confirmamos que nunca se invoco al puerto de relaciones porque no hubo un cambio a false.
-    expect(relationships.markCampusCascadeIncative).not.toHaveBeenCalled();
+    expect(relationships.markCampusCascadeInactive).not.toHaveBeenCalled();
   });
 
   // Esta prueba verifica que si el campus no existe seguimos recibiendo el mismo error previo.
@@ -112,6 +112,6 @@ describe('UpdateCampusUseCase', () => {
       useCase.execute({ id: 999, data: { activo: false } }),
     ).rejects.toBeInstanceOf(NotFoundException);
     // Verificamos que el puerto de relaciones nunca fue utilizado en este escenario erroneo.
-    expect(relationships.markCampusCascadeIncative).not.toHaveBeenCalled();
+    expect(relationships.markCampusCascadeInactive).not.toHaveBeenCalled();
   });
 });
