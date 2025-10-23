@@ -23,7 +23,8 @@ describe('CreateTipoBloqueDto', () => {
     // Preparamos un objeto que representa la peticion correcta del usuario.
     const payload = {
       nombre: 'Edificio de aulas',
-      descripcion: 'Edificio destinado al uso exclusivo para el dictado de clases',
+      descripcion:
+        'Edificio destinado al uso exclusivo para el dictado de clases',
     };
     // Ejecutamos la validacion y esperamos que no existan errores.
     const errors = await validateInput(payload);
@@ -51,9 +52,7 @@ describe('CreateTipoBloqueDto', () => {
       descripcion: 'Descripcion valida',
     };
     const errors = await validateInput(payload);
-    expect(errors).toContain(
-      'El nombre no debe exceder los 64 caracteres',
-    );
+    expect(errors).toContain('El nombre no debe exceder los 64 caracteres');
   });
 
   // Este caso cubre la validacion de descripcion requerida.

@@ -143,9 +143,7 @@ describe('TypeormTipoBloqueRepository', () => {
     // Verificamos que la consulta principal incluya la tabla de tipo_bloques.
     const [selectRawSql, selectParams] = dataSource.query.mock.calls[0];
     const selectSql = selectRawSql.replace(/\s+/g, ' ').trim();
-    expect(selectSql).toContain(
-      'FROM infraestructura.tipo_bloques',
-    );
+    expect(selectSql).toContain('FROM infraestructura.tipo_bloques');
     // Como no se envio busqueda, solo deberiamos tener los parametros de LIMIT y OFFSET.
     expect(selectParams).toEqual([8, 0]);
 
@@ -206,16 +204,14 @@ describe('TypeormTipoBloqueRepository', () => {
 
     const [selectRawSql, selectParams] = dataSource.query.mock.calls[0];
     const selectSql = selectRawSql.replace(/\s+/g, ' ').trim();
-    expect(selectSql).toContain(
-      'WHERE nombre ILIKE $1',
-    );
+    expect(selectSql).toContain('WHERE tb.nombre ILIKE $1');
     // Los parametros deben incluir el patron de busqueda seguido de limit y offset.
     expect(selectParams).toEqual(['%lab%', 2, 2]);
 
     const [countRawSql, countParams] = dataSource.query.mock.calls[1];
     const countSql = countRawSql.replace(/\s+/g, ' ').trim();
     expect(countSql).toContain(
-      'SELECT COUNT(*)::int AS total FROM infraestructura.tipo_bloques WHERE nombre ILIKE $1',
+      'SELECT COUNT(*)::int AS total FROM infraestructura.tipo_bloques tb WHERE tb.nombre ILIKE $1',
     );
     expect(countParams).toEqual(['%lab%']);
 
