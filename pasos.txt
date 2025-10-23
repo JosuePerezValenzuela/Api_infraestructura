@@ -2,7 +2,9 @@ Pruebas
 Puerto / command (Puerto contien los metodos necesarios para la logica, Command es un typo que define que necesita algun metodo del puerto)
 Use case (Ejecuta lo del repository y que devuelve) -> implementa la interfaz
 Repository (Implementa la logica) -> Implementa la interfaz
+interfaz HTTP (DTO, Define que acepta la API) -> Que es lo que me mandara el usuario
 Controller (Expone la ruta y delega el trabajo al use case) -> Define la ruta de la api
+Module (Module, cablea)
 
 puerto / command (Port, defien que necesita el use case) -> Que es lo que necesito para realizar la logica solo la interfaz
 interfaz HTTP (DTO, Define que acepta la API) -> Que es lo que me mandara el usuario

@@ -114,4 +114,118 @@ describe('TypeormTipoBloqueRepository', () => {
     // Confirmamos que la funcion retorna false al no recibir filas.
     expect(taken).toBe(false);
   });
+
+  // Probamos que list devuelva los items y la metadata correctamente cuando no hay filtros adicionales.
+  it('lista tipos de bloque con paginacion por defecto', async () => {
+    const { repository, dataSource } = buildRepository();
+    // Simulamos que la primera consulta devuelve un registro y la segunda el total general.
+    dataSource.query
+      .mockResolvedValueOnce([
+        {
+          id: 7,
+          nombre: 'Edificio de aulas',
+          descripcion: 'Espacios destinados a clases',
+          activo: true,
+          creado_en: '2025-09-24T15:20:30.767Z',
+          actualizado_en: '2025-09-24T15:21:30.767Z',
+        },
+      ])
+      .mockResolvedValueOnce([{ total: 1 }]);
+
+    const result = await repository.list({
+      page: 1,
+      take: 8,
+      search: null,
+      orderBy: 'nombre',
+      orderDir: 'asc',
+    });
+
+    // Verificamos que la consulta principal incluya la tabla de tipo_bloques.
+    const [selectRawSql, selectParams] = dataSource.query.mock.calls[0];
+    const selectSql = selectRawSql.replace(/\s+/g, ' ').trim();
+    expect(selectSql).toContain(
+      'FROM infraestructura.tipo_bloques',
+    );
+    // Como no se envio busqueda, solo deberiamos tener los parametros de LIMIT y OFFSET.
+    expect(selectParams).toEqual([8, 0]);
+
+    // Verificamos que la consulta de conteo tambien apunte a la misma tabla.
+    const [countRawSql, countParams] = dataSource.query.mock.calls[1];
+    const countSql = countRawSql.replace(/\s+/g, ' ').trim();
+    expect(countSql).toContain(
+      'SELECT COUNT(*)::int AS total FROM infraestructura.tipo_bloques',
+    );
+    expect(countParams).toEqual([]);
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: 7,
+          nombre: 'Edificio de aulas',
+          descripcion: 'Espacios destinados a clases',
+          activo: true,
+          creado_en: new Date('2025-09-24T15:20:30.767Z'),
+          actualizado_en: new Date('2025-09-24T15:21:30.767Z'),
+        },
+      ],
+      meta: {
+        total: 1,
+        page: 1,
+        take: 8,
+        pages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    });
+  });
+
+  // Probamos que list incluya filtros de busqueda y calcule correctamente offset para paginas posteriores.
+  it('aplica busqueda y calcula offset segun la pagina solicitada', async () => {
+    const { repository, dataSource } = buildRepository();
+    // Simulamos la respuesta de la base de datos para la pagina solicitada.
+    dataSource.query
+      .mockResolvedValueOnce([
+        {
+          id: 3,
+          nombre: 'Laboratorios',
+          descripcion: 'Salas especializadas',
+          activo: true,
+          creado_en: '2025-01-10T10:00:00.000Z',
+          actualizado_en: '2025-01-10T10:00:00.000Z',
+        },
+      ])
+      .mockResolvedValueOnce([{ total: 6 }]);
+
+    const result = await repository.list({
+      page: 2,
+      take: 2,
+      search: 'lab',
+      orderBy: 'creado_en',
+      orderDir: 'desc',
+    });
+
+    const [selectRawSql, selectParams] = dataSource.query.mock.calls[0];
+    const selectSql = selectRawSql.replace(/\s+/g, ' ').trim();
+    expect(selectSql).toContain(
+      'WHERE nombre ILIKE $1',
+    );
+    // Los parametros deben incluir el patron de busqueda seguido de limit y offset.
+    expect(selectParams).toEqual(['%lab%', 2, 2]);
+
+    const [countRawSql, countParams] = dataSource.query.mock.calls[1];
+    const countSql = countRawSql.replace(/\s+/g, ' ').trim();
+    expect(countSql).toContain(
+      'SELECT COUNT(*)::int AS total FROM infraestructura.tipo_bloques WHERE nombre ILIKE $1',
+    );
+    expect(countParams).toEqual(['%lab%']);
+
+    expect(result.meta).toEqual({
+      total: 6,
+      page: 2,
+      take: 2,
+      pages: 3,
+      hasNextPage: true,
+      hasPreviousPage: true,
+    });
+  });
 });
