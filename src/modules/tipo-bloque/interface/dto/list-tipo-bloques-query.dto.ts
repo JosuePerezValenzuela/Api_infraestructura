@@ -8,16 +8,19 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class ListTipoBloquesQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
+  @Type(() => Number)
   @IsInt({ message: 'La pagina debe ser un numero' })
   @Min(1, { message: 'La pagina debe ser un numero mayor o igual a 1' })
   page?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Type(() => Number)
   @IsInt({ message: 'El limite debe ser un numero' })
   @Min(1, { message: 'El limite debe ser un numero mayor o igual a 1' })
   limit?: number;
