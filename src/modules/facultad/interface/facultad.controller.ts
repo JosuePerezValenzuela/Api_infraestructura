@@ -30,7 +30,7 @@ import { DeleteFacultadUseCase } from '../application/delete-facultad.usecase';
 import { CreateFacultadDto } from './dto/create-facultad.dto';
 import { ListFacultadesQueryDto } from './dto/list-facultades-query.dto';
 import { CreateFacultadCommand } from '../application/dto/create-facultad.command';
-import { UpdateFacultadesDTO } from './dto/update-facultad.dto';
+import { UpdateFacultadesDto } from './dto/update-facultad.dto';
 
 @ApiTags('Facultades')
 @Controller('facultades')
@@ -132,7 +132,7 @@ export class FacultadController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Actualizar una facultad' })
   @ApiParam({ name: 'id', type: Number })
-  @ApiBody({ type: UpdateFacultadesDTO })
+  @ApiBody({ type: UpdateFacultadesDto })
   @ApiOkResponse({
     description: 'Facultad actualizada',
     schema: {
@@ -155,7 +155,7 @@ export class FacultadController {
   })
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() input: UpdateFacultadesDTO,
+    @Body() input: UpdateFacultadesDto,
   ) {
     const resp = await this.updateFacultad.execute({ id, input });
     return { id: resp.id };

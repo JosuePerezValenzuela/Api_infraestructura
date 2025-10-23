@@ -36,7 +36,7 @@ class LatLngPair implements ValidatorConstraintInterface {
   }
 }
 
-export class UpdateFacultadesDTO {
+export class UpdateFacultadesDto {
   @ApiPropertyOptional({
     description: 'Codigo de la UMSS para la facultad',
     maxLength: 16,
