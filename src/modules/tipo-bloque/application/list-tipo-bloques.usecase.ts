@@ -24,7 +24,7 @@ export class ListTipoBloquesUseCase {
   async execute(input: {
     page?: number;
     limit?: number;
-    search?: string;
+    search?: string | null;
     orderBy?: TipoBloqueOrderBy;
     orderDir?: TipoBloqueOrderDir;
   }): Promise<ListTipoBloquesResult> {
