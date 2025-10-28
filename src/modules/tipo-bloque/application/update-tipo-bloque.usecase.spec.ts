@@ -25,29 +25,32 @@ const buildSystem = (options?: {
   existing?: TipoBloqueListItem | null;
   duplicatedName?: boolean;
 }) => {
-  // Obtenemos el registro existente a partir de las opciones o usamos un valor por defecto representativo.
-  const existing: TipoBloqueListItem =
-    options?.existing ??
-    ({
-      id: 7,
-      nombre: 'Bloque original',
-      descripcion: 'Descripcion original',
-      activo: true,
-      creado_en: new Date('2025-01-01T00:00:00.000Z'),
-      actualizado_en: new Date('2025-01-02T00:00:00.000Z'),
-    } as TipoBloqueListItem);
+  // Este objeto representa un tipo de bloque típico y se usa cuando la prueba no provee uno personalizado.
+  const defaultExisting: TipoBloqueListItem = {
+    id: 7,
+    nombre: 'Bloque original',
+    descripcion: 'Descripcion original',
+    activo: true,
+    creado_en: new Date('2025-01-01T00:00:00.000Z'),
+    actualizado_en: new Date('2025-01-02T00:00:00.000Z'),
+  };
+  const hasExisting = options ? 'existing' in options : false;
+  // Si la prueba establece existing (aunque sea null) respetamos ese valor, de lo contrario usamos el default.
+  const existing = hasExisting ? options!.existing ?? null : defaultExisting;
   // Determinamos si el nombre aparece duplicado en otro registro según la prueba.
   const duplicatedName = options?.duplicatedName ?? false;
   // Creamos el repositorio falso con las funciones simuladas mediante Jest.
   const repo: FakeTipoBloqueRepositoryPort = {
-    findById: jest.fn().mockResolvedValue(options?.existing ?? existing),
+    findById: jest.fn().mockResolvedValue(existing),
     isNameTakenByOther: jest.fn().mockResolvedValue(duplicatedName),
-    update: jest.fn().mockResolvedValue({ id: existing.id }),
+    update: jest
+      .fn()
+      .mockResolvedValue({ id: (existing ?? defaultExisting).id }),
   };
   // Instanciamos el caso de uso con el repositorio falso.
   const useCase = new UpdateTipoBloqueUseCase(repo as unknown as any);
   // Retornamos las dependencias para que cada prueba pueda usarlas.
-  return { useCase, repo, existing };
+  return { useCase, repo, existing: existing ?? defaultExisting };
 };
 
 // Agrupamos las pruebas del caso de uso dentro de describe.
