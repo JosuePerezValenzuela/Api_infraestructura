@@ -262,11 +262,11 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
     `;
 
     try {
-      const rows: Array<{ id: number | string }> = await this.dataSource.query(
+      const rows: [Array<{ id: number }>, number] = await this.dataSource.query(
         sql,
         params,
       );
-      const [row] = rows;
+      const [[row]] = rows;
 
       if (!row) {
         throw new NotFoundException({
@@ -275,7 +275,9 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
         });
       }
 
-      return { id: Number(row.id) };
+      const aux = row.id;
+
+      return { id: aux };
     } catch (error) {
       if (error instanceof QueryFailedError) {
         const driverError = error.driverError as { code?: string } | undefined;
