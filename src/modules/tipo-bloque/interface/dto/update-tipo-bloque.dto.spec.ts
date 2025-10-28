@@ -13,7 +13,9 @@ const validatePayload = async (payload: Record<string, unknown>) => {
   // Ejecutamos las validaciones configuradas en el DTO.
   const validationErrors = await validate(instance);
   // Transformamos los errores a un arreglo de mensajes entendibles para simplificar las aserciones.
-  return validationErrors.flatMap((error) => Object.values(error.constraints ?? {}));
+  return validationErrors.flatMap((error) =>
+    Object.values(error.constraints ?? {}),
+  );
 };
 
 // Agrupamos las pruebas bajo el mismo describe para mantener organizado el comportamiento del DTO.
@@ -53,7 +55,9 @@ describe('UpdateTipoBloqueDto', () => {
     const payload = {};
     // Ejecutamos la validación y verificamos que aparezca el mensaje que exigirá al menos un campo enviado.
     const errors = await validatePayload(payload);
-    expect(errors).toContain('Debes enviar al menos un campo para actualizar el tipo de bloque');
+    expect(errors).toContain(
+      'Debes enviar al menos un campo para actualizar el tipo de bloque',
+    );
   });
 
   // Esta prueba verifica que el nombre no pueda ser una cadena vacía cuando se envía.
@@ -62,7 +66,9 @@ describe('UpdateTipoBloqueDto', () => {
     const payload = { nombre: '' };
     // Validamos y esperamos el mensaje que indica la regla de longitud mínima.
     const errors = await validatePayload(payload);
-    expect(errors).toContain('El nombre debe tener entre 1 y 64 caracteres cuando se envia');
+    expect(errors).toContain(
+      'El nombre debe tener entre 1 y 64 caracteres cuando se envia',
+    );
   });
 
   // Esta prueba garantiza que el nombre no exceda el límite superior.
@@ -71,7 +77,9 @@ describe('UpdateTipoBloqueDto', () => {
     const payload = { nombre: 'x'.repeat(65) };
     // Validamos y esperamos el mensaje específico del límite superior.
     const errors = await validatePayload(payload);
-    expect(errors).toContain('El nombre debe tener entre 1 y 64 caracteres cuando se envia');
+    expect(errors).toContain(
+      'El nombre debe tener entre 1 y 64 caracteres cuando se envia',
+    );
   });
 
   // Esta prueba verifica que la descripción no pueda ser vacía.
@@ -80,7 +88,9 @@ describe('UpdateTipoBloqueDto', () => {
     const payload = { descripcion: '' };
     // Ejecutamos la validación y esperamos un mensaje claro para el usuario.
     const errors = await validatePayload(payload);
-    expect(errors).toContain('La descripcion debe tener entre 1 y 256 caracteres cuando se envia');
+    expect(errors).toContain(
+      'La descripcion debe tener entre 1 y 256 caracteres cuando se envia',
+    );
   });
 
   // Esta prueba controla el límite superior de la descripción.
@@ -89,7 +99,9 @@ describe('UpdateTipoBloqueDto', () => {
     const payload = { descripcion: 'x'.repeat(257) };
     // Validamos y esperamos el mensaje que se definirá en el DTO.
     const errors = await validatePayload(payload);
-    expect(errors).toContain('La descripcion debe tener entre 1 y 256 caracteres cuando se envia');
+    expect(errors).toContain(
+      'La descripcion debe tener entre 1 y 256 caracteres cuando se envia',
+    );
   });
 
   // Esta prueba confirma que activo debe ser estrictamente booleano.
