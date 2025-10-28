@@ -1,11 +1,18 @@
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError } from 'typeorm';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateTipoBloqueCommand } from '../../domain/commands/create-tipo-bloque.command';
+import { UpdateTipoBloqueCommand } from '../../domain/commands/update-tipo-bloque.command';
 import { TipoBloqueRepositoryPort } from '../../domain/tipo-bloque.repository.port';
 import {
   ListTipoBloquesOptions,
   ListTipoBloquesResult,
+  TipoBloqueListItem,
   TipoBloqueOrderBy,
 } from '../../domain/tipo-bloque.list.types';
 
@@ -158,5 +165,134 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
         hasPreviousPage,
       },
     };
+  }
+
+  async findById(id: number): Promise<TipoBloqueListItem | null> {
+    const sql = `
+      SELECT id, nombre, descripcion, activo, creado_en, actualizado_en
+      FROM infraestructura.tipo_bloques
+      WHERE id = $1
+    `;
+
+    const rows = await this.dataSource.query<
+      Array<{
+        id: number | string;
+        nombre: string;
+        descripcion: string;
+        activo: boolean;
+        creado_en: Date | string;
+        actualizado_en: Date | string;
+      }>
+    >(sql, [id]);
+
+    const [row] = rows;
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: Number(row.id),
+      nombre: row.nombre,
+      descripcion: row.descripcion,
+      activo: row.activo,
+      creado_en: new Date(row.creado_en),
+      actualizado_en: new Date(row.actualizado_en),
+    };
+  }
+
+  async isNameTakenByOther(nombre: string, id: number): Promise<boolean> {
+    const sql = `
+      SELECT 1 AS existe
+      FROM infraestructura.tipo_bloques
+      WHERE nombre = $1 AND id <> $2
+    `;
+
+    const rows: Array<{ existe: number }> = await this.dataSource.query(sql, [
+      nombre,
+      id,
+    ]);
+
+    return rows.length > 0;
+  }
+
+  async update(command: UpdateTipoBloqueCommand): Promise<{ id: number }> {
+    const setStatements: string[] = [];
+    const params: Array<string | number | boolean> = [command.id];
+
+    //Helper que agrega el campo al arreglo SET y registra el valor en params para la actualizacion
+    const pushField = (column: string, value: string | boolean) => {
+      const nextIndex = params.length + 1;
+      setStatements.push(`${column} = $${nextIndex}`);
+      params.push(value);
+    };
+
+    if (command.nombre !== undefined) {
+      pushField('nombre', command.nombre);
+    }
+
+    if (command.descripcion !== undefined) {
+      pushField('descripcion', command.descripcion);
+    }
+
+    if (command.activo !== undefined) {
+      pushField('activo', command.activo);
+    }
+
+    // El caso de uso garantiza al menos un campo, si llega vacio, lanzamos error par aevitar consutas invalidas
+    if (setStatements.length === 0) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'payload',
+            message:
+              'Debes enviar datos diferentes para actualizar el tipo de bloque',
+          },
+        ],
+      });
+    }
+
+    const sql = `
+      UPDATE infraestructura.tipo_bloques
+      SET ${setStatements.join(', ')}
+      WHERE id = $1
+      RETURNING id
+    `;
+
+    try {
+      const rows: Array<{ id: number | string }> = await this.dataSource.query(
+        sql,
+        params,
+      );
+      const [row] = rows;
+
+      if (!row) {
+        throw new NotFoundException({
+          error: 'NOT_FOUND',
+          message: 'No se encontro el tipo de bloque',
+        });
+      }
+
+      return { id: Number(row.id) };
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        const driverError = error.driverError as { code?: string } | undefined;
+        if (driverError?.code === '23505') {
+          throw new ConflictException({
+            error: 'CONFLICT_ERROR',
+            message: 'Los datos enviados no son validos',
+            details: [
+              {
+                field: 'nombre',
+                message: 'Ya existe un tipo de bloque con ese nombre',
+              },
+            ],
+          });
+        }
+      }
+      throw error;
+    }
   }
 }
