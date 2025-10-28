@@ -2,7 +2,7 @@
 // Importamos DataSource y QueryFailedError de TypeORM para simular el comportamiento de la base de datos.
 import { DataSource, QueryFailedError } from 'typeorm';
 // Importamos ConflictException para comprobar la traduccion del error de unicidad.
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 // Importamos la clase a probar (todavia no implementada) para describir el comportamiento esperado.
 import { TypeormTipoBloqueRepository } from '../persistence/typeorm-tipo-bloque.repository';
 
@@ -223,5 +223,140 @@ describe('TypeormTipoBloqueRepository', () => {
       hasNextPage: true,
       hasPreviousPage: true,
     });
+  });
+
+  // Probamos que findById transforme la fila en un objeto de dominio cuando el registro existe.
+  it('obtiene un tipo de bloque por id', async () => {
+    const { repository, dataSource } = buildRepository();
+    // Preparamos una fila con los campos que esperamos de la base de datos.
+    dataSource.query.mockResolvedValueOnce([
+      {
+        id: 12,
+        nombre: 'Bloque administrativo',
+        descripcion: 'Oficinas y salas de reuniones',
+        activo: false,
+        creado_en: '2025-03-01T12:00:00.000Z',
+        actualizado_en: '2025-03-02T15:30:00.000Z',
+      },
+    ]);
+    const found = await repository.findById(12);
+
+    // Revisamos que haya ejecutado la consulta sobre la tabla correcta filtrando por id.
+    const [rawSql, params] = dataSource.query.mock.calls[0];
+    const sql = rawSql.replace(/\s+/g, ' ').trim();
+    expect(sql).toContain(
+      'SELECT id, nombre, descripcion, activo, creado_en, actualizado_en FROM infraestructura.tipo_bloques WHERE id = $1',
+    );
+    expect(params).toEqual([12]);
+
+    expect(found).toEqual({
+      id: 12,
+      nombre: 'Bloque administrativo',
+      descripcion: 'Oficinas y salas de reuniones',
+      activo: false,
+      creado_en: new Date('2025-03-01T12:00:00.000Z'),
+      actualizado_en: new Date('2025-03-02T15:30:00.000Z'),
+    });
+  });
+
+  // Probamos que findById devuelva null cuando la base de datos no retorna filas.
+  it('devuelve null cuando el tipo de bloque buscado no existe', async () => {
+    const { repository, dataSource } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([]);
+
+    const found = await repository.findById(999);
+
+    expect(dataSource.query).toHaveBeenCalledWith(expect.any(String), [999]);
+    expect(found).toBeNull();
+  });
+
+  // Probamos que isNameTakenByOther detecte nombres duplicados excluyendo el id actual.
+  it('detecta nombre duplicado en otro registro', async () => {
+    const { repository, dataSource } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([{ existe: 1 }]);
+
+    const duplicated = await repository.isNameTakenByOther(
+      'Bloque administrativo',
+      5,
+    );
+
+    const [rawSql, params] = dataSource.query.mock.calls[0];
+    const sql = rawSql.replace(/\s+/g, ' ').trim();
+    expect(sql).toContain(
+      'SELECT 1 AS existe FROM infraestructura.tipo_bloques WHERE nombre = $1 AND id <> $2',
+    );
+    expect(params).toEqual(['Bloque administrativo', 5]);
+    expect(duplicated).toBe(true);
+  });
+
+  // Probamos que isNameTakenByOther ignore el propio registro.
+  it('considera disponible el nombre cuando solo coincide el mismo id', async () => {
+    const { repository, dataSource } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([]);
+
+    const duplicated = await repository.isNameTakenByOther('Biblioteca', 8);
+
+    expect(dataSource.query).toHaveBeenCalledWith(expect.any(String), [
+      'Biblioteca',
+      8,
+    ]);
+    expect(duplicated).toBe(false);
+  });
+
+  // Probamos que update construya un UPDATE dinamico con los campos enviados.
+  it('actualiza los campos enviados y devuelve el id', async () => {
+    const { repository, dataSource } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([{ id: 4 }]);
+
+    const result = await repository.update({
+      id: 4,
+      nombre: 'Bloque remodelado',
+      descripcion: 'Instalaciones renovadas para clases',
+      activo: true,
+    });
+
+    const [rawSql, params] = dataSource.query.mock.calls[0];
+    const sql = rawSql.replace(/\s+/g, ' ').trim();
+    expect(sql).toContain('UPDATE infraestructura.tipo_bloques');
+    expect(sql).toContain('SET nombre = $2');
+    expect(sql).toContain('descripcion = $3');
+    expect(sql).toContain('activo = $4');
+    expect(sql).toContain('WHERE id = $1 RETURNING id');
+    expect(params).toEqual([
+      4,
+      'Bloque remodelado',
+      'Instalaciones renovadas para clases',
+      true,
+    ]);
+    expect(result).toEqual({ id: 4 });
+  });
+
+  // Probamos que update traduzca la violacion de unicidad a ConflictException.
+  it('lanza ConflictException cuando el update choca con un nombre duplicado', async () => {
+    const { repository, dataSource } = buildRepository();
+    const driverError = { code: '23505' };
+    const queryError = new QueryFailedError('UPDATE', [], driverError);
+    dataSource.query.mockRejectedValueOnce(queryError);
+
+    await expect(
+      repository.update({
+        id: 4,
+        nombre: 'Duplicado',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  // Probamos que update notifique cuando no se actualizo ninguna fila (id inexistente).
+  it('lanza NotFoundException cuando el update no encuentra el registro', async () => {
+    const { repository, dataSource } = buildRepository();
+    // Simulamos que el UPDATE no retorna filas.
+    dataSource.query.mockResolvedValueOnce([]);
+
+    await expect(
+      repository.update({
+        id: 404,
+        descripcion: 'Descripcion inexistente',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });
