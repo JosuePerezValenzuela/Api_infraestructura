@@ -1,8 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { TipoBloqueController } from './tipo-bloque.controller';
 import { CreateTipoBloqueUseCase } from '../application/create-tipo-bloque.usecase';
 import { ListTipoBloquesUseCase } from '../application/list-tipo-bloques.usecase';
+import { UpdateTipoBloqueUseCase } from '../application/update-tipo-bloque.usecase';
+import { UpdateTipoBloqueDto } from './dto/update-tipo-bloque.dto';
 import { CreateTipoBloqueDto } from './dto/create-tipo-bloque.dto';
 import { ListTipoBloquesQueryDto } from './dto/list-tipo-bloques-query.dto';
 
@@ -14,20 +20,27 @@ type ListUseCaseMock = {
   execute: jest.Mock<Promise<any>, [any]>;
 };
 
+type UpdateUseCaseMock = {
+  execute: jest.Mock<Promise<{ id: number }>, [any]>;
+};
+
 describe('TipoBloqueController', () => {
   let controller: TipoBloqueController;
   let createUseCase: CreateUseCaseMock;
   let listUseCase: ListUseCaseMock;
+  let updateUseCase: UpdateUseCaseMock;
 
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
+    updateUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TipoBloqueController],
       providers: [
         { provide: CreateTipoBloqueUseCase, useValue: createUseCase },
         { provide: ListTipoBloquesUseCase, useValue: listUseCase },
+        { provide: UpdateTipoBloqueUseCase, useValue: updateUseCase },
       ],
     }).compile();
 
@@ -123,6 +136,68 @@ describe('TipoBloqueController', () => {
       await expect(controller.findAll({ page: 0 })).rejects.toBeInstanceOf(
         BadRequestException,
       );
+    });
+  });
+
+  describe('update', () => {
+    it('actualiza un tipo de bloque y devuelve el id', async () => {
+      updateUseCase.execute.mockResolvedValue({ id: 10 });
+      const dto: UpdateTipoBloqueDto = {
+        nombre: 'Bloque renovado',
+        descripcion: 'Instalaciones mixtas',
+      };
+
+      const result = await controller.update(10, dto);
+
+      expect(updateUseCase.execute).toHaveBeenCalledWith({
+        id: 10,
+        nombre: 'Bloque renovado',
+        descripcion: 'Instalaciones mixtas',
+      });
+      expect(result).toEqual({ id: 10 });
+    });
+
+    it('propaga NotFoundException cuando el recurso no existe', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new NotFoundException('No se encontro el tipo de bloque'),
+      );
+      const dto: UpdateTipoBloqueDto = {
+        descripcion: 'Descripcion actualizada',
+      };
+
+      await expect(controller.update(99, dto)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('propaga ConflictException cuando el nombre ya existe', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new ConflictException('Nombre duplicado'),
+      );
+      const dto: UpdateTipoBloqueDto = {
+        nombre: 'Duplicado',
+      };
+
+      await expect(controller.update(5, dto)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+    });
+
+    it('propaga BadRequestException cuando los datos son invalidos', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Los datos enviados no son validos',
+          details: [
+            { field: 'descripcion', message: 'La descripcion es obligatoria' },
+          ],
+        }),
+      );
+      const dto: UpdateTipoBloqueDto = {};
+
+      await expect(
+        controller.update(5, dto as UpdateTipoBloqueDto),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });
