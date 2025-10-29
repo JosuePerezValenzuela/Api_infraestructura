@@ -9,12 +9,14 @@ import {
   Patch,
   Param,
   ParseIntPipe,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -24,6 +26,7 @@ import {
 import { CreateTipoBloqueUseCase } from '../application/create-tipo-bloque.usecase';
 import { ListTipoBloquesUseCase } from '../application/list-tipo-bloques.usecase';
 import { UpdateTipoBloqueUseCase } from '../application/update-tipo-bloque.usecase';
+import { DeleteTipoBloqueUseCase } from '../application/delete-tipo-bloque.usecase';
 import { CreateTipoBloqueDto } from './dto/create-tipo-bloque.dto';
 import { ListTipoBloquesQueryDto } from './dto/list-tipo-bloques-query.dto';
 import { UpdateTipoBloqueDto } from './dto/update-tipo-bloque.dto';
@@ -39,6 +42,7 @@ export class TipoBloqueController {
     private readonly createTipoBloque: CreateTipoBloqueUseCase,
     private readonly listTipoBloquesUse: ListTipoBloquesUseCase,
     private readonly updateTipoBloque: UpdateTipoBloqueUseCase,
+    private readonly deleteTipoBloque: DeleteTipoBloqueUseCase,
   ) {}
 
   @Get()
@@ -212,5 +216,34 @@ export class TipoBloqueController {
     };
     const { id: updatedId } = await this.updateTipoBloque.execute(command);
     return { id: updatedId };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminar un tipo de bloque' })
+  @ApiParam({
+    name: 'id',
+    description: 'Identificador unico del tipo de bloque a eliminar',
+  })
+  @ApiNotFoundResponse({
+    description: 'El tipo de bloque no existe',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontro el tipo de bloque',
+        details: [
+          {
+            field: 'id',
+            message: 'El tipo de bloque indicado no existe',
+          },
+        ],
+      },
+    },
+  })
+  @ApiNoContentResponse({
+    description: 'Tipo de bloque eliminado correctametne',
+  })
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.deleteTipoBloque.execute({ id });
   }
 }
