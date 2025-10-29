@@ -266,3 +266,118 @@ describe('TypeormRelationshipRepository.deleteFacultadCascade', () => {
     expect(queryRunner.release).toHaveBeenCalledTimes(1);
   });
 });
+
+// Ahora documentamos y probamos deleteTipoBloqueCascade paso a paso.
+describe('TypeormRelationshipRepository.deleteTipoBloqueCascade', () => {
+  const tipoBloqueId = 91; // Usamos 91 como identificador de ejemplo.
+
+  let queryRunner: jest.Mocked<QueryRunner>;
+  let dataSource: { createQueryRunner: jest.Mock };
+  let repository: TypeormRelationshipRepository;
+
+  beforeEach(() => {
+    queryRunner = {
+      connect: jest.fn().mockResolvedValue(undefined),
+      startTransaction: jest.fn().mockResolvedValue(undefined),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+      release: jest.fn().mockResolvedValue(undefined),
+      query: jest.fn(),
+      manager: undefined,
+      data: undefined,
+      isReleased: false,
+      isTransactionActive: false,
+      isTransactionActiveRecursive: false,
+      isTransactionRunning: false,
+      isClosed: false,
+      connection: undefined as unknown as any,
+      database: undefined,
+      loadedTables: [],
+      loadedSchemas: [],
+      instance: undefined,
+      queryRunner: undefined as unknown as any,
+      driver: undefined as unknown as any,
+    } as unknown as jest.Mocked<QueryRunner>;
+
+    dataSource = {
+      createQueryRunner: jest.fn().mockReturnValue(queryRunner),
+    };
+
+    repository = new TypeormRelationshipRepository(
+      dataSource as unknown as DataSource,
+    );
+  });
+
+  it('elimina ambientes, bloques y el tipo de bloque cuando existen dependencias', async () => {
+    // 1) Seleccionamos los bloques que usan el tipo de bloque indicado.
+    queryRunner.query.mockResolvedValueOnce([{ id: 801 }, { id: 802 }]);
+    // 2) Eliminamos los ambientes asociados a esos bloques.
+    queryRunner.query.mockResolvedValueOnce([]);
+    // 3) Eliminamos los bloques dependientes.
+    queryRunner.query.mockResolvedValueOnce([]);
+    // 4) Eliminamos finalmente al tipo de bloque.
+    queryRunner.query.mockResolvedValueOnce([]);
+
+    await repository.deleteTipoBloqueCascade(tipoBloqueId);
+
+    expect(queryRunner.startTransaction).toHaveBeenCalledTimes(1);
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('FROM infraestructura.bloques'),
+      [tipoBloqueId],
+    );
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('DELETE FROM infraestructura.ambientes'),
+      [[801, 802]],
+    );
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('DELETE FROM infraestructura.bloques'),
+      [[801, 802]],
+    );
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining('DELETE FROM infraestructura.tipo_bloques'),
+      [tipoBloqueId],
+    );
+    expect(queryRunner.commitTransaction).toHaveBeenCalledTimes(1);
+    expect(queryRunner.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('elimina el tipo de bloque aun cuando no existan bloques asociados', async () => {
+    // 1) No se encontraron bloques con este tipo.
+    queryRunner.query.mockResolvedValueOnce([]);
+    // 2) Se elimina el tipo de bloque directamente.
+    queryRunner.query.mockResolvedValueOnce([]);
+
+    await repository.deleteTipoBloqueCascade(tipoBloqueId);
+
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('FROM infraestructura.bloques'),
+      [tipoBloqueId],
+    );
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('DELETE FROM infraestructura.tipo_bloques'),
+      [tipoBloqueId],
+    );
+    expect(queryRunner.query).toHaveBeenCalledTimes(2);
+    expect(queryRunner.commitTransaction).toHaveBeenCalledTimes(1);
+    expect(queryRunner.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('realiza rollback y propaga el error cuando la cascada falla', async () => {
+    const fakeError = new Error('Fallo eliminando bloques dependientes');
+    queryRunner.query.mockRejectedValueOnce(fakeError);
+
+    await expect(
+      repository.deleteTipoBloqueCascade(tipoBloqueId),
+    ).rejects.toThrow(fakeError);
+
+    expect(queryRunner.startTransaction).toHaveBeenCalledTimes(1);
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalledTimes(1);
+    expect(queryRunner.release).toHaveBeenCalledTimes(1);
+  });
+});
