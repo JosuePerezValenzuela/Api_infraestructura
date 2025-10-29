@@ -151,6 +151,46 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
     });
   }
 
+  async deleteTipoBloqueCascade(tipoBloqueId: number): Promise<void> {
+    await this.runInTransaction(async (runner) => {
+      // Busqueda de los bloques que usan este tipo de bloque
+      const rawBlocksRows: unknown = await runner.query(
+        `
+          SELECT id
+          FROM infraestructura.bloques
+          WHERE tipo_bloque_id = $1
+        `,
+        [tipoBloqueId],
+      );
+
+      //Converitmos el resutado en una lista de ids validadndo que cada fila traiga un identificador numerico
+      const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
+      const blocksIds = blockRows.map((row) => Number(row.id));
+
+      // Si existen bloques relaciones, eliminamos primero sus ambientes y luego los bloques
+      if (blocksIds.length > 0) {
+        await this.deleteBlocksDependencies(blocksIds, runner);
+
+        await runner.query(
+          `
+            DELETE FROM infraestructura.bloques
+            WHERE id = ANY($1)
+          `,
+          [blocksIds],
+        );
+      }
+
+      // Eliminamos el tipo de bloque en si
+      await runner.query(
+        `
+          DELETE FROM infraestructura.tipo_bloques
+          WHERE id = $1
+        `,
+        [tipoBloqueId],
+      );
+    });
+  }
+
   private async deleteFacultiesDependencies(
     facultyIds: number[],
     runner: QueryRunner,
