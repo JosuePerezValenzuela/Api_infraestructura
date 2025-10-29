@@ -8,6 +8,7 @@ import { TipoBloqueController } from './tipo-bloque.controller';
 import { CreateTipoBloqueUseCase } from '../application/create-tipo-bloque.usecase';
 import { ListTipoBloquesUseCase } from '../application/list-tipo-bloques.usecase';
 import { UpdateTipoBloqueUseCase } from '../application/update-tipo-bloque.usecase';
+import { DeleteTipoBloqueUseCase } from '../application/delete-tipo-bloque.usecase';
 import { UpdateTipoBloqueDto } from './dto/update-tipo-bloque.dto';
 import { CreateTipoBloqueDto } from './dto/create-tipo-bloque.dto';
 import { ListTipoBloquesQueryDto } from './dto/list-tipo-bloques-query.dto';
@@ -24,16 +25,22 @@ type UpdateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
 
+type DeleteUseCaseMock = {
+  execute: jest.Mock<Promise<{ id: number }>, [any]>;
+};
+
 describe('TipoBloqueController', () => {
   let controller: TipoBloqueController;
   let createUseCase: CreateUseCaseMock;
   let listUseCase: ListUseCaseMock;
   let updateUseCase: UpdateUseCaseMock;
+  let deleteUseCase: DeleteUseCaseMock;
 
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
     updateUseCase = { execute: jest.fn() };
+    deleteUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TipoBloqueController],
@@ -41,6 +48,7 @@ describe('TipoBloqueController', () => {
         { provide: CreateTipoBloqueUseCase, useValue: createUseCase },
         { provide: ListTipoBloquesUseCase, useValue: listUseCase },
         { provide: UpdateTipoBloqueUseCase, useValue: updateUseCase },
+        { provide: DeleteTipoBloqueUseCase, useValue: deleteUseCase },
       ],
     }).compile();
 
@@ -195,9 +203,34 @@ describe('TipoBloqueController', () => {
       );
       const dto: UpdateTipoBloqueDto = {};
 
-      await expect(
-        controller.update(5, dto as UpdateTipoBloqueDto),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(controller.update(5, dto)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('remove', () => {
+    it('devuelve 204 No Content cuando la eliminacion es exitosa', async () => {
+      // Configuramos el caso de uso para que la eliminación funcione devolviendo el id.
+      deleteUseCase.execute.mockResolvedValue({ id: 123 });
+
+      // Ejecutamos el método del controlador simulando la petición DELETE.
+      await controller.remove(123);
+
+      // Verificamos que el caso de uso recibió el identificador correcto.
+      expect(deleteUseCase.execute).toHaveBeenCalledWith({ id: 123 });
+    });
+
+    it('propaga NotFoundException cuando el tipo de bloque no existe', async () => {
+      // Hacemos que el caso de uso rechace con NotFoundException para emular el recurso inexistente.
+      deleteUseCase.execute.mockRejectedValue(
+        new NotFoundException('No se encontro el tipo de bloque'),
+      );
+
+      // Verificamos que el controlador vuelva a lanzar la excepción recibida.
+      await expect(controller.remove(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });
