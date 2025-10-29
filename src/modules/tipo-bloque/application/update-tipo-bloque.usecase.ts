@@ -42,6 +42,9 @@ export class UpdateTipoBloqueUseCase {
       throw new NotFoundException({
         error: 'NOT_FOUND',
         message: 'No se encontro el tipo de bloque',
+        details: [
+          { field: 'id', message: 'El tipo de bloque indicado no existe' },
+        ],
       });
     }
 
