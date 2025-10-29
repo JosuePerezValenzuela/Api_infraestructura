@@ -36,7 +36,7 @@ const buildSystem = (options?: {
   };
   const hasExisting = options ? 'existing' in options : false;
   // Si la prueba establece existing (aunque sea null) respetamos ese valor, de lo contrario usamos el default.
-  const existing = hasExisting ? options!.existing ?? null : defaultExisting;
+  const existing = hasExisting ? (options!.existing ?? null) : defaultExisting;
   // Determinamos si el nombre aparece duplicado en otro registro según la prueba.
   const duplicatedName = options?.duplicatedName ?? false;
   // Creamos el repositorio falso con las funciones simuladas mediante Jest.

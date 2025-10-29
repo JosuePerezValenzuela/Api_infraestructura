@@ -5,9 +5,9 @@ import { RelationshipsPort } from '../../_shared/relationships/domain/relationsh
 @Injectable()
 export class DeleteTipoBloqueUseCase {
   constructor(
-    @Inject('TipoBloqueRepositoryPort')
+    @Inject(TipoBloqueRepositoryPort)
     private readonly repo: TipoBloqueRepositoryPort,
-    @Inject('RelationshipPort')
+    @Inject(RelationshipsPort)
     private readonly relationships: RelationshipsPort,
   ) {}
   async execute({ id }: { id: number }): Promise<{ id: number }> {
