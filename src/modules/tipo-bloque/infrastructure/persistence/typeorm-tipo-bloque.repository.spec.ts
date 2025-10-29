@@ -306,7 +306,7 @@ describe('TypeormTipoBloqueRepository', () => {
   // Probamos que update construya un UPDATE dinamico con los campos enviados.
   it('actualiza los campos enviados y devuelve el id', async () => {
     const { repository, dataSource } = buildRepository();
-    dataSource.query.mockResolvedValueOnce([{ id: 4 }]);
+    dataSource.query.mockResolvedValueOnce([[{ id: 4 }], 1]);
 
     const result = await repository.update({
       id: 4,

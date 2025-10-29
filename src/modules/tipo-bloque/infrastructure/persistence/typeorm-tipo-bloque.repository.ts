@@ -266,18 +266,17 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
         sql,
         params,
       );
-      const [[row]] = rows;
+      const [row] = rows;
 
       if (!row) {
         throw new NotFoundException({
           error: 'NOT_FOUND',
           message: 'No se encontro el tipo de bloque',
         });
+      } else {
+        const [aux] = row;
+        return { id: aux.id };
       }
-
-      const aux = row.id;
-
-      return { id: aux };
     } catch (error) {
       if (error instanceof QueryFailedError) {
         const driverError = error.driverError as { code?: string } | undefined;
