@@ -29,7 +29,7 @@ export class ListTipoBloquesUseCase {
     orderDir?: TipoBloqueOrderDir;
   }): Promise<ListTipoBloquesResult> {
     const page = input.page ?? 1;
-    const limit = input.limit ?? 8;
+    const limit = input.limit ?? 6;
     const orderBy = input.orderBy ?? 'nombre';
     const orderDir = input.orderDir ?? 'asc';
     const search = input.search?.trim()?.length ? input.search.trim() : null;
