@@ -24,7 +24,7 @@ export class CreateBloqueUseCase {
   async execute(input: {
     codigo: string;
     nombre: string;
-    nombre_corto?: string;
+    nombre_corto?: string | null;
     lat: number;
     lng: number;
     pisos: number;
