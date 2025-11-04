@@ -7,6 +7,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { BloqueController } from './bloque.controller';
 // Importamos el caso de uso que el controlador debe invocar al recibir una petición POST.
 import { CreateBloqueUseCase } from '../application/create-bloque.usecase';
+import { ListBloquesUseCase } from '../application/list-bloques.usecase';
 // Importamos el DTO para que TypeScript conozca la forma del objeto que recibirá el controlador.
 import { CreateBloqueDto } from './dto/create-bloque.dto';
 
@@ -16,16 +17,22 @@ type CreateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
 
+type ListUseCaseMock = {
+  execute: jest.Mock<Promise<any>, [any]>;
+};
+
 // Agrupamos todas las pruebas dentro de describe para mantener ordenado el comportamiento del controlador.
 describe('BloqueController', () => {
   // Declaramos variables que inicializaremos antes de cada prueba.
   let controller: BloqueController;
   let createUseCase: CreateUseCaseMock;
+  let listUseCase: ListUseCaseMock;
 
   // beforeEach se ejecuta antes de cada prueba y prepara un entorno limpio.
   beforeEach(async () => {
     // Creamos un mock para el caso de uso que podremos programar de acuerdo a cada escenario.
     createUseCase = { execute: jest.fn() };
+    listUseCase = { execute: jest.fn() };
 
     // Construimos un módulo de prueba de Nest inyectando el controlador real y el mock del caso de uso.
     const module: TestingModule = await Test.createTestingModule({
@@ -35,11 +42,60 @@ describe('BloqueController', () => {
           provide: CreateBloqueUseCase,
           useValue: createUseCase,
         },
+        {
+          provide: ListBloquesUseCase,
+          useValue: listUseCase,
+        },
       ],
     }).compile();
 
     // Obtenemos el controlador desde el módulo para usarlo en las pruebas.
     controller = module.get<BloqueController>(BloqueController);
+  });
+
+  describe('findAll', () => {
+    it('invoca el caso de uso con los filtros normalizados y devuelve el resultado', async () => {
+      listUseCase.execute.mockResolvedValue({
+        items: [],
+        meta: {
+          total: 0,
+          page: 1,
+          take: 8,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      });
+
+      const result = await controller.findAll({});
+
+      expect(listUseCase.execute).toHaveBeenCalledWith({
+        page: 1,
+        limit: 8,
+        search: null,
+        orderBy: 'nombre',
+        orderDir: 'asc',
+        facultadId: null,
+        tipoBloqueId: null,
+        activo: null,
+        pisosMin: null,
+        pisosMax: null,
+      });
+      expect(result.meta.total).toBe(0);
+    });
+
+    it('propaga BadRequestException cuando el caso de uso detecta filtros invalidos', async () => {
+      listUseCase.execute.mockRejectedValue(
+        new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Los datos enviados no son validos',
+          details: [{ field: 'page', message: 'Debe ser >= 1' }],
+        }),
+      );
+
+      await expect(controller.findAll({ page: 0 })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
   });
 
   // En este bloque describimos los escenarios relacionados con el método create del controlador.
