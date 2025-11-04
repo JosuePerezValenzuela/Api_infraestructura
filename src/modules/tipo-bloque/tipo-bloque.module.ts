@@ -26,6 +26,7 @@ import { TypeormTipoBloqueRepository } from './infrastructure/persistence/typeor
     ListTipoBloquesUseCase,
     UpdateTipoBloqueUseCase,
     DeleteTipoBloqueUseCase,
+    TipoBloqueRepositoryPort,
   ],
 })
 export class TipoBloqueModule {}

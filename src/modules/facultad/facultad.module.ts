@@ -31,6 +31,7 @@ import { FacultadController } from './interface/facultad.controller';
     ListFacultadesUseCase,
     UpdateFacultadUseCase,
     DeleteFacultadUseCase,
+    FacultadRepositoryPort,
   ],
 })
 export class FacultadModule {}
