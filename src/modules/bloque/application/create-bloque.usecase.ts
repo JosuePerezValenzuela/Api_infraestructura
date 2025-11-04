@@ -36,6 +36,7 @@ export class CreateBloqueUseCase {
     const codigo = input.codigo.trim();
     const nombre = input.nombre.trim();
     const nombre_corto = input.nombre_corto?.trim() ?? null;
+    const activo = input.activo ?? true;
 
     //Validar que su codigo sea unico
     const taken = await this.bloqueRepo.isCodeTaken(codigo);
@@ -104,9 +105,9 @@ export class CreateBloqueUseCase {
       codigo,
       nombre,
       nombre_corto,
-      pointLiteral: pointLiteral,
+      pointLiteral,
       pisos: input.pisos,
-      activo: true,
+      activo,
       facultad_id: input.facultad_id,
       tipo_bloque_id: input.tipo_bloque_id,
     };
