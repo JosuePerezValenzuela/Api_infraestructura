@@ -4,7 +4,7 @@ import { ListBloquesOptions, ListBloquesResult } from './bloque.list.types';
 export const BloqueRepositoryPort = Symbol('BloqueRepositoryPort');
 
 export interface BloqueRepositoryPort {
-  create(commmand: CreateBloqueCommand): Promise<{ id: number }>;
+  create(command: CreateBloqueCommand): Promise<{ id: number }>;
 
   isCodeTaken(codigo: string): Promise<boolean>;
 
