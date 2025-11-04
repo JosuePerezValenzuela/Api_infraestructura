@@ -61,7 +61,7 @@ describe('CreateBloqueDto', () => {
   it('rechaza un codigo que excede los 16 caracteres permitidos', async () => {
     // Construimos un código demasiado largo para romper la regla de longitud máxima.
     const payload = {
-      codigo: 'BLOQUE-123456789',
+      codigo: 'BLOQUE-1234567890',
       nombre: 'Bloque Central de Ingenieria',
       nombre_corto: 'Ing Central',
       lat: -17.3937,
