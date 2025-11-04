@@ -13,11 +13,11 @@ import { CreateBloqueCommand } from '../domain/commands/create-bloque.command';
 @Injectable()
 export class CreateBloqueUseCase {
   constructor(
-    @Inject('BloqueRepositoryPort')
+    @Inject(BloqueRepositoryPort)
     private readonly bloqueRepo: BloqueRepositoryPort,
-    @Inject('FacultadRepositoryPort')
+    @Inject(FacultadRepositoryPort)
     private readonly facultadRepos: FacultadRepositoryPort,
-    @Inject('TipoBloqueRepositoryPort')
+    @Inject(TipoBloqueRepositoryPort)
     private readonly tipoBloqueRepo: TipoBloqueRepositoryPort,
   ) {}
 

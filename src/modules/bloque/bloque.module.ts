@@ -17,6 +17,6 @@ import { TypeormBloqueRepository } from './infrastructure/persistence/typeorm-bl
       useClass: TypeormBloqueRepository,
     },
   ],
-  exports: [CreateBloqueUseCase],
+  exports: [BloqueRepositoryPort],
 })
 export class BloqueModule {}
