@@ -3,7 +3,7 @@
 export interface CreateBloqueCommand {
   codigo: string;
   nombre: string;
-  nombre_corto: string;
+  nombre_corto: string | null;
   pointLiteral: string;
   pisos: number;
   activo: boolean;
