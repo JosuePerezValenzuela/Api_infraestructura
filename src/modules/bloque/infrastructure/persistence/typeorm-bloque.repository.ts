@@ -30,15 +30,11 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
     ];
 
     try {
-      const rows: [Array<{ id: number }>, number] = await this.dataSource.query(
-        sql,
-        params,
-      );
+      const rows: [{ id: number }] = await this.dataSource.query(sql, params);
 
       const [row] = rows;
-      const [aux] = row;
 
-      return { id: Number(aux.id) };
+      return { id: Number(row.id) };
     } catch (error) {
       if (error instanceof QueryFailedError) {
         const driverError = error.driverError as { code?: string } | undefined;
