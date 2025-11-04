@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CampusModule } from './modules/campus/campus.module';
 import { FacultadModule } from './modules/facultad/facultad.module';
 import { TipoBloqueModule } from './modules/tipo-bloque/tipo-bloque.module';
+import { BloqueModule } from './modules/bloque/bloque.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { TipoBloqueModule } from './modules/tipo-bloque/tipo-bloque.module';
     CampusModule,
     FacultadModule,
     TipoBloqueModule,
+    BloqueModule,
   ],
   controllers: [AppController],
   providers: [AppService],
