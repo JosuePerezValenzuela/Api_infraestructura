@@ -43,7 +43,7 @@ describe('ListTipoBloquesUseCase', () => {
 
     expect(repo.list).toHaveBeenCalledWith({
       page: 1,
-      take: 8,
+      take: 6,
       search: null,
       orderBy: 'nombre',
       orderDir: 'asc',
