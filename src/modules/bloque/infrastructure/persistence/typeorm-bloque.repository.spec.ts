@@ -205,9 +205,11 @@ describe('TypeormBloqueRepository', () => {
     expect(dataSql).toContain('JOIN infraestructura.facultades f');
     expect(dataSql).toContain('JOIN infraestructura.tipo_bloques tb');
     expect(dataSql).toContain('b.codigo ILIKE $1');
-    expect(dataSql).toContain('ORDER BY codigo DESC');
+    expect(dataSql).toContain('ORDER BY b.codigo DESC');
     // Verificamos que los parámetros incluyan los filtros en el orden esperado.
     expect(dataParams).toEqual([
+      '%centro%',
+      '%centro%',
       '%centro%',
       7,
       3,
@@ -220,6 +222,15 @@ describe('TypeormBloqueRepository', () => {
 
     const [countSql, countParams] = dataSource.query.mock.calls[1];
     expect(countSql).toContain('SELECT COUNT(*)::int AS total');
-    expect(countParams).toEqual(['%centro%', 7, 3, false, 2, 6]);
+    expect(countParams).toEqual([
+      '%centro%',
+      '%centro%',
+      '%centro%',
+      7,
+      3,
+      false,
+      2,
+      6,
+    ]);
   });
 });
