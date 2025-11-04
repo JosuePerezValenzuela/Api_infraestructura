@@ -117,4 +117,109 @@ describe('TypeormBloqueRepository', () => {
       ['BLOQUE-101'],
     );
   });
+
+  it('devuelve una lista paginada mapeando los campos esperados', async () => {
+    const dataSource = createFakeDataSource();
+    dataSource.query
+      .mockResolvedValueOnce([
+        {
+          id: 5,
+          codigo: 'BLOQ-1',
+          nombre: 'Bloque 1',
+          nombre_corto: 'B1',
+          pisos: 3,
+          activo: true,
+          creado_en: new Date('2025-10-01T12:00:00.000Z'),
+          facultad_nombre: 'Facultad Central',
+          tipo_bloque_nombre: 'Académico',
+        },
+      ])
+      .mockResolvedValueOnce([{ total: 15 }]);
+
+    const repository = new TypeormBloqueRepository(
+      dataSource as unknown as any,
+    );
+
+    const result = await repository.list({
+      page: 1,
+      take: 8,
+      search: null,
+      orderBy: 'nombre',
+      orderDir: 'asc',
+      facultadId: null,
+      tipoBloqueId: null,
+      activo: null,
+      pisosMin: null,
+      pisosMax: null,
+    });
+
+    expect(result.items).toEqual([
+      {
+        id: 5,
+        codigo: 'BLOQ-1',
+        nombre: 'Bloque 1',
+        nombre_corto: 'B1',
+        pisos: 3,
+        activo: true,
+        creado_en: '2025-10-01T12:00:00.000Z',
+        facultad_nombre: 'Facultad Central',
+        tipo_bloque_nombre: 'Académico',
+      },
+    ]);
+    expect(result.meta).toEqual({
+      total: 15,
+      page: 1,
+      take: 8,
+      hasNextPage: true,
+      hasPreviousPage: false,
+    });
+  });
+
+  it('aplica filtros dinamicos y paginacion en la consulta SQL', async () => {
+    const dataSource = createFakeDataSource();
+    dataSource.query
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 0 }]);
+
+    const repository = new TypeormBloqueRepository(
+      dataSource as unknown as any,
+    );
+
+    await repository.list({
+      page: 2,
+      take: 5,
+      search: 'centro',
+      orderBy: 'codigo',
+      orderDir: 'desc',
+      facultadId: 7,
+      tipoBloqueId: 3,
+      activo: false,
+      pisosMin: 2,
+      pisosMax: 6,
+    });
+
+    expect(dataSource.query).toHaveBeenCalledTimes(2);
+
+    const [dataSql, dataParams] = dataSource.query.mock.calls[0];
+    expect(dataSql).toContain('FROM infraestructura.bloques b');
+    expect(dataSql).toContain('JOIN infraestructura.facultades f');
+    expect(dataSql).toContain('JOIN infraestructura.tipo_bloques tb');
+    expect(dataSql).toContain('b.codigo ILIKE $1');
+    expect(dataSql).toContain('ORDER BY codigo DESC');
+    // Verificamos que los parámetros incluyan los filtros en el orden esperado.
+    expect(dataParams).toEqual([
+      '%centro%',
+      7,
+      3,
+      false,
+      2,
+      6,
+      5,
+      5, // offset = (page - 1) * take = 5
+    ]);
+
+    const [countSql, countParams] = dataSource.query.mock.calls[1];
+    expect(countSql).toContain('SELECT COUNT(*)::int AS total');
+    expect(countParams).toEqual(['%centro%', 7, 3, false, 2, 6]);
+  });
 });
