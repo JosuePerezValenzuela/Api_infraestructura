@@ -1,19 +1,100 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateBloqueUseCase } from '../application/create-bloque.usecase';
 import { CreateBloqueDto } from './dto/create-bloque.dto';
+import { ListBloquesUseCase } from '../application/list-bloques.usecase';
+import { ListBloquesQueryDto } from './dto/list-bloques-query.dto';
+import {
+  BloqueListOrderBy,
+  BloqueListOrderDir,
+} from '../domain/bloque.list.types';
 
 @ApiTags('Bloques')
 @Controller('bloques')
 export class BloqueController {
-  constructor(private readonly createBloque: CreateBloqueUseCase) {}
+  constructor(
+    private readonly createBloque: CreateBloqueUseCase,
+    private readonly listBloques: ListBloquesUseCase,
+  ) {}
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Listado paginado de bloques' })
+  @ApiOkResponse({
+    description: 'Bloques listados correctamente',
+    schema: {
+      example: {
+        items: [
+          {
+            id: 10,
+            codigo: 'BLOQUE-101',
+            nombre: 'Bloque Central',
+            nombre_corto: 'Central',
+            pisos: 4,
+            activo: true,
+            creado_en: '2025-10-01T12:00:00.000Z',
+            facultad_nombre: 'Facultad Central',
+            tipo_bloque_nombre: 'Académico',
+          },
+        ],
+        meta: {
+          total: 1,
+          page: 1,
+          take: 8,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Filtros invalidos',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'limit',
+            message:
+              'El limite debe ser un numero entre 1 y 50 registros por pagina',
+          },
+        ],
+      },
+    },
+  })
+  async findAll(@Query() query: ListBloquesQueryDto) {
+    const filters = {
+      page: query.page ?? 1,
+      limit: query.limit ?? 8,
+      search: query.search?.trim()?.length ? query.search.trim() : null,
+      orderBy: (query.orderBy ?? 'nombre') as BloqueListOrderBy,
+      orderDir: (query.orderDir ?? 'asc') as BloqueListOrderDir,
+      facultadId: query.facultadId ?? null,
+      tipoBloqueId: query.tipoBloqueId ?? null,
+      activo: query.activo ?? null,
+      pisosMin: query.pisosMin ?? null,
+      pisosMax: query.pisosMax ?? null,
+    };
+
+    return this.listBloques.execute(filters);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
