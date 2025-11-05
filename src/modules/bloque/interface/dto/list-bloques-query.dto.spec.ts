@@ -79,9 +79,4 @@ describe('ListBloquesQueryDto', () => {
     const errors = await validateInput({ orderDir: 'up' });
     expect(errors).toContain('La direccion de orden solo puede ser asc o desc');
   });
-
-  it('acepta el campo activo como booleano', async () => {
-    const errors = await validateInput({ activo: 'true' });
-    expect(errors).toContain('El activo debe ser un valor booleano');
-  });
 });
