@@ -55,6 +55,7 @@ export class ListBloquesQueryDto {
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @Type(() => Boolean)
   @IsBoolean({ message: 'El activo debe ser un valor booleano' })
   activo?: boolean;
 
