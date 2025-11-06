@@ -300,9 +300,12 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
     const params: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
-    const pushUpdate = (clause: string, value: unknown) => {
+    const pushUpdate = (
+      clause: string,
+      value: string | number | boolean | null,
+    ) => {
       setClauses.push(`${clause} = $${paramIndex++}`);
-      params.push(value as any);
+      params.push(value);
     };
 
     if (command.codigo !== undefined) {
