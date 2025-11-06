@@ -7,6 +7,7 @@ import { BloqueController } from './interface/bloque.controller';
 import { CreateBloqueUseCase } from './application/create-bloque.usecase';
 import { ListBloquesUseCase } from './application/list-bloques.usecase';
 import { UpdateBloqueUseCase } from './application/update-bloque.usecase';
+import { DeleteBloqueUseCase } from './application/delete-bloque.usecase';
 
 import { BloqueRepositoryPort } from './domain/bloque.repository.port';
 import { TypeormBloqueRepository } from './infrastructure/persistence/typeorm-bloque.repository';
@@ -18,6 +19,7 @@ import { TypeormBloqueRepository } from './infrastructure/persistence/typeorm-bl
     CreateBloqueUseCase,
     ListBloquesUseCase,
     UpdateBloqueUseCase,
+    DeleteBloqueUseCase,
     {
       provide: BloqueRepositoryPort,
       useClass: TypeormBloqueRepository,
