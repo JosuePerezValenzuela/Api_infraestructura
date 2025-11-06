@@ -13,4 +13,6 @@ export interface RelationshipsPort {
   deleteFacultadCascade(facultadId: number): Promise<void>;
 
   deleteTipoBloqueCascade(tipoBloqueId: number): Promise<void>;
+
+  deleteBloqueCascade(bloqueId: number): Promise<void>;
 }
