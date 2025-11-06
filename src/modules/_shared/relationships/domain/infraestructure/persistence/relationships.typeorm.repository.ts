@@ -191,6 +191,37 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
     });
   }
 
+  async deleteBloqueCascade(bloqueId: number): Promise<void> {
+    await this.runInTransaction(async (runner) => {
+      // Busqueda de los ambientes que usan este bloque
+      const rawAmbientesRows: unknown = await runner.query(
+        `
+          SELECT id
+          FROM infraestructura.ambientes
+          WHERE bloque_id = $1
+        `,
+        [bloqueId],
+      );
+
+      //Converitmos el resutado en una lista de ids validadndo que cada fila traiga un identificador numerico
+      const ambientesRows = this.mapRowsWithId(rawAmbientesRows, 'Ambientes');
+      const ambientesIds = ambientesRows.map((row) => Number(row.id));
+
+      // Si existen bloques relaciones, eliminamos primero sus ambientes y luego los bloques
+      if (ambientesIds.length > 0) {
+        await this.deleteBlocksDependencies([bloqueId], runner);
+      }
+
+      await runner.query(
+        `
+          DELETE FROM infraestructura.bloques
+          WHERE id = $1
+        `,
+        [bloqueId],
+      );
+    });
+  }
+
   private async deleteFacultiesDependencies(
     facultyIds: number[],
     runner: QueryRunner,
