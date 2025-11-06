@@ -4,6 +4,9 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -12,6 +15,7 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -24,6 +28,8 @@ import {
   BloqueListOrderBy,
   BloqueListOrderDir,
 } from '../domain/bloque.list.types';
+import { UpdateBloqueUseCase } from '../application/update-bloque.usecase';
+import { UpdateBloqueDto } from './dto/update-bloque.dto';
 
 @ApiTags('Bloques')
 @Controller('bloques')
@@ -31,6 +37,7 @@ export class BloqueController {
   constructor(
     private readonly createBloque: CreateBloqueUseCase,
     private readonly listBloques: ListBloquesUseCase,
+    private readonly updateBloque: UpdateBloqueUseCase,
   ) {}
 
   @Get()
@@ -145,5 +152,65 @@ export class BloqueController {
     });
 
     return { id };
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Editar parcialmente un bloque existente' })
+  @ApiBody({ type: UpdateBloqueDto })
+  @ApiOkResponse({
+    description: 'Bloque actualizado correctamente',
+    schema: { example: { id: 42 } },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos o reglas de negocio incumplidas',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'lat/lng',
+            message: 'Debes enviar lat y lng juntos',
+          },
+        ],
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Conflicto por codigo duplicado',
+    schema: {
+      example: {
+        error: 'CONFLICT',
+        message: 'Ya existe un bloque con el mismo codigo',
+        details: [
+          {
+            field: 'codigo',
+            message: 'El codigo indicado ya esta en uso por otro bloque',
+          },
+        ],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'No existe un bloque con el id indicado',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontro el bloque solicitado',
+        details: [{ field: 'id', message: 'Bloque inexistente' }],
+      },
+    },
+  })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateBloqueDto,
+  ) {
+    const { id: updatedId } = await this.updateBloque.execute({
+      id,
+      input: { ...dto },
+    });
+
+    return { id: updatedId };
   }
 }
