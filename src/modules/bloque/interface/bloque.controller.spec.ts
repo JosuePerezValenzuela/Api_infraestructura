@@ -1,17 +1,23 @@
-// En este archivo escribimos las pruebas del BloqueController y explicamos cada paso para que cualquier persona aprenda cómo funciona.
+﻿// En este archivo escribimos las pruebas del BloqueController y explicamos cada paso para que cualquier persona aprenda cómo funciona.
 // Importamos helpers de Nest para crear un módulo de prueba donde podamos inyectar versiones falsas de los casos de uso.
 import { Test, TestingModule } from '@nestjs/testing';
-// Importamos las excepciones que esperamos que el controlador pueda propagar cuando el caso de uso detecta errores.
-import { BadRequestException, ConflictException } from '@nestjs/common';
+// Importamos las excepciones que esperamos que el controlador pueda propagar cuando un caso de uso detecta errores.
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 // Importamos el controlador que vamos a probar (su implementación vendrá después).
 import { BloqueController } from './bloque.controller';
-// Importamos el caso de uso que el controlador debe invocar al recibir una petición POST.
+// Importamos los casos de uso que el controlador debe invocar para cada endpoint.
 import { CreateBloqueUseCase } from '../application/create-bloque.usecase';
 import { ListBloquesUseCase } from '../application/list-bloques.usecase';
-// Importamos el DTO para que TypeScript conozca la forma del objeto que recibirá el controlador.
+import { UpdateBloqueUseCase } from '../application/update-bloque.usecase';
+// Importamos los DTO que representan la forma de los datos que recibimos vía HTTP.
 import { CreateBloqueDto } from './dto/create-bloque.dto';
+import { UpdateBloqueDto } from './dto/update-bloque.dto';
 
-// Creamos un tipo auxiliar que describe la forma del mock del caso de uso.
+// Creamos tipos auxiliares que describen los mocks de cada caso de uso.
 type CreateUseCaseMock = {
   // Definimos execute como un mock de Jest que recibe un comando y devuelve una Promesa con el id creado.
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
@@ -21,20 +27,27 @@ type ListUseCaseMock = {
   execute: jest.Mock<Promise<any>, [any]>;
 };
 
+type UpdateUseCaseMock = {
+  // Este mock recibe el objeto con el id y el payload parcial que se enviará al caso de uso.
+  execute: jest.Mock<Promise<{ id: number }>, [any]>;
+};
+
 // Agrupamos todas las pruebas dentro de describe para mantener ordenado el comportamiento del controlador.
 describe('BloqueController', () => {
   // Declaramos variables que inicializaremos antes de cada prueba.
   let controller: BloqueController;
   let createUseCase: CreateUseCaseMock;
   let listUseCase: ListUseCaseMock;
+  let updateUseCase: UpdateUseCaseMock;
 
   // beforeEach se ejecuta antes de cada prueba y prepara un entorno limpio.
   beforeEach(async () => {
-    // Creamos un mock para el caso de uso que podremos programar de acuerdo a cada escenario.
+    // Creamos mocks para cada caso de uso que podremos programar de acuerdo a cada escenario probado.
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
+    updateUseCase = { execute: jest.fn() };
 
-    // Construimos un módulo de prueba de Nest inyectando el controlador real y el mock del caso de uso.
+    // Construimos un módulo de prueba de Nest inyectando el controlador real y los mocks de los casos de uso.
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BloqueController],
       providers: [
@@ -46,6 +59,10 @@ describe('BloqueController', () => {
           provide: ListBloquesUseCase,
           useValue: listUseCase,
         },
+        {
+          provide: UpdateBloqueUseCase,
+          useValue: updateUseCase,
+        },
       ],
     }).compile();
 
@@ -55,6 +72,7 @@ describe('BloqueController', () => {
 
   describe('findAll', () => {
     it('invoca el caso de uso con los filtros normalizados y devuelve el resultado', async () => {
+      // Simulamos que el caso de uso devuelve una respuesta paginada vacía (camino feliz).
       listUseCase.execute.mockResolvedValue({
         items: [],
         meta: {
@@ -66,8 +84,10 @@ describe('BloqueController', () => {
         },
       });
 
+      // Llamamos al método findAll sin filtros para que el controlador use los valores por defecto.
       const result = await controller.findAll({});
 
+      // Verificamos que el caso de uso reciba los filtros normalizados (page=1, limit=8, etc.).
       expect(listUseCase.execute).toHaveBeenCalledWith({
         page: 1,
         limit: 8,
@@ -80,6 +100,7 @@ describe('BloqueController', () => {
         pisosMin: null,
         pisosMax: null,
       });
+      // Confirmamos que el resultado es exactamente lo que devolvió el caso de uso.
       expect(result.meta.total).toBe(0);
     });
 
@@ -92,6 +113,7 @@ describe('BloqueController', () => {
         }),
       );
 
+      // Esperamos que el controlador propague la excepción tal cual.
       await expect(controller.findAll({ page: 0 })).rejects.toBeInstanceOf(
         BadRequestException,
       );
@@ -137,7 +159,7 @@ describe('BloqueController', () => {
     });
 
     // Este test demuestra que el controlador simplemente propaga los errores de conflicto del caso de uso.
-    it('propaga ConflictException cuando el caso de uso detecta codigo duplicado', async () => {
+    it('propaga ConflictException cuando el caso de uso detecta código duplicado', async () => {
       // Configuramos el mock para que rechace con ConflictException.
       createUseCase.execute.mockRejectedValue(
         new ConflictException('Ya existe un bloque con ese codigo'),
@@ -161,12 +183,14 @@ describe('BloqueController', () => {
     });
 
     // Finalmente verificamos que también se propaguen errores de validación (BadRequestException).
-    it('propaga BadRequestException cuando los datos son invalidos', async () => {
+    it('propaga BadRequestException cuando los datos son inválidos', async () => {
       createUseCase.execute.mockRejectedValue(
         new BadRequestException({
           error: 'VALIDATION_ERROR',
           message: 'Los datos enviados no son validos',
-          details: [{ field: 'facultad_id', message: 'La facultad no existe' }],
+          details: [
+            { field: 'facultad_id', message: 'La facultad indicada no existe' },
+          ],
         }),
       );
       const dto: CreateBloqueDto = {
@@ -183,6 +207,73 @@ describe('BloqueController', () => {
 
       await expect(controller.create(dto)).rejects.toBeInstanceOf(
         BadRequestException,
+      );
+    });
+  });
+
+  // Este bloque contiene los escenarios para el endpoint PATCH /bloques/:id.
+  describe('update', () => {
+    // Caso feliz: devolvemos el id actualizado y delegamos correctamente en el caso de uso.
+    it('delega la actualización al caso de uso y devuelve el id', async () => {
+      // Programamos el mock para que el caso de uso informe éxito devolviendo el id del bloque.
+      updateUseCase.execute.mockResolvedValue({ id: 42 });
+      // Construimos un DTO parcial con los cambios solicitados por el cliente.
+      const dto: UpdateBloqueDto = {
+        nombre: 'Bloque actualizado',
+        activo: true,
+      };
+
+      // Invocamos el método del controlador simulando el PATCH /bloques/42.
+      const result = await controller.update(42, dto);
+
+      // El controlador debe llamar al caso de uso con el id y el payload sin modificar.
+      expect(updateUseCase.execute).toHaveBeenCalledWith({
+        id: 42,
+        input: dto,
+      });
+      // La respuesta HTTP debe reflejar el id que retorna el caso de uso.
+      expect(result).toEqual({ id: 42 });
+    });
+
+    // Este test verifica que propagamos los errores de validación que reporte el caso de uso.
+    it('propaga BadRequestException cuando el caso de uso detecta datos inválidos', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Los datos enviados no son validos',
+          details: [
+            {
+              field: 'lat/lng',
+              message: 'Debes enviar lat y lng juntos',
+            },
+          ],
+        }),
+      );
+
+      await expect(
+        controller.update(15, { lat: -17.3 }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    // También propagamos conflictos cuando el caso de uso identifica un código duplicado.
+    it('propaga ConflictException cuando el caso de uso detecta un código duplicado', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new ConflictException('Ya existe un bloque con ese código'),
+      );
+
+      await expect(
+        controller.update(15, { codigo: 'BLOQUE-101' }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    // Verificamos que cuando el caso de uso indica que el bloque no existe se propague el 404.
+    it('propaga NotFoundException cuando el bloque no existe', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new NotFoundException('No se encontro el bloque'),
+      );
+
+      await expect(controller.update(999, {})).rejects.toBeInstanceOf(
+        NotFoundException,
       );
     });
   });
