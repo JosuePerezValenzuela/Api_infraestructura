@@ -21,7 +21,7 @@ export interface BloqueSnapshot {
 export interface BloqueRepositoryPort {
   create(command: CreateBloqueCommand): Promise<{ id: number }>;
 
-  isCodeTaken(codigo: string): Promise<boolean>;
+  isCodeTaken(codigo: string, excludeId?: number): Promise<boolean>;
 
   list(options: ListBloquesOptions): Promise<ListBloquesResult>;
 
