@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -15,6 +16,7 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -30,6 +32,7 @@ import {
 } from '../domain/bloque.list.types';
 import { UpdateBloqueUseCase } from '../application/update-bloque.usecase';
 import { UpdateBloqueDto } from './dto/update-bloque.dto';
+import { DeleteBloqueUseCase } from '../application/delete-bloque.usecase';
 
 @ApiTags('Bloques')
 @Controller('bloques')
@@ -38,6 +41,7 @@ export class BloqueController {
     private readonly createBloque: CreateBloqueUseCase,
     private readonly listBloques: ListBloquesUseCase,
     private readonly updateBloque: UpdateBloqueUseCase,
+    private readonly deleteBloque: DeleteBloqueUseCase,
   ) {}
 
   @Get()
@@ -212,5 +216,22 @@ export class BloqueController {
     });
 
     return { id: updatedId };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminar un bloque por identificador' })
+  @ApiNoContentResponse({ description: 'Bloque eliminado correctamente' })
+  @ApiNotFoundResponse({
+    description: 'No existe un bloque con el id indicado',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontro el bloque',
+      },
+    },
+  })
+  async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    await this.deleteBloque.execute({ id });
   }
 }
