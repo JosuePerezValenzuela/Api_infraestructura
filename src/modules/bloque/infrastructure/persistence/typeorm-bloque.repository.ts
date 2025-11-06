@@ -247,18 +247,18 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
       SELECT
         b.id,
         b.codigo,
+        b.nombre,
         b.nombre_corto,
         b.pisos,
         b.activo,
         b.facultad_id,
         b.tipo_bloque_id,
-        (b.coordanadas)[1]:: float AS lng,
+        (b.coordenadas)[1]:: float AS lng,
         (b.coordenadas)[2]:: float AS lat
-      FROM infraestructura.bloques b,
+      FROM infraestructura.bloques b
       WHERE b.id = $1
       LIMIT 1
     `;
-
     const rows = await this.dataSource.query<
       {
         id: number;
@@ -347,14 +347,14 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
     const sql = `
       UPDATE infraestructura.bloques
       SET ${setClauses.join(', ')}
-      WHERE id = $${command.id}
+      WHERE id = $${paramIndex}
       RETURNING id
     `;
     params.push(command.id);
 
     try {
-      const rows = await this.dataSource.query<{ id: number }[]>(sql, params);
-      return { id: Number(rows[0].id) };
+      await this.dataSource.query<{ id: number }[]>(sql, params);
+      return { id: command.id };
     } catch (error) {
       this.handleUniqueCodeError(error);
       throw error;
