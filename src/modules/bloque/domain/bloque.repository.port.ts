@@ -28,6 +28,4 @@ export interface BloqueRepositoryPort {
   update(command: UpdateBloqueCommand): Promise<{ id: number }>;
 
   findById(id: number): Promise<BloqueSnapshot | null>;
-
-  delete(id: number): Promise<void>;
 }
