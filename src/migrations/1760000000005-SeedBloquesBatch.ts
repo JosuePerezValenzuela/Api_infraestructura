@@ -9,12 +9,29 @@ export class SeedBloquesBatch1760000000005 implements MigrationInterface {
           VALUES
             ('Edificio Nuevo de aulas', 'Edifico nuevo', '123456789', 3, POINT(-66,-18), 1, 3),
             ('Edifico de laboratorios', 'Edificio labos', '987654321', 4, POINT(-66,-19), 1, 2),
-            ('Pasillo de gallineros', 'Edificio de aulas', '111112222', 1, POINT(-62,-18), 2, 3);
+            ('Pasillo de gallineros', 'Edificio de aulas', '111112222', 1, POINT(-62,-18), 2, 3),
+            ('Centro de Innovacion Tecnologica', 'Innovacion', 'INN-001', 5, POINT(-66.48, -17.40), 1, 4),
+            ('Complejo Deportivo Universitario', 'Deportivo', 'DEP-002', 2, POINT(-66.47, -17.42), 2, 5),
+            ('Bloque Agroindustrial', 'Agroindustrial', 'AGR-003', 3, POINT(-65.97, -17.44), 5, 2),
+            ('Bloque Talleres Arquitectura', 'Talleres Arq', 'ARQ-004', 4, POINT(-66.53, -17.42), 4, 3);
         `,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // TODO: Add raw SQL deletes to revert bloques batch seeding.
+    await queryRunner.query(
+      `
+          DELETE FROM infraestructura.bloques
+          WHERE codigo IN (
+            '123456789',
+            '987654321',
+            '111112222',
+            'INN-001',
+            'DEP-002',
+            'AGR-003',
+            'ARQ-004'
+          );
+        `,
+    );
   }
 }
