@@ -1,4 +1,8 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { TipoAmbienteRepositoryPort } from '../../domain/tipo-ambiente.repository.port';
@@ -163,5 +167,36 @@ export class TypeormTipoAmbienteRepository
         hasPreviousPage,
       },
     };
+  }
+
+  async delete(command: { id: number }): Promise<{ id: number }> {
+    await this.dataSource.query(
+      `
+        DELETE FROM infraestructura.ambientes
+        WHERE tipo_ambiente_id = $1
+      `,
+      [command.id],
+    );
+
+    const rows: Array<{ id: number | string }> = await this.dataSource.query(
+      `
+        DELETE FROM infraestructura.tipo_ambientes
+        WHERE id = $1
+        RETURNING id
+      `,
+      [command.id],
+    );
+
+    const [row] = rows;
+
+    if (!row) {
+      throw new NotFoundException({
+        error: 'NOT_FOUND',
+        message: 'No se encontro el tipo de ambiente',
+        details: [{ field: 'id', message: 'El tipo de ambiente no existe' }],
+      });
+    }
+
+    return { id: Number(row.id) };
   }
 }
