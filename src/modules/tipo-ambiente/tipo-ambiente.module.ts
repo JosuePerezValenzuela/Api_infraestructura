@@ -5,6 +5,7 @@ import { TipoAmbienteController } from './interface/tipo-ambiente.controller';
 import { TipoAmbienteRepositoryPort } from './domain/tipo-ambiente.repository.port';
 import { TypeormTipoAmbienteRepository } from './infrastructure/persistence/typeorm-tipo-ambiente.repository';
 import { ListTipoAmbientesUseCase } from './application/list-tipo-ambientes.usecase';
+import { DeleteTipoAmbienteUseCase } from './application/delete-tipo-ambiente.usecase';
 
 @Module({
   imports: [TypeOrmModule.forFeature([])],
@@ -12,6 +13,7 @@ import { ListTipoAmbientesUseCase } from './application/list-tipo-ambientes.usec
   providers: [
     CreateTipoAmbienteUseCase,
     ListTipoAmbientesUseCase,
+    DeleteTipoAmbienteUseCase,
     {
       provide: TipoAmbienteRepositoryPort,
       useClass: TypeormTipoAmbienteRepository,
