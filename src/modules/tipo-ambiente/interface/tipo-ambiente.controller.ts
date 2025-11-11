@@ -1,10 +1,20 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateTipoAmbienteUseCase } from '../application/create-tipo-ambiente.usecase';
@@ -13,6 +23,7 @@ import { ListTipoAmbientesUseCase } from '../application/list-tipo-ambientes.use
 import { ListTipoAmbientesQueryDto } from './dto/list-tipo-ambientes-query.dto';
 
 @ApiTags('TipoAmbientes')
+@ApiExtraModels(ListTipoAmbientesQueryDto)
 @Controller('tipo_ambientes')
 export class TipoAmbienteController {
   constructor(
@@ -61,6 +72,7 @@ export class TipoAmbienteController {
       },
     },
   })
+  @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateTipoAmbienteDto): Promise<{ id: number }> {
     return this.createTipoAmbienteUseCase.execute({
       nombre: dto.nombre,
@@ -114,6 +126,37 @@ export class TipoAmbienteController {
       },
     },
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Número de página (>= 1). Por defecto 1.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Cantidad de registros por página (1..50). Por defecto 8.',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Búsqueda parcial por nombre.',
+  })
+  @ApiQuery({
+    name: 'orderBy',
+    required: false,
+    enum: ['nombre', 'creado_en'],
+    description: 'Campo permitido para ordenar. Por defecto nombre.',
+  })
+  @ApiQuery({
+    name: 'orderDir',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Dirección del ordenamiento. Por defecto asc.',
+  })
+  @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: ListTipoAmbientesQueryDto,
   ): Promise<ReturnType<ListTipoAmbientesUseCase['execute']>> {
