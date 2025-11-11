@@ -1,8 +1,13 @@
 // Estas pruebas describen los comportamientos del TipoAmbienteController con comentarios educativos línea a línea.
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { TipoAmbienteController } from './tipo-ambiente.controller';
 import { CreateTipoAmbienteUseCase } from '../application/create-tipo-ambiente.usecase';
+import { DeleteTipoAmbienteUseCase } from '../application/delete-tipo-ambiente.usecase';
 import { CreateTipoAmbienteDto } from './dto/create-tipo-ambiente.dto';
 import { ListTipoAmbientesUseCase } from '../application/list-tipo-ambientes.usecase';
 import { ListTipoAmbientesQueryDto } from './dto/list-tipo-ambientes-query.dto';
@@ -16,15 +21,21 @@ type ListUseCaseMock = {
   execute: jest.Mock<Promise<any>, [any]>;
 };
 
+type DeleteUseCaseMock = {
+  execute: jest.Mock<Promise<void>, [any]>;
+};
+
 describe('TipoAmbienteController', () => {
   let controller: TipoAmbienteController;
   let createUseCase: CreateUseCaseMock;
   let listUseCase: ListUseCaseMock;
+  let deleteUseCase: DeleteUseCaseMock;
 
   beforeEach(async () => {
     // Configuramos el mock del caso de uso con Jest para controlar sus respuestas.
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
+    deleteUseCase = { execute: jest.fn() };
 
     // Creamos un módulo de pruebas ligero que inyecta el controlador con el caso de uso simulado.
     const module: TestingModule = await Test.createTestingModule({
@@ -32,6 +43,7 @@ describe('TipoAmbienteController', () => {
       providers: [
         { provide: CreateTipoAmbienteUseCase, useValue: createUseCase },
         { provide: ListTipoAmbientesUseCase, useValue: listUseCase },
+        { provide: DeleteTipoAmbienteUseCase, useValue: deleteUseCase },
       ],
     }).compile();
 
@@ -143,6 +155,26 @@ describe('TipoAmbienteController', () => {
 
       await expect(controller.findAll({ page: 0 })).rejects.toBeInstanceOf(
         BadRequestException,
+      );
+    });
+  });
+
+  describe('remove', () => {
+    it('invoca al caso de uso y devuelve 204', async () => {
+      deleteUseCase.execute.mockResolvedValue({ id: 3 });
+
+      await controller.remove(3);
+
+      expect(deleteUseCase.execute).toHaveBeenCalledWith({ id: 3 });
+    });
+
+    it('propaga NotFoundException cuando el tipo de ambiente no existe', async () => {
+      deleteUseCase.execute.mockRejectedValue(
+        new NotFoundException('No se encontró el tipo de ambiente'),
+      );
+
+      await expect(controller.remove(99)).rejects.toBeInstanceOf(
+        NotFoundException,
       );
     });
   });
