@@ -6,6 +6,7 @@ import { TipoAmbienteRepositoryPort } from './domain/tipo-ambiente.repository.po
 import { TypeormTipoAmbienteRepository } from './infrastructure/persistence/typeorm-tipo-ambiente.repository';
 import { ListTipoAmbientesUseCase } from './application/list-tipo-ambientes.usecase';
 import { DeleteTipoAmbienteUseCase } from './application/delete-tipo-ambiente.usecase';
+import { UpdateTipoAmbienteUseCase } from './application/update-tipo-ambiente.usecase';
 
 @Module({
   imports: [TypeOrmModule.forFeature([])],
@@ -14,6 +15,7 @@ import { DeleteTipoAmbienteUseCase } from './application/delete-tipo-ambiente.us
     CreateTipoAmbienteUseCase,
     ListTipoAmbientesUseCase,
     DeleteTipoAmbienteUseCase,
+    UpdateTipoAmbienteUseCase,
     {
       provide: TipoAmbienteRepositoryPort,
       useClass: TypeormTipoAmbienteRepository,
