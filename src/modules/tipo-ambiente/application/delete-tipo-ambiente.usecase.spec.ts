@@ -42,7 +42,7 @@ describe('DeleteTipoAmbienteUseCase', () => {
       new NotFoundException('No se encontró el tipo de ambiente'),
     );
 
-    await expect(useCase.execute({ id: 999 })).rejects.toBeInstanceOf(
+    await expect(useCase.execute({ id: 9999 })).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
