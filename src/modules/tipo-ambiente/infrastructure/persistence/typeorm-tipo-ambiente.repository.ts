@@ -3,6 +3,12 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { TipoAmbienteRepositoryPort } from '../../domain/tipo-ambiente.repository.port';
 import { CreateTipoAmbienteCommand } from '../../domain/commands/create-tipo-ambiente.command';
+import {
+  ListTipoAmbientesOptions,
+  ListTipoAmbientesResult,
+  TipoAmbienteListItem,
+  TipoAmbienteOrderBy,
+} from '../../domain/tipo-ambiente.list.types';
 
 @Injectable()
 export class TypeormTipoAmbienteRepository
@@ -74,5 +80,88 @@ export class TypeormTipoAmbienteRepository
     ]);
 
     return rows.length > 0;
+  }
+
+  async list(
+    options: ListTipoAmbientesOptions,
+  ): Promise<ListTipoAmbientesResult> {
+    const search = options.search?.trim();
+    const dataParams: Array<string | number> = [];
+    const countParams: Array<string | number> = [];
+    let whereClause = '';
+
+    if (search && search.length > 0) {
+      const pattern = `%${search}%`;
+      whereClause = 'WHERE ta.nombre ILIKE $1';
+      dataParams.push(pattern);
+      countParams.push(pattern);
+    }
+
+    dataParams.push(options.take);
+    const limitIndex = dataParams.length;
+    dataParams.push((options.page - 1) * options.take);
+    const offsetIndex = dataParams.length;
+
+    const orderByMap: Record<TipoAmbienteOrderBy, string> = {
+      nombre: 'ta.nombre',
+      creado_en: 'ta.creado_en',
+    };
+
+    const dataSql = `
+      SELECT
+        ta.id,
+        ta.nombre,
+        ta.descripcion,
+        ta.descripcion_corta,
+        ta.activo,
+        ta.creado_en,
+        ta.actualizado_en
+      FROM infraestructura.tipo_ambientes ta
+      ${whereClause}
+      ORDER BY ${orderByMap[options.orderBy]} ${options.orderDir.toUpperCase()}
+      LIMIT $${limitIndex} OFFSET $${offsetIndex}
+    `;
+
+    const countSql = `
+      SELECT COUNT(*)::int AS total
+      FROM infraestructura.tipo_ambientes ta
+      ${whereClause}
+    `;
+
+    const rows = await this.dataSource.query<TipoAmbienteListItem[]>(
+      dataSql,
+      dataParams,
+    );
+    const countRows = await this.dataSource.query<Array<{ total: number }>>(
+      countSql,
+      countParams,
+    );
+    const total = countRows[0]?.total ?? 0;
+
+    const items = rows.map((row) => ({
+      id: Number(row.id),
+      nombre: row.nombre,
+      descripcion: row.descripcion,
+      descripcion_corta: row.descripcion_corta ?? null,
+      activo: row.activo,
+      creado_en: new Date(row.creado_en),
+      actualizado_en: new Date(row.actualizado_en),
+    }));
+
+    const pages = Math.max(1, Math.ceil(total / options.take));
+    const hasNextPage = options.page < pages;
+    const hasPreviousPage = options.page > 1;
+
+    return {
+      items,
+      meta: {
+        total,
+        page: options.page,
+        take: options.take,
+        pages,
+        hasNextPage,
+        hasPreviousPage,
+      },
+    };
   }
 }
