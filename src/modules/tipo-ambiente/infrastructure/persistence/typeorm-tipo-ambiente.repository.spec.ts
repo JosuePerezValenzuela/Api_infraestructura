@@ -195,4 +195,39 @@ describe('TypeormTipoAmbienteRepository', () => {
     );
     expect(dataSource.query).toHaveBeenCalledTimes(1);
   });
+
+  it('actualiza los campos enviados y devuelve el id', async () => {
+    const { dataSource, repository } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([{ id: 5 }]); // update returning id
+
+    const result = await repository.update({
+      id: 5,
+      nombre: 'Laboratorio actualizado',
+      descripcion: 'Espacio para prácticas',
+      descripcion_corta: 'Lab',
+      activo: false,
+    });
+
+    const [updateSql, params] = dataSource.query.mock.calls[0];
+    expect(updateSql.replace(/\s+/g, ' ').trim()).toContain(
+      'UPDATE infraestructura.tipo_ambientes SET',
+    );
+    expect(params).toEqual([
+      5,
+      'Laboratorio actualizado',
+      'Espacio para prácticas',
+      'Lab',
+      false,
+    ]);
+    expect(result).toEqual({ id: 5 });
+  });
+
+  it('lanza NotFoundException cuando se actualiza un registro inexistente', async () => {
+    const { dataSource, repository } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([]);
+
+    await expect(
+      repository.update({ id: 999, descripcion: 'N/A' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
 });
