@@ -1,6 +1,6 @@
 // Estas pruebas documentan el repositorio TypeormTipoAmbienteRepository paso a paso.
 import { DataSource, QueryFailedError } from 'typeorm';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { TypeormTipoAmbienteRepository } from './typeorm-tipo-ambiente.repository';
 
 type FakeDataSource = {
@@ -155,5 +155,36 @@ describe('TypeormTipoAmbienteRepository', () => {
     const [countSql, countParams] = dataSource.query.mock.calls[1];
     expect(countSql.replace(/\s+/g, ' ').trim()).toContain('ILIKE $1');
     expect(countParams).toEqual(['%lab%']);
+  });
+
+  it('elimina un tipo de ambiente y devuelve el id', async () => {
+    const { dataSource, repository } = buildRepository();
+    dataSource.query
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 5 }]);
+
+    const result = await repository.delete({ id: 5 });
+
+    expect(dataSource.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('DELETE FROM infraestructura.ambientes'),
+      [5],
+    );
+    expect(
+      dataSource.query.mock.calls[1][0].replace(/\s+/g, ' ').trim(),
+    ).toContain(
+      'DELETE FROM infraestructura.tipo_ambientes WHERE id = $1 RETURNING id',
+    );
+    expect(dataSource.query.mock.calls[1][1]).toEqual([5]);
+    expect(result).toEqual({ id: 5 });
+  });
+
+  it('lanza NotFoundException cuando no existe el tipo de ambiente', async () => {
+    const { dataSource, repository } = buildRepository();
+    dataSource.query.mockResolvedValue([]);
+
+    await expect(repository.delete({ id: 999 })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });
