@@ -1,4 +1,5 @@
 import { CreateTipoAmbienteCommand } from './commands/create-tipo-ambiente.command';
+import { DeleteTipoAmbienteCommand } from './commands/delete-tipo-ambiente.command';
 import {
   ListTipoAmbientesOptions,
   ListTipoAmbientesResult,
@@ -12,4 +13,6 @@ export interface TipoAmbienteRepositoryPort {
   isNameTaken(nombre: string): Promise<boolean>;
 
   list(options: ListTipoAmbientesOptions): Promise<ListTipoAmbientesResult>;
+
+  delete(command: DeleteTipoAmbienteCommand): Promise<{ id: number }>;
 }
