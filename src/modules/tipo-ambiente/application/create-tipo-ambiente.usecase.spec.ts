@@ -134,5 +134,4 @@ describe('CreateTipoAmbienteUseCase', () => {
     expect(repo.isNameTaken).not.toHaveBeenCalled();
     expect(repo.create).not.toHaveBeenCalled();
   });
-
 });
