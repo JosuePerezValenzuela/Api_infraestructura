@@ -13,6 +13,7 @@ import {
   TipoAmbienteListItem,
   TipoAmbienteOrderBy,
 } from '../../domain/tipo-ambiente.list.types';
+import { UpdateTipoAmbienteCommand } from '../../domain/commands/update-tipo-ambiente.command';
 
 @Injectable()
 export class TypeormTipoAmbienteRepository
@@ -205,6 +206,116 @@ export class TypeormTipoAmbienteRepository
     );
 
     const [row] = rows;
+
+    return { id: Number(row.id) };
+  }
+
+  async findById(id: number): Promise<TipoAmbienteListItem | null> {
+    const rows = await this.dataSource.query<
+      Array<{
+        id: number | string;
+        nombre: string;
+        descripcion: string;
+        descripcion_corta: string | null;
+        activo: boolean;
+        creado_en: Date | string;
+        actualizado_en: Date | string;
+      }>
+    >(
+      `
+        SELECT
+          ta.id,
+          ta.nombre,
+          ta.descripcion,
+          ta.descripcion_corta,
+          ta.activo,
+          ta.creado_en,
+          ta.actualizado_en
+        FROM infraestructura.tipo_ambientes ta
+        WHERE ta.id = $1
+      `,
+      [id],
+    );
+
+    const [row] = rows;
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: Number(row.id),
+      nombre: row.nombre,
+      descripcion: row.descripcion,
+      descripcion_corta: row.descripcion_corta,
+      activo: row.activo,
+      creado_en: new Date(row.creado_en),
+      actualizado_en: new Date(row.actualizado_en),
+    };
+  }
+
+  async isNameTakenByOther(nombre: string, id: number): Promise<boolean> {
+    const rows = await this.dataSource.query<Array<{ existe: number }>>(
+      `
+        SELECT 1 AS existe
+        FROM infraestructura.tipo_ambientes
+        WHERE nombre = $1 AND id <> $2
+      `,
+      [nombre, id],
+    );
+
+    return rows.length > 0;
+  }
+
+  async update(command: UpdateTipoAmbienteCommand): Promise<{ id: number }> {
+    const fields: string[] = [];
+    const params: Array<string | number | boolean | null> = [command.id];
+
+    const pushField = (column: string, value: string | boolean | null) => {
+      const index = params.length + 1;
+      fields.push(`${column} = $${index}`);
+      params.push(value);
+    };
+
+    if (command.nombre !== undefined) {
+      pushField('nombre', command.nombre);
+    }
+
+    if (command.descripcion !== undefined) {
+      pushField('descripcion', command.descripcion);
+    }
+
+    if (command.descripcion_corta !== undefined) {
+      pushField('descripcion_corta', command.descripcion_corta);
+    }
+
+    if (command.activo !== undefined) {
+      pushField('activo', command.activo);
+    }
+
+    fields.push('actualizado_en = CURRENT_TIMESTAMP');
+
+    const sql = `
+      UPDATE infraestructura.tipo_ambientes
+      SET ${fields.join(', ')}
+      WHERE id = $1
+      RETURNING id
+    `;
+
+    const rows = await this.dataSource.query<Array<{ id: number | string }>>(
+      sql,
+      params,
+    );
+
+    const [row] = rows;
+
+    if (!row) {
+      throw new NotFoundException({
+        error: 'NOT_FOUND',
+        message: 'No se encontro el tipo de ambiente',
+        details: [{ field: 'id', message: 'El tipo de ambiente no existe' }],
+      });
+    }
 
     return { id: Number(row.id) };
   }
