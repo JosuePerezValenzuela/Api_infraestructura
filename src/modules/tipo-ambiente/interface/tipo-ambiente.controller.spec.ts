@@ -4,25 +4,34 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { TipoAmbienteController } from './tipo-ambiente.controller';
 import { CreateTipoAmbienteUseCase } from '../application/create-tipo-ambiente.usecase';
 import { CreateTipoAmbienteDto } from './dto/create-tipo-ambiente.dto';
+import { ListTipoAmbientesUseCase } from '../application/list-tipo-ambientes.usecase';
+import { ListTipoAmbientesQueryDto } from './dto/list-tipo-ambientes-query.dto';
 
 // Definimos un tipo auxiliar para el caso de uso de creación con un método execute simulado.
 type CreateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
 
+type ListUseCaseMock = {
+  execute: jest.Mock<Promise<any>, [any]>;
+};
+
 describe('TipoAmbienteController', () => {
   let controller: TipoAmbienteController;
   let createUseCase: CreateUseCaseMock;
+  let listUseCase: ListUseCaseMock;
 
   beforeEach(async () => {
     // Configuramos el mock del caso de uso con Jest para controlar sus respuestas.
     createUseCase = { execute: jest.fn() };
+    listUseCase = { execute: jest.fn() };
 
     // Creamos un módulo de pruebas ligero que inyecta el controlador con el caso de uso simulado.
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TipoAmbienteController],
       providers: [
         { provide: CreateTipoAmbienteUseCase, useValue: createUseCase },
+        { provide: ListTipoAmbientesUseCase, useValue: listUseCase },
       ],
     }).compile();
 
@@ -91,6 +100,48 @@ describe('TipoAmbienteController', () => {
       };
 
       await expect(controller.create(dto)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('findAll', () => {
+    it('retorna la lista con la metadata cuando el use case responde', async () => {
+      listUseCase.execute.mockResolvedValue({
+        items: [],
+        meta: {
+          total: 0,
+          page: 1,
+          take: 8,
+          pages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      });
+
+      const query: ListTipoAmbientesQueryDto = {};
+      const result = await controller.findAll(query);
+
+      expect(listUseCase.execute).toHaveBeenCalledWith({
+        page: 1,
+        limit: 8,
+        search: null,
+        orderBy: 'nombre',
+        orderDir: 'asc',
+      });
+      expect(result.meta.total).toBe(0);
+    });
+
+    it('propaga BadRequestException cuando el caso de uso detecta errores', async () => {
+      listUseCase.execute.mockRejectedValue(
+        new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Los datos enviados no son validos',
+          details: [{ field: 'page', message: 'Debe ser mayor o igual a 1' }],
+        }),
+      );
+
+      await expect(controller.findAll({ page: 0 })).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
