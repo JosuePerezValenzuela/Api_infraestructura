@@ -230,4 +230,49 @@ describe('TypeormTipoAmbienteRepository', () => {
       repository.update({ id: 999, descripcion: 'N/A' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('encuentra un tipo de ambiente por id', async () => {
+    const { dataSource, repository } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([
+      {
+        id: 7,
+        nombre: 'Lab',
+        descripcion: 'Desc',
+        descripcion_corta: 'Lab',
+        activo: true,
+        creado_en: '2025-01-01T00:00:00.000Z',
+        actualizado_en: '2025-01-02T00:00:00.000Z',
+      },
+    ]);
+
+    const result = await repository.findById(7);
+
+    expect(dataSource.query).toHaveBeenCalledWith(
+      expect.stringContaining('SELECT'),
+      [7],
+    );
+    expect(result?.id).toBe(7);
+  });
+
+  it('indica null cuando no encuentra por id', async () => {
+    const { dataSource, repository } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([]);
+
+    const result = await repository.findById(999);
+
+    expect(result).toBeNull();
+  });
+
+  it('detecta nombre tomado por otro', async () => {
+    const { dataSource, repository } = buildRepository();
+    dataSource.query.mockResolvedValueOnce([{ existe: 1 }]);
+
+    const result = await repository.isNameTakenByOther('Lab', 5);
+
+    expect(dataSource.query).toHaveBeenCalledWith(
+      expect.stringContaining('WHERE nombre = $1 AND id <> $2'),
+      ['Lab', 5],
+    );
+    expect(result).toBe(true);
+  });
 });
