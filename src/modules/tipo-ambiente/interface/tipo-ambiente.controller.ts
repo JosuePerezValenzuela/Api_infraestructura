@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -26,6 +27,8 @@ import { CreateTipoAmbienteDto } from './dto/create-tipo-ambiente.dto';
 import { ListTipoAmbientesUseCase } from '../application/list-tipo-ambientes.usecase';
 import { ListTipoAmbientesQueryDto } from './dto/list-tipo-ambientes-query.dto';
 import { DeleteTipoAmbienteUseCase } from '../application/delete-tipo-ambiente.usecase';
+import { UpdateTipoAmbienteUseCase } from '../application/update-tipo-ambiente.usecase';
+import { UpdateTipoAmbienteDto } from './dto/update-tipo-ambiente.dto';
 
 @ApiTags('TipoAmbientes')
 @ApiExtraModels(ListTipoAmbientesQueryDto)
@@ -35,57 +38,8 @@ export class TipoAmbienteController {
     private readonly createTipoAmbienteUseCase: CreateTipoAmbienteUseCase,
     private readonly listTipoAmbientesUseCase: ListTipoAmbientesUseCase,
     private readonly deleteTipoAmbienteUseCase: DeleteTipoAmbienteUseCase,
+    private readonly updateTipoAmbienteUseCase: UpdateTipoAmbienteUseCase,
   ) {}
-
-  @Post()
-  @ApiOperation({
-    summary: 'Crear un tipo de ambiente',
-    description:
-      'Registra un nuevo tipo de ambiente para clasificar los espacios físicos.',
-  })
-  @ApiCreatedResponse({
-    description: 'Tipo de ambiente creado correctamente',
-    schema: {
-      example: { id: 42 },
-    },
-  })
-  @ApiConflictResponse({
-    description: 'Conflicto por nombre duplicado',
-    schema: {
-      example: {
-        statusCode: 409,
-        error: 'CONFLICT_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [
-          {
-            field: 'nombre',
-            message: 'Ya existe un tipo de ambiente con ese nombre',
-          },
-        ],
-      },
-    },
-  })
-  @ApiBadRequestResponse({
-    description: 'Datos inválidos',
-    schema: {
-      example: {
-        statusCode: 400,
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [
-          { field: 'nombre', message: 'El nombre no puede estar vacio' },
-        ],
-      },
-    },
-  })
-  @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateTipoAmbienteDto): Promise<{ id: number }> {
-    return this.createTipoAmbienteUseCase.execute({
-      nombre: dto.nombre,
-      descripcion: dto.descripcion,
-      descripcion_corta: dto.descripcion_corta,
-    });
-  }
 
   @Get()
   @ApiOperation({
@@ -178,6 +132,111 @@ export class TipoAmbienteController {
       search: search && search.length > 0 ? search : null,
       orderBy,
       orderDir,
+    });
+  }
+
+  @Post()
+  @ApiOperation({
+    summary: 'Crear un tipo de ambiente',
+    description:
+      'Registra un nuevo tipo de ambiente para clasificar los espacios físicos.',
+  })
+  @ApiCreatedResponse({
+    description: 'Tipo de ambiente creado correctamente',
+    schema: {
+      example: { id: 42 },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Conflicto por nombre duplicado',
+    schema: {
+      example: {
+        statusCode: 409,
+        error: 'CONFLICT_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'nombre',
+            message: 'Ya existe un tipo de ambiente con ese nombre',
+          },
+        ],
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos inválidos',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          { field: 'nombre', message: 'El nombre no puede estar vacio' },
+        ],
+      },
+    },
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() dto: CreateTipoAmbienteDto): Promise<{ id: number }> {
+    return this.createTipoAmbienteUseCase.execute({
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+      descripcion_corta: dto.descripcion_corta,
+    });
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Actualizar un tipo de ambiente',
+    description: 'Permite modificar uno o varios campos del tipo de ambiente.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identificador del tipo de ambiente a actualizar',
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos inválidos',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'payload',
+            message: 'Debes enviar al menos un campo para actualizar',
+          },
+        ],
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Conflicto por nombre duplicado',
+    schema: {
+      example: {
+        statusCode: 409,
+        error: 'CONFLICT_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'nombre',
+            message: 'Ya existe un tipo de ambiente con ese nombre',
+          },
+        ],
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Tipo de ambiente actualizado correctamente',
+    schema: { example: { id: 5 } },
+  })
+  async update(
+    @Param('id') id: number,
+    @Body() dto: UpdateTipoAmbienteDto,
+  ): Promise<{ id: number }> {
+    return this.updateTipoAmbienteUseCase.execute({
+      id: Number(id),
+      ...dto,
     });
   }
 
