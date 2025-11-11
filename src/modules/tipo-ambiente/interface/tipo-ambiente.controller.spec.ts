@@ -8,9 +8,11 @@ import {
 import { TipoAmbienteController } from './tipo-ambiente.controller';
 import { CreateTipoAmbienteUseCase } from '../application/create-tipo-ambiente.usecase';
 import { DeleteTipoAmbienteUseCase } from '../application/delete-tipo-ambiente.usecase';
+import { UpdateTipoAmbienteUseCase } from '../application/update-tipo-ambiente.usecase';
 import { CreateTipoAmbienteDto } from './dto/create-tipo-ambiente.dto';
 import { ListTipoAmbientesUseCase } from '../application/list-tipo-ambientes.usecase';
 import { ListTipoAmbientesQueryDto } from './dto/list-tipo-ambientes-query.dto';
+import { UpdateTipoAmbienteDto } from './dto/update-tipo-ambiente.dto';
 
 // Definimos un tipo auxiliar para el caso de uso de creación con un método execute simulado.
 type CreateUseCaseMock = {
@@ -25,17 +27,23 @@ type DeleteUseCaseMock = {
   execute: jest.Mock<Promise<void>, [any]>;
 };
 
+type UpdateUseCaseMock = {
+  execute: jest.Mock<Promise<{ id: number }>, [any]>;
+};
+
 describe('TipoAmbienteController', () => {
   let controller: TipoAmbienteController;
   let createUseCase: CreateUseCaseMock;
   let listUseCase: ListUseCaseMock;
   let deleteUseCase: DeleteUseCaseMock;
+  let updateUseCase: UpdateUseCaseMock;
 
   beforeEach(async () => {
     // Configuramos el mock del caso de uso con Jest para controlar sus respuestas.
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
     deleteUseCase = { execute: jest.fn() };
+    updateUseCase = { execute: jest.fn() };
 
     // Creamos un módulo de pruebas ligero que inyecta el controlador con el caso de uso simulado.
     const module: TestingModule = await Test.createTestingModule({
@@ -44,6 +52,7 @@ describe('TipoAmbienteController', () => {
         { provide: CreateTipoAmbienteUseCase, useValue: createUseCase },
         { provide: ListTipoAmbientesUseCase, useValue: listUseCase },
         { provide: DeleteTipoAmbienteUseCase, useValue: deleteUseCase },
+        { provide: UpdateTipoAmbienteUseCase, useValue: updateUseCase },
       ],
     }).compile();
 
@@ -176,6 +185,43 @@ describe('TipoAmbienteController', () => {
       await expect(controller.remove(99)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('update', () => {
+    it('actualiza y retorna el id cuando los datos son válidos', async () => {
+      updateUseCase.execute.mockResolvedValue({ id: 5 });
+      const dto: UpdateTipoAmbienteDto = {
+        nombre: 'Laboratorio actualizado',
+      };
+
+      const result = await controller.update(5, dto);
+
+      expect(updateUseCase.execute).toHaveBeenCalledWith({
+        id: 5,
+        nombre: 'Laboratorio actualizado',
+      });
+      expect(result).toEqual({ id: 5 });
+    });
+
+    it('propaga NotFoundException cuando el registro no existe', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new NotFoundException('No se encontró'),
+      );
+
+      await expect(controller.update(99, {})).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('propaga ConflictException cuando hay nombre duplicado', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new ConflictException('Duplicado'),
+      );
+
+      await expect(
+        controller.update(5, { nombre: 'Duplicado' }),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 });
