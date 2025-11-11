@@ -8,6 +8,7 @@ import { CampusModule } from './modules/campus/campus.module';
 import { FacultadModule } from './modules/facultad/facultad.module';
 import { TipoBloqueModule } from './modules/tipo-bloque/tipo-bloque.module';
 import { BloqueModule } from './modules/bloque/bloque.module';
+import { TipoAmbienteModule } from './modules/tipo-ambiente/tipo-ambiente.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { BloqueModule } from './modules/bloque/bloque.module';
     CampusModule,
     FacultadModule,
     TipoBloqueModule,
+    TipoAmbienteModule,
     BloqueModule,
   ],
   controllers: [AppController],
