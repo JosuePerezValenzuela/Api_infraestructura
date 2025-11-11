@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
 } from '@nestjs/common';
@@ -12,8 +14,10 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiExtraModels,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
@@ -21,6 +25,7 @@ import { CreateTipoAmbienteUseCase } from '../application/create-tipo-ambiente.u
 import { CreateTipoAmbienteDto } from './dto/create-tipo-ambiente.dto';
 import { ListTipoAmbientesUseCase } from '../application/list-tipo-ambientes.usecase';
 import { ListTipoAmbientesQueryDto } from './dto/list-tipo-ambientes-query.dto';
+import { DeleteTipoAmbienteUseCase } from '../application/delete-tipo-ambiente.usecase';
 
 @ApiTags('TipoAmbientes')
 @ApiExtraModels(ListTipoAmbientesQueryDto)
@@ -29,6 +34,7 @@ export class TipoAmbienteController {
   constructor(
     private readonly createTipoAmbienteUseCase: CreateTipoAmbienteUseCase,
     private readonly listTipoAmbientesUseCase: ListTipoAmbientesUseCase,
+    private readonly deleteTipoAmbienteUseCase: DeleteTipoAmbienteUseCase,
   ) {}
 
   @Post()
@@ -173,5 +179,36 @@ export class TipoAmbienteController {
       orderBy,
       orderDir,
     });
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Eliminar un tipo de ambiente',
+    description:
+      'Elimina el tipo de ambiente y sus ambientes dependientes en cascada.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identificador del tipo de ambiente a eliminar',
+  })
+  @ApiBadRequestResponse({
+    description: 'Id inválido',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          { field: 'id', message: 'El id debe ser un número entero >= 1' },
+        ],
+      },
+    },
+  })
+  @ApiNoContentResponse({
+    description: 'Tipo de ambiente eliminado correctamente',
+  })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: number): Promise<void> {
+    await this.deleteTipoAmbienteUseCase.execute({ id: Number(id) });
   }
 }
