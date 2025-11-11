@@ -170,6 +170,23 @@ export class TypeormTipoAmbienteRepository
   }
 
   async delete(command: { id: number }): Promise<{ id: number }> {
+    const exists = await this.dataSource.query<Array<{ id: number | string }>>(
+      `
+        SELECT id
+        FROM infraestructura.tipo_ambientes
+        WHERE id = $1
+      `,
+      [command.id],
+    );
+
+    if (!exists.length) {
+      throw new NotFoundException({
+        error: 'NOT_FOUND',
+        message: 'No se encontro el tipo de ambiente',
+        details: [{ field: 'id', message: 'El tipo de ambiente no existe' }],
+      });
+    }
+
     await this.dataSource.query(
       `
         DELETE FROM infraestructura.ambientes
@@ -178,7 +195,7 @@ export class TypeormTipoAmbienteRepository
       [command.id],
     );
 
-    const rows: Array<{ id: number | string }> = await this.dataSource.query(
+    const rows = await this.dataSource.query<Array<{ id: number | string }>>(
       `
         DELETE FROM infraestructura.tipo_ambientes
         WHERE id = $1
@@ -188,14 +205,6 @@ export class TypeormTipoAmbienteRepository
     );
 
     const [row] = rows;
-
-    if (!row) {
-      throw new NotFoundException({
-        error: 'NOT_FOUND',
-        message: 'No se encontro el tipo de ambiente',
-        details: [{ field: 'id', message: 'El tipo de ambiente no existe' }],
-      });
-    }
 
     return { id: Number(row.id) };
   }

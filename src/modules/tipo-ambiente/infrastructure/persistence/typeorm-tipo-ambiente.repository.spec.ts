@@ -157,34 +157,42 @@ describe('TypeormTipoAmbienteRepository', () => {
     expect(countParams).toEqual(['%lab%']);
   });
 
-  it('elimina un tipo de ambiente y devuelve el id', async () => {
+  it('elimina un tipo de ambiente y sus dependencias', async () => {
     const { dataSource, repository } = buildRepository();
     dataSource.query
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 5 }]);
+      .mockResolvedValueOnce([{ id: 5 }]) // exists
+      .mockResolvedValueOnce([]) // delete ambientes
+      .mockResolvedValueOnce([{ id: 5 }]); // delete tipo_ambientes
 
     const result = await repository.delete({ id: 5 });
 
-    expect(dataSource.query).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('DELETE FROM infraestructura.ambientes'),
-      [5],
+    const [selectSql, selectParams] = dataSource.query.mock.calls[0];
+    expect(selectSql.replace(/\s+/g, ' ').trim()).toContain(
+      'SELECT id FROM infraestructura.tipo_ambientes WHERE id = $1',
     );
-    expect(
-      dataSource.query.mock.calls[1][0].replace(/\s+/g, ' ').trim(),
-    ).toContain(
+    expect(selectParams).toEqual([5]);
+
+    const [deleteAmbSql, deleteAmbParams] = dataSource.query.mock.calls[1];
+    expect(deleteAmbSql.replace(/\s+/g, ' ').trim()).toContain(
+      'DELETE FROM infraestructura.ambientes',
+    );
+    expect(deleteAmbParams).toEqual([5]);
+
+    const [deleteTipoSql, deleteTipoParams] = dataSource.query.mock.calls[2];
+    expect(deleteTipoSql.replace(/\s+/g, ' ').trim()).toContain(
       'DELETE FROM infraestructura.tipo_ambientes WHERE id = $1 RETURNING id',
     );
-    expect(dataSource.query.mock.calls[1][1]).toEqual([5]);
+    expect(deleteTipoParams).toEqual([5]);
     expect(result).toEqual({ id: 5 });
   });
 
-  it('lanza NotFoundException cuando no existe el tipo de ambiente', async () => {
+  it('lanza NotFoundException cuando el tipo de ambiente no existe', async () => {
     const { dataSource, repository } = buildRepository();
-    dataSource.query.mockResolvedValue([]);
+    dataSource.query.mockResolvedValueOnce([]);
 
     await expect(repository.delete({ id: 999 })).rejects.toBeInstanceOf(
       NotFoundException,
     );
+    expect(dataSource.query).toHaveBeenCalledTimes(1);
   });
 });
