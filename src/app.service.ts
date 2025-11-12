@@ -10,7 +10,7 @@ export class AppService {
     try {
       await this.dataSource.query('SELECT 1');
       return { status: 'up' };
-    } catch (err) {
+    } catch {
       throw new ServiceUnavailableException('Database is unreacheable');
     }
   }

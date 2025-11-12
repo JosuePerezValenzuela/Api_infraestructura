@@ -1,6 +1,6 @@
 import {
-  Injectable,
   ConflictException,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -302,14 +302,14 @@ export class TypeormTipoAmbienteRepository
       RETURNING id
     `;
 
-    const rows = await this.dataSource.query<Array<{ id: number | string }>>(
-      sql,
-      params,
-    );
+    const rows = await this.dataSource.query<
+      Array<{ id: number | string } | Array<{ id: number | string }>>
+    >(sql, params);
 
-    const [row] = rows;
+    const first = rows[0];
+    const row = Array.isArray(first) ? first[0] : first;
 
-    if (!row) {
+    if (!row || typeof row.id === 'undefined') {
       throw new NotFoundException({
         error: 'NOT_FOUND',
         message: 'No se encontro el tipo de ambiente',
