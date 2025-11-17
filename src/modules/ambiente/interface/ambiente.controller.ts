@@ -1,20 +1,101 @@
 /* eslint-disable indent */
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
+import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
+import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 
 @ApiTags('Ambientes')
 @Controller('ambientes')
 export class AmbienteController {
-  constructor(private readonly createAmbiente: CreateAmbienteUseCase) {}
+  constructor(
+    private readonly createAmbiente: CreateAmbienteUseCase,
+    private readonly listAmbientes: ListAmbientesUseCase,
+  ) {}
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Listado paginado de ambientes' })
+  @ApiOkResponse({
+    description: 'Respuesta paginada de ambientes',
+    schema: {
+      example: {
+        items: [
+          {
+            id: 1,
+            codigo: 'AULA-101',
+            nombre: 'Aula principal',
+            nombre_corto: '101',
+            piso: 1,
+            capacidad: { total: 40, examen: 25 },
+            dimension: {
+              largo: 8.5,
+              ancho: 6,
+              alto: 3.2,
+              unid_med: 'metros',
+            },
+            clases: true,
+            activo: true,
+            bloque_nombre: 'Bloque Central',
+            facultad_nombre: 'Facultad de Ingenieria',
+            tipo_ambiente_nombre: 'Aula',
+          },
+        ],
+        meta: {
+          total: 1,
+          page: 1,
+          take: 8,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Filtros invalidos',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field: 'page', message: 'Debe ser un entero >= 1' }],
+      },
+    },
+  })
+  async findAll(@Query() query: ListAmbientesQueryDto) {
+    const filters = {
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      orderBy: query.orderBy,
+      orderDir: query.orderDir,
+      bloqueId: query.bloqueId,
+      facultadId: query.facultadId,
+      tipoAmbienteId: query.tipoAmbienteId,
+      activo: query.activo,
+      clases: query.clases,
+      pisoMin: query.pisoMin,
+      pisoMax: query.pisoMax,
+    };
+
+    return this.listAmbientes.execute(filters);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
