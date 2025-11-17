@@ -5,6 +5,10 @@ import { ConflictException } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 import { TypeormAmbienteRepository } from './typeorm-ambiente.repository';
 import { CreateAmbienteCommand } from '../../domain/commands/create-ambiente.command';
+import {
+  AmbienteListItem,
+  ListAmbientesOptions,
+} from '../../domain/ambiente.list.types';
 
 // Creamos un DataSource falso con jest para no depender de una base real.
 const createFakeDataSource = () => ({
@@ -133,6 +137,116 @@ describe('TypeormAmbienteRepository', () => {
 
       const result = await repository.isCodeTaken('LAB-FIS-01');
       expect(result).toBe(false);
+    });
+  });
+
+  describe('list', () => {
+    const createRepository = () => {
+      const dataSource = createFakeDataSource();
+      const repository = new TypeormAmbienteRepository(
+        dataSource as unknown as any,
+      );
+      return { dataSource, repository };
+    };
+
+    it('construye la consulta con joins, filtros y orden dinámico', async () => {
+      const { dataSource, repository } = createRepository();
+      const fakeRows: AmbienteListItem[] = [
+        {
+          id: 1,
+          codigo: 'AULA-101',
+          nombre: 'Aula 101',
+          nombre_corto: '101',
+          piso: 1,
+          capacidad: { total: 40, examen: 30 },
+          dimension: {
+            largo: 8,
+            ancho: 5,
+            alto: 3,
+            unid_med: 'metros',
+          },
+          clases: true,
+          activo: true,
+          creado_en: '2025-11-11T12:00:00.000Z',
+          bloque_nombre: 'Bloque Central',
+          facultad_nombre: 'Facultad Ingeniería',
+          tipo_ambiente_nombre: 'Aula',
+        },
+      ];
+
+      dataSource.query
+        .mockResolvedValueOnce(fakeRows)
+        .mockResolvedValueOnce([{ total: 1 }]);
+
+      const options: ListAmbientesOptions = {
+        page: 2,
+        take: 10,
+        search: 'Lab',
+        orderBy: 'codigo',
+        orderDir: 'desc',
+        bloqueId: 5,
+        facultadId: 3,
+        tipoAmbienteId: 2,
+        activo: true,
+        clases: true,
+        pisoMin: 1,
+        pisoMax: 3,
+      };
+
+      const result = await repository.list(options);
+
+      const [dataSql, dataParams] = dataSource.query.mock.calls[0];
+      const normalizedSql = dataSql.replace(/\s+/g, ' ').trim();
+      expect(normalizedSql).toContain('FROM infraestructura.ambientes a');
+      expect(normalizedSql).toContain(
+        'JOIN infraestructura.bloques b ON b.id = a.bloque_id',
+      );
+      expect(normalizedSql).toContain(
+        'JOIN infraestructura.facultades f ON f.id = b.facultad_id',
+      );
+      expect(normalizedSql).toContain(
+        'JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id',
+      );
+      expect(normalizedSql).toContain('a.codigo ILIKE $1');
+      expect(normalizedSql).toContain('ORDER BY a.codigo DESC');
+      expect(dataParams).toEqual([
+        '%Lab%',
+        '%Lab%',
+        '%Lab%',
+        5,
+        3,
+        2,
+        true,
+        true,
+        1,
+        3,
+        10,
+        10,
+      ]);
+
+      const [countSql, countParams] = dataSource.query.mock.calls[1];
+      expect(countSql).toContain('SELECT COUNT(*)::int AS total');
+      expect(countParams).toEqual([
+        '%Lab%',
+        '%Lab%',
+        '%Lab%',
+        5,
+        3,
+        2,
+        true,
+        true,
+        1,
+        3,
+      ]);
+
+      expect(result.items).toEqual(fakeRows);
+      expect(result.meta).toEqual({
+        total: 1,
+        page: 2,
+        take: 10,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      });
     });
   });
 });
