@@ -4,25 +4,84 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { AmbienteController } from './ambiente.controller';
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
+import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
+import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
+import { ListAmbientesResult } from '../domain/ambiente.list.types';
 
 type CreateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
+};
+type ListUseCaseMock = {
+  execute: jest.Mock<Promise<ListAmbientesResult>, [any]>;
 };
 
 describe('AmbienteController', () => {
   let controller: AmbienteController;
   let createUseCase: CreateUseCaseMock;
+  let listUseCase: ListUseCaseMock;
 
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
+    listUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AmbienteController],
-      providers: [{ provide: CreateAmbienteUseCase, useValue: createUseCase }],
+      providers: [
+        { provide: CreateAmbienteUseCase, useValue: createUseCase },
+        { provide: ListAmbientesUseCase, useValue: listUseCase },
+      ],
     }).compile();
 
     controller = module.get<AmbienteController>(AmbienteController);
+  });
+
+  describe('findAll', () => {
+    it('normaliza filtros por defecto y llama al caso de uso', async () => {
+      const emptyResult: ListAmbientesResult = {
+        items: [],
+        meta: {
+          total: 0,
+          page: 1,
+          take: 8,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      };
+      listUseCase.execute.mockResolvedValue(emptyResult);
+
+      const result = await controller.findAll({} as ListAmbientesQueryDto);
+
+      expect(listUseCase.execute).toHaveBeenCalledWith({
+        page: undefined,
+        limit: undefined,
+        search: undefined,
+        orderBy: undefined,
+        orderDir: undefined,
+        bloqueId: undefined,
+        facultadId: undefined,
+        tipoAmbienteId: undefined,
+        activo: undefined,
+        clases: undefined,
+        pisoMin: undefined,
+        pisoMax: undefined,
+      });
+      expect(result).toEqual(emptyResult);
+    });
+
+    it('propaga BadRequestException cuando el caso de uso lo indica', async () => {
+      listUseCase.execute.mockRejectedValue(
+        new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Los datos enviados no son validos',
+          details: [{ field: 'page', message: 'Debe ser >= 1' }],
+        }),
+      );
+
+      await expect(
+        controller.findAll({ page: 0 } as ListAmbientesQueryDto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
   });
 
   describe('create', () => {
