@@ -21,5 +21,6 @@ import { UpdateTipoAmbienteUseCase } from './application/update-tipo-ambiente.us
       useClass: TypeormTipoAmbienteRepository,
     },
   ],
+  exports: [TipoAmbienteRepositoryPort, ListTipoAmbientesUseCase],
 })
 export class TipoAmbienteModule {}
