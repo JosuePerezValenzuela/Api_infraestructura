@@ -125,7 +125,7 @@ export class ListAmbientesUseCase {
 
     if (pisoMin !== null) {
       if (!Number.isInteger(pisoMin) || pisoMin < 0 || pisoMin > 200) {
-        validationError('pisoMin', 'El pisoMin debe estar entre -5 y 200');
+        validationError('pisoMin', 'El pisoMin debe estar entre 0 y 200');
       }
     }
 
