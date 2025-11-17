@@ -9,5 +9,7 @@ Execution order (TypeORM sorts by timestamp):
 4. 1760000000004-SeedFacultadesBatch.ts
 5. 1760000000005-SeedBloquesBatch.ts
 6. 1760000000006-SeedAmbientesBatch.ts
+7. 1760000000007-SeedTipoActivosBatch.ts
+8. 1760000000008-SeedActivosBatch.ts
 
 Each migration is global infrastructure data and must be implemented with raw SQL inserts in the up method and matching deletes in down.
