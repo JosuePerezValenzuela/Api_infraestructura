@@ -205,6 +205,31 @@ describe('TypeormAmbienteRepository', () => {
     });
   });
 
+  describe('update', () => {
+    it('arma el SET dinámico y actualiza los campos enviados', async () => {
+      const dataSource = createFakeDataSource();
+      dataSource.query.mockResolvedValueOnce([{ id: 7 }]);
+      const repository = new TypeormAmbienteRepository(
+        dataSource as unknown as any,
+      );
+
+      await repository.update({
+        id: 7,
+        nombre: 'Aula renovada',
+        capacidad: { total: 35, examen: 20 },
+      });
+
+      const [sql, params] = dataSource.query.mock.calls[0];
+      const normalizedSql = sql.replace(/\s+/g, ' ').trim();
+      expect(normalizedSql).toContain('UPDATE infraestructura.ambientes SET');
+      expect(normalizedSql).toContain('nombre = $1');
+      expect(normalizedSql).toContain('capacidad = $2');
+      expect(params[0]).toBe('Aula renovada');
+      expect(params[1]).toEqual({ total: 35, examen: 20 });
+      expect(params[2]).toBe(7);
+    });
+  });
+
   describe('list', () => {
     const createRepository = () => {
       const dataSource = createFakeDataSource();
