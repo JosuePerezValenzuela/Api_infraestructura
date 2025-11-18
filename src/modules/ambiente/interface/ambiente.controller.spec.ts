@@ -1,10 +1,15 @@
 // En este archivo documentamos el comportamiento del controlador de ambientes paso a paso para que cualquiera aprenda qué espera nuestra API.
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AmbienteController } from './ambiente.controller';
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
+import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 import { ListAmbientesResult } from '../domain/ambiente.list.types';
@@ -15,21 +20,27 @@ type CreateUseCaseMock = {
 type ListUseCaseMock = {
   execute: jest.Mock<Promise<ListAmbientesResult>, [any]>;
 };
+type DeleteUseCaseMock = {
+  execute: jest.Mock<Promise<void>, [any]>;
+};
 
 describe('AmbienteController', () => {
   let controller: AmbienteController;
   let createUseCase: CreateUseCaseMock;
   let listUseCase: ListUseCaseMock;
+  let deleteUseCase: DeleteUseCaseMock;
 
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
+    deleteUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AmbienteController],
       providers: [
         { provide: CreateAmbienteUseCase, useValue: createUseCase },
         { provide: ListAmbientesUseCase, useValue: listUseCase },
+        { provide: DeleteAmbienteUseCase, useValue: deleteUseCase },
       ],
     }).compile();
 
@@ -81,6 +92,22 @@ describe('AmbienteController', () => {
       await expect(
         controller.findAll({ page: 0 } as ListAmbientesQueryDto),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('delete', () => {
+    it('invoca al caso de uso y retorna 204', async () => {
+      await controller.delete(5);
+      expect(deleteUseCase.execute).toHaveBeenCalledWith({ id: 5 });
+    });
+
+    it('propaga NotFoundException cuando el caso de uso falla', async () => {
+      deleteUseCase.execute.mockRejectedValue(
+        new NotFoundException('No existe'),
+      );
+      await expect(controller.delete(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
