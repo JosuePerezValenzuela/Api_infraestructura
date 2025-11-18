@@ -7,6 +7,7 @@ import {
 } from '../../domain/ambiente.repository.port';
 import { CreateAmbienteCommand } from '../../domain/commands/create-ambiente.command';
 import { DeleteAmbienteCommand } from '../../domain/commands/delete-ambiente.command';
+import { UpdateAmbienteCommand } from '../../domain/commands/update-ambiente.command';
 import {
   AmbienteListItem,
   ListAmbientesOptions,
@@ -84,6 +85,56 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
       WHERE ambiente_id = $1
     `;
     await this.dataSource.query(sql, [ambienteId]);
+  }
+
+  async update(command: UpdateAmbienteCommand): Promise<{ id: number }> {
+    const setClauses: string[] = [];
+    const params: (string | number | boolean | null | object)[] = [];
+    let index = 1;
+
+    const push = (
+      clause: string,
+      value: string | number | boolean | object | null,
+    ) => {
+      setClauses.push(`${clause} = $${index++}`);
+      params.push(value);
+    };
+
+    if (command.codigo !== undefined) push('codigo', command.codigo);
+    if (command.nombre !== undefined) push('nombre', command.nombre);
+    if (command.nombre_corto !== undefined)
+      push('nombre_corto', command.nombre_corto);
+    if (command.piso !== undefined) push('piso', command.piso);
+    if (command.capacidad !== undefined) push('capacidad', command.capacidad);
+    if (command.dimension !== undefined) push('dimension', command.dimension);
+    if (command.clases !== undefined) push('clases', command.clases);
+    if (command.activo !== undefined) push('activo', command.activo);
+    if (command.tipo_ambiente_id !== undefined)
+      push('tipo_ambiente_id', command.tipo_ambiente_id);
+    if (command.bloque_id !== undefined) push('bloque_id', command.bloque_id);
+
+    if (setClauses.length === 0) {
+      return { id: command.id };
+    }
+
+    const sql = `
+      UPDATE infraestructura.ambientes
+      SET ${setClauses.join(', ')}
+      WHERE id = $${index}
+      RETURNING id
+    `;
+    params.push(command.id);
+
+    try {
+      const rows = await this.dataSource.query<{ id: number }[]>(sql, params);
+      if (rows.length === 0) {
+        return { id: command.id };
+      }
+      return { id: Number(rows[0].id) };
+    } catch (error) {
+      this.handleUniqueCodeError(error);
+      throw error;
+    }
   }
 
   async isCodeTaken(codigo: string): Promise<boolean> {
