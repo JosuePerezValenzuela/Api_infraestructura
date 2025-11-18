@@ -10,8 +10,10 @@ import { AmbienteController } from './ambiente.controller';
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
 import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
+import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
+import { UpdateAmbienteDto } from './dto/update-ambiente.dto';
 import { ListAmbientesResult } from '../domain/ambiente.list.types';
 
 type CreateUseCaseMock = {
@@ -23,17 +25,22 @@ type ListUseCaseMock = {
 type DeleteUseCaseMock = {
   execute: jest.Mock<Promise<void>, [any]>;
 };
+type UpdateUseCaseMock = {
+  execute: jest.Mock<Promise<{ id: number }>, [any]>;
+};
 
 describe('AmbienteController', () => {
   let controller: AmbienteController;
   let createUseCase: CreateUseCaseMock;
   let listUseCase: ListUseCaseMock;
   let deleteUseCase: DeleteUseCaseMock;
+  let updateUseCase: UpdateUseCaseMock;
 
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
     deleteUseCase = { execute: jest.fn() };
+    updateUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AmbienteController],
@@ -41,6 +48,7 @@ describe('AmbienteController', () => {
         { provide: CreateAmbienteUseCase, useValue: createUseCase },
         { provide: ListAmbientesUseCase, useValue: listUseCase },
         { provide: DeleteAmbienteUseCase, useValue: deleteUseCase },
+        { provide: UpdateAmbienteUseCase, useValue: updateUseCase },
       ],
     }).compile();
 
@@ -108,6 +116,30 @@ describe('AmbienteController', () => {
       await expect(controller.delete(999)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('update', () => {
+    it('llama al caso de uso con el payload y devuelve el id', async () => {
+      updateUseCase.execute.mockResolvedValue({ id: 15 });
+      const dto: UpdateAmbienteDto = { nombre: 'Aula renovada' };
+
+      const result = await controller.update(15, dto);
+
+      expect(updateUseCase.execute).toHaveBeenCalledWith({
+        id: 15,
+        input: dto,
+      });
+      expect(result).toEqual({ id: 15 });
+    });
+
+    it('propaga errores del caso de uso', async () => {
+      updateUseCase.execute.mockRejectedValue(
+        new ConflictException('codigo duplicado'),
+      );
+      await expect(
+        controller.update(20, { codigo: 'LAB-01' }),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 
