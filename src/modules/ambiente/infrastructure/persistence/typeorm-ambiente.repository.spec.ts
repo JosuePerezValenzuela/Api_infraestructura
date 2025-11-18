@@ -140,6 +140,71 @@ describe('TypeormAmbienteRepository', () => {
     });
   });
 
+  describe('findById', () => {
+    it('devuelve el ambiente cuando existe', async () => {
+      const dataSource = createFakeDataSource();
+      dataSource.query.mockResolvedValueOnce([
+        { id: 5, codigo: 'A', nombre: 'Ambiente A' },
+      ]);
+      const repository = new TypeormAmbienteRepository(
+        dataSource as unknown as any,
+      );
+
+      const ambiente = await repository.findById(5);
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('FROM infraestructura.ambientes'),
+        [5],
+      );
+      expect(ambiente?.id).toBe(5);
+    });
+
+    it('devuelve null cuando no existe', async () => {
+      const dataSource = createFakeDataSource();
+      dataSource.query.mockResolvedValueOnce([]);
+      const repository = new TypeormAmbienteRepository(
+        dataSource as unknown as any,
+      );
+
+      const ambiente = await repository.findById(999);
+      expect(ambiente).toBeNull();
+    });
+  });
+
+  describe('deleteAssets', () => {
+    it('pone ambiente_id en null para los activos relacionados', async () => {
+      const dataSource = createFakeDataSource();
+      const repository = new TypeormAmbienteRepository(
+        dataSource as unknown as any,
+      );
+
+      await repository.deleteAssets(7);
+
+      const [sql, params] = dataSource.query.mock.calls[0];
+      expect(sql.replace(/\s+/g, ' ').trim()).toContain(
+        'UPDATE infraestructura.activos SET ambiente_id = NULL WHERE ambiente_id = $1',
+      );
+      expect(params).toEqual([7]);
+    });
+  });
+
+  describe('delete', () => {
+    it('elimina el ambiente y devuelve el id', async () => {
+      const dataSource = createFakeDataSource();
+      dataSource.query.mockResolvedValueOnce([{ id: 5 }]);
+      const repository = new TypeormAmbienteRepository(
+        dataSource as unknown as any,
+      );
+
+      const result = await repository.delete({ id: 5 });
+
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM infraestructura.ambientes'),
+        [5],
+      );
+      expect(result).toEqual({ id: 5 });
+    });
+  });
+
   describe('list', () => {
     const createRepository = () => {
       const dataSource = createFakeDataSource();
