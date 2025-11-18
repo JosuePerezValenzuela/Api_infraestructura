@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -25,8 +26,10 @@ import {
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
 import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
+import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
+import { UpdateAmbienteDto } from './dto/update-ambiente.dto';
 
 @ApiTags('Ambientes')
 @Controller('ambientes')
@@ -35,6 +38,7 @@ export class AmbienteController {
     private readonly createAmbiente: CreateAmbienteUseCase,
     private readonly listAmbientes: ListAmbientesUseCase,
     private readonly deleteAmbiente: DeleteAmbienteUseCase,
+    private readonly updateAmbiente: UpdateAmbienteUseCase,
   ) {}
 
   @Get()
@@ -102,6 +106,58 @@ export class AmbienteController {
     };
 
     return this.listAmbientes.execute(filters);
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Actualizar parcialmente un ambiente' })
+  @ApiBody({ type: UpdateAmbienteDto })
+  @ApiOkResponse({
+    description: 'Ambiente actualizado',
+    schema: { example: { id: 1 } },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos inválidos',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          { field: 'nombre', message: 'El nombre no puede estar vacio' },
+        ],
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Conflicto por código duplicado',
+    schema: {
+      example: {
+        error: 'CONFLICT_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'codigo',
+            message: 'Ya existe un ambiente con el mismo codigo',
+          },
+        ],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Ambiente no encontrado',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontró el ambiente solicitado',
+      },
+    },
+  })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAmbienteDto,
+  ) {
+    const result = await this.updateAmbiente.execute({ id, input: { ...dto } });
+    return result;
   }
 
   @Post()
