@@ -2,9 +2,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
   Post,
   Query,
 } from '@nestjs/common';
@@ -13,12 +16,15 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
+import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 
@@ -28,6 +34,7 @@ export class AmbienteController {
   constructor(
     private readonly createAmbiente: CreateAmbienteUseCase,
     private readonly listAmbientes: ListAmbientesUseCase,
+    private readonly deleteAmbiente: DeleteAmbienteUseCase,
   ) {}
 
   @Get()
@@ -156,5 +163,22 @@ export class AmbienteController {
     });
 
     return { id };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminar un ambiente' })
+  @ApiNoContentResponse({ description: 'Ambiente eliminado correctamente' })
+  @ApiNotFoundResponse({
+    description: 'No existe el ambiente',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontró el ambiente solicitado',
+      },
+    },
+  })
+  async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    await this.deleteAmbiente.execute({ id });
   }
 }
