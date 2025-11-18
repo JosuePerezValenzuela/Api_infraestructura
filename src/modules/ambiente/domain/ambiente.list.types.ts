@@ -38,6 +38,21 @@ export interface AmbienteListItem {
   tipo_ambiente_nombre: string;
 }
 
+export interface AmbientItem {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  piso: number;
+  capacidad: { total: number; examen: number };
+  dimension: { largo: number; ancho: number; alto: number; unid_med: string };
+  clases: boolean;
+  activo: boolean;
+  creado_en: string;
+  tipo_ambiente_id: number;
+  bloque_id: number;
+}
+
 export interface ListAmbientesResult {
   items: AmbienteListItem[];
   meta: {
