@@ -6,10 +6,12 @@ import {
   CreateAmbienteResult,
 } from '../../domain/ambiente.repository.port';
 import { CreateAmbienteCommand } from '../../domain/commands/create-ambiente.command';
+import { DeleteAmbienteCommand } from '../../domain/commands/delete-ambiente.command';
 import {
   AmbienteListItem,
   ListAmbientesOptions,
   ListAmbientesResult,
+  AmbientItem,
 } from '../../domain/ambiente.list.types';
 
 @Injectable()
@@ -60,6 +62,30 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
     }
   }
 
+  async delete(command: DeleteAmbienteCommand): Promise<{ id: number }> {
+    const sql = `
+      DELETE FROM infraestructura.ambientes
+      WHERE id = $1
+      RETURNING id
+    `;
+    const rows = await this.dataSource.query<{ id: number }[]>(sql, [
+      command.id,
+    ]);
+    if (rows.length === 0) {
+      return { id: command.id };
+    }
+    return { id: Number(rows[0].id) };
+  }
+
+  async deleteAssets(ambienteId: number): Promise<void> {
+    const sql = `
+      UPDATE infraestructura.activos
+      SET ambiente_id = NULL
+      WHERE ambiente_id = $1
+    `;
+    await this.dataSource.query(sql, [ambienteId]);
+  }
+
   async isCodeTaken(codigo: string): Promise<boolean> {
     const sql = `
       SELECT 1 AS existe
@@ -71,6 +97,39 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
       codigo,
     ]);
     return rows.length > 0;
+  }
+
+  async findById(id: number): Promise<AmbientItem | null> {
+    const sql = `
+      SELECT
+        id,
+        codigo,
+        nombre,
+        nombre_corto,
+        piso,
+        capacidad,
+        dimension,
+        clases,
+        activo,
+        creado_en,
+        tipo_ambiente_id,
+        bloque_id
+      FROM infraestructura.ambientes
+      WHERE id = $1
+      LIMIT 1
+    `;
+    const rows = await this.dataSource.query<AmbientItem[]>(sql, [id]);
+    if (rows.length === 0) {
+      return null;
+    }
+    const [row] = rows;
+    const capacidad = this.mapCapacidad(row.capacidad as unknown);
+    const dimension = this.mapDimension(row.dimension as unknown);
+    return {
+      ...row,
+      capacidad,
+      dimension,
+    };
   }
 
   async list(options: ListAmbientesOptions): Promise<ListAmbientesResult> {
