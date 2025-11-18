@@ -130,23 +130,27 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
       if (rows.length === 0) {
         return { id: command.id };
       }
-      return { id: Number(rows[0].id) };
+      return { id: command.id };
     } catch (error) {
       this.handleUniqueCodeError(error);
       throw error;
     }
   }
 
-  async isCodeTaken(codigo: string): Promise<boolean> {
-    const sql = `
+  async isCodeTaken(codigo: string, excludeId?: number): Promise<boolean> {
+    let sql = `
       SELECT 1 AS existe
       FROM infraestructura.ambientes
       WHERE codigo = $1
-      LIMIT 1
     `;
-    const rows = await this.dataSource.query<{ existe: number }[]>(sql, [
-      codigo,
-    ]);
+    const params: (string | number)[] = [codigo];
+    if (excludeId !== undefined) {
+      sql += ' AND id <> $2';
+      params.push(excludeId);
+    }
+    sql += ' LIMIT 1';
+
+    const rows = await this.dataSource.query<{ existe: number }[]>(sql, params);
     return rows.length > 0;
   }
 
