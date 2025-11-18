@@ -30,7 +30,6 @@ import { AmbienteModule } from './modules/ambiente/ambiente.module';
         password: cfg.get<string>('DB_PASSWORD'),
         autoLoadEntities: true,
         synchronize: false,
-        schema: 'infraestructura',
         logging: true,
         extra: { application_name: 'Infra_nest' },
       }),

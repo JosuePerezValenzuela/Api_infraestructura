@@ -10,7 +10,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  schema: 'infraestructura',
+  migrationsTableName: 'migrations',
   //Entidades vacio, ya que se migra con sql crudo
   entities: [],
   migrations: ['src/migrations/*.ts'],
