@@ -5,6 +5,7 @@ import {
   AmbientItem,
 } from './ambiente.list.types';
 import { DeleteAmbienteCommand } from './commands/delete-ambiente.command';
+import { UpdateAmbienteCommand } from './commands/update-ambiente.command';
 
 export const AmbienteRepositoryPort = Symbol('AmbienteRepositoryPort');
 
@@ -24,4 +25,6 @@ export interface AmbienteRepositoryPort {
   delete(command: DeleteAmbienteCommand): Promise<{ id: number }>;
 
   deleteAssets(ambienteId: number): Promise<void>;
+
+  update(command: UpdateAmbienteCommand): Promise<{ id: number }>;
 }
