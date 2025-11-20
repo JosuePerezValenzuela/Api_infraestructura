@@ -51,4 +51,11 @@ describe('ListAmbientesQueryDto', () => {
     expect(dto.activo).toBe(true);
     expect(dto.clases).toBe(false);
   });
+
+  it('interpreta la cadena "false" como booleano false', async () => {
+    const dto = plainToInstance(ListAmbientesQueryDto, {
+      clases: 'false',
+    });
+    expect(dto.clases).toBe(false);
+  });
 });

@@ -10,11 +10,39 @@ import {
   Min,
   MaxLength,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import type {
   AmbienteListOrderBy,
   AmbienteListOrderDir,
 } from '../../domain/ambiente.list.types';
+
+const transformToBoolean = ({ value }: { value: unknown }) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+
+    if (normalized === '') {
+      return false;
+    }
+
+    if (normalized === 'true') {
+      return true;
+    }
+
+    if (normalized === 'false') {
+      return false;
+    }
+  }
+
+  return Boolean(value);
+};
 
 export class ListAmbientesQueryDto {
   @ApiPropertyOptional({
@@ -110,7 +138,7 @@ export class ListAmbientesQueryDto {
     description: 'Filtra por ambientes activos o inactivos',
     example: true,
   })
-  @Type(() => Boolean)
+  @Transform(transformToBoolean)
   @IsOptional()
   @IsBoolean({ message: 'activo debe ser booleano' })
   activo?: boolean;
@@ -119,7 +147,7 @@ export class ListAmbientesQueryDto {
     description: 'Filtra ambientes que permiten dictar clases',
     example: true,
   })
-  @Type(() => Boolean)
+  @Transform(transformToBoolean)
   @IsOptional()
   @IsBoolean({ message: 'clases debe ser booleano' })
   clases?: boolean;
