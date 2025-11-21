@@ -9,28 +9,28 @@ Infraestructura UMSS expone una API HTTP en NestJS 11 para administrar campus, f
 ```mermaid
 graph TB
   subgraph Presentation
-    swagger[Swagger UI]
-    controllers[Controllers REST]
+    swagger["Swagger UI"]
+    controllers["Controllers REST"]
   end
 
   subgraph Application
-    usecases[Use Cases\n(Application Services)]
-    pipes[ValidationPipe + DTOs]
+    usecases["Use Cases<br/>(Application Services)"]
+    pipes["ValidationPipe + DTOs"]
   end
 
   subgraph Domain
-    ports[Repository Ports\n+ Value Objects]
-    relPort[Relationships Port]
+    ports["Repository Ports<br/>+ Value Objects"]
+    relPort["Relationships Port"]
   end
 
   subgraph Infrastructure
-    adapters[TypeORM Adapters]
-    relAdapter[Relationships TypeORM Adapter]
-    migrations[SQL Migrations]
+    adapters["TypeORM Adapters"]
+    relAdapter["Relationships TypeORM Adapter"]
+    migrations["SQL Migrations"]
   end
 
   subgraph Data
-    postgres[(PostgreSQL Schema infraestructura)]
+    postgres[("PostgreSQL Schema infraestructura")]
   end
 
   swagger --> controllers --> pipes --> usecases --> ports --> adapters --> postgres
@@ -122,25 +122,27 @@ graph TD
 ```mermaid
 flowchart LR
   subgraph Interface
-    ctrl[Controllers REST]
-    dto[DTOs con Swagger + class-validator]
+    ctrl["Controllers REST"]
+    dto["DTOs con Swagger + class-validator"]
   end
   subgraph Application
-    uc[Use Cases\n(create/list/update/delete)]
+    uc["Use Cases<br/>(create/list/update/delete)"]
   end
   subgraph Domain
-    port[Repository Ports\n(+ value objects)]
+    port["Repository Ports<br/>(+ value objects)"]
+    relPort["Relationships Port"]
   end
   subgraph Infrastructure
-    repo[TypeORM Adapters]
-    rel[Relationships Adapter]
-    pg[(PostgreSQL\nschema infraestructura)]
+    repo["TypeORM Adapters"]
+    rel["Relationships Adapter"]
+    pg[("PostgreSQL<br/>schema infraestructura")]
   end
   ctrl -->|valida DTOs| uc
   uc --> port
+  uc --> relPort
   port --> repo
+  relPort --> rel
   repo --> pg
-  uc --> rel
   rel --> pg
 ```
 
