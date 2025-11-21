@@ -384,8 +384,100 @@ COMMENT ON COLUMN infraestructura.activos.creado_en IS 'Fecha en la que se creo 
 COMMENT ON COLUMN infraestructura.activos.actualizado_en IS 'Fecha de la ultima actualizacion del registro';
 
 COMMENT ON COLUMN infraestructura.activos.ambiente_id IS 'Llave foranea a ambientes';
+
+INSERT INTO infraestructura.tipo_bloques (nombre, descripcion)
+VALUES
+  ('Administrativo', 'Edificio con oficinas y servicios administrativos'),
+  ('Laboratorios', 'Bloque equipados para practicas cientificas y de computacion'),
+  ('Aulas', 'Bloque con aulas para clases convencionales'),
+  ('Investigacion', 'Bloque destinado a centros de investigacion y desarrollo tecnologico'),
+  ('Servicios estudiantiles', 'Edificios que brindan servicios de bienestar y apoyo al estudiante');
+
+INSERT INTO infraestructura.tipo_ambientes (nombre, descripcion, descripcion_corta)
+VALUES
+  ('Clases', 'Aula para clases de pizarra', 'Basica'),
+  ('Laboratorio de computacion', 'Aula equipada con computadoras personales', 'Laboratorio de computadoras'),
+  ('Laboratorio de redes', 'Aula equipada con routers', NULL),
+  ('Auditorio', 'Espacio amplio para conferencias y eventos institucionales', 'Auditorio'),
+  ('Sala de reuniones', 'Ambiente destinado a reuniones administrativas o academicas', 'Sala de reuniones');
+
+INSERT INTO infraestructura.campus (codigo, nombre, direccion, coordenadas)
+VALUES
+  ('123456789', 'Campus central', 'Av Sucre entre Belzu y Oquendo', POINT(-66.5, -17.39)),
+  ('987654321', 'Valle Sacta', 'Zona sacta', POINT(-63, -18)),
+  ('555555555', 'Quillacollo', 'Blanco galindo', POINT(-70, -20)),
+  ('222222222', 'Campus Sacaba', 'Av Villazon Km 12, Sacaba', POINT(-65.99, -17.41)),
+  ('888888888', 'Campus Tiquipaya', 'Av Ecologica s/n, Tiquipaya', POINT(-65.73, -17.32)),
+  ('444444444', 'Campus Cercado Norte', 'Calle Independencia esquina Aroma', POINT(-66.16, -17.37));
+
+INSERT INTO infraestructura.facultades (codigo, nombre, nombre_corto, coordenadas, campus_id)
+VALUES
+  ('12345', 'Facultad de Ciencias y Tecnologia', 'FCyT', POINT(-66.5, -18), 1),
+  ('54321', 'Facultad de Ciencias Economicas', 'FCE', POINT(-66, -18), 1),
+  ('11225', 'Facultad Villa Sacta', NULL, POINT(-63, -18), 2),
+  ('66789', 'Facultad de Arquitectura y Urbanismo', 'FAU', POINT(-66.52, -17.41), 3),
+  ('77889', 'Facultad de Agronomia', 'FA', POINT(-65.98, -17.43), 4),
+  ('88990', 'Facultad de Artes y Cultura', 'FAC', POINT(-65.73, -17.30), 5),
+  ('99887', 'Facultad de Derecho y Ciencias Politicas', 'FDCP', POINT(-66.15, -17.36), 6);
+
+INSERT INTO infraestructura.bloques (nombre, nombre_corto, codigo, pisos, coordenadas, facultad_id, tipo_bloque_id)
+VALUES
+  ('Edificio Nuevo de aulas', 'Edifico nuevo', '123456789', 3, POINT(-66,-18), 1, 3),
+  ('Edifico de laboratorios', 'Edificio labos', '987654321', 4, POINT(-66,-19), 1, 2),
+  ('Pasillo de gallineros', 'Edificio de aulas', '111112222', 1, POINT(-62,-18), 2, 3),
+  ('Centro de Innovacion Tecnologica', 'Innovacion', 'INN-001', 5, POINT(-66.48, -17.40), 1, 4),
+  ('Complejo Deportivo Universitario', 'Deportivo', 'DEP-002', 2, POINT(-66.47, -17.42), 2, 5),
+  ('Bloque Agroindustrial', 'Agroindustrial', 'AGR-003', 3, POINT(-65.97, -17.44), 5, 2),
+  ('Bloque Talleres Arquitectura', 'Talleres Arq', 'ARQ-004', 4, POINT(-66.53, -17.42), 4, 3);
+
+INSERT INTO infraestructura.ambientes (nombre, nombre_corto, codigo, piso, capacidad, dimension, clases, tipo_ambiente_id, bloque_id)
+VALUES
+  ('691A', '691', '69111', 1, '{"total": 45, "examen":35}'::jsonb, '{"largo": 30, "ancho": 8, "alto": 3.4, "unid_med": "metros"}'::jsonb, TRUE, 1, 1),
+  ('Laboratorio', 'LAbo', '77777', 0, '{"total": 30, "examen": 15}'::jsonb, '{"largo": 20, "ancho": 6, "alto": 3.4, "unid_med": "metros"}'::jsonb, TRUE, 1, 2),
+  ('Laboratorio de redes 1', 'LabRed', '55555', 0, '{"total": 15, "examen": 1}'::jsonb, '{"largo": 15, "ancho": 8, "alto": 3.4, "unid_med": "metros"}'::jsonb, TRUE, 3, 2),
+  ('Auditorio Central', 'AudCentral', 'AUD-001', 0, '{"total": 250, "examen": 200}'::jsonb, '{"largo": 40, "ancho": 20, "alto": 8, "unid_med": "metros"}'::jsonb, FALSE, 4, 4),
+  ('Sala Consejo Academico', 'Consejo', 'CON-001', 1, '{"total": 40, "examen": 0}'::jsonb, '{"largo": 18, "ancho": 10, "alto": 4, "unid_med": "metros"}'::jsonb, FALSE, 5, 4),
+  ('Laboratorio de Suelos', 'LabSuelos', 'LAB-AGR-01', 0, '{"total": 20, "examen": 10}'::jsonb, '{"largo": 18, "ancho": 9, "alto": 3.8, "unid_med": "metros"}'::jsonb, TRUE, 2, 6),
+  ('Taller de Maquetas', 'Maquetas', 'TALL-ARQ-1', 1, '{"total": 35, "examen": 25}'::jsonb, '{"largo": 25, "ancho": 12, "alto": 4, "unid_med": "metros"}'::jsonb, TRUE, 1, 7);
+
+INSERT INTO infraestructura.activos (nia, nombre, descripcion, ambiente_id)
+VALUES
+  (
+    'NIA-0001',
+    'Proyector Epson X12',
+    'Proyector principal del auditorio central',
+    (SELECT id FROM infraestructura.ambientes WHERE codigo = 'AUD-001')
+  ),
+  (
+    'NIA-0002',
+    'Router Cisco 2900',
+    'Router principal del laboratorio de redes',
+    (SELECT id FROM infraestructura.ambientes WHERE codigo = '55555')
+  ),
+  (
+    'NIA-0003',
+    'Computadora Lenovo AIO',
+    'Equipo para practicas de software',
+    (SELECT id FROM infraestructura.ambientes WHERE codigo = '77777')
+  ),
+  (
+    'NIA-0004',
+    'Aire acondicionado Samsung 36k',
+    'Equipo de climatizacion del consejo academico',
+    (SELECT id FROM infraestructura.ambientes WHERE codigo = 'CON-001')
+  ),
+  (
+    'NIA-0005',
+    'Juego de pupitres metalicos',
+    'Lote de 30 pupitres para aulas',
+    (SELECT id FROM infraestructura.ambientes WHERE codigo = '69111')
+  );
             `);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {}
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
+			DROP SCHEMA IF EXISTS infraestructura CASCADE;
+    `);
+  }
 }

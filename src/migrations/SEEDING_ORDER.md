@@ -1,15 +1,8 @@
 # Seed Batch Order
 
-This directory contains batch seed migrations that populate the infraestructura schema using raw SQL.
+Los seeders ahora viven dentro de `1758545008735-InitInfraestructura.ts`. Al ejecutar `pnpm typeorm migration:run`:
 
-Execution order (TypeORM sorts by timestamp):
-1. 1760000000001-SeedTipoBloquesBatch.ts
-2. 1760000000002-SeedTipoAmbientesBatch.ts
-3. 1760000000003-SeedCampusBatch.ts
-4. 1760000000004-SeedFacultadesBatch.ts
-5. 1760000000005-SeedBloquesBatch.ts
-6. 1760000000006-SeedAmbientesBatch.ts
-7. 1760000000007-SeedTipoActivosBatch.ts
-8. 1760000000008-SeedActivosBatch.ts
+1. Se crea el esquema `infraestructura`, tablas, índices, triggers y comentarios.
+2. Se insertan los catálogos y datos base (tipo_bloques, tipo_ambientes, campus, facultades, bloques, ambientes, activos) en el mismo archivo.
 
-Each migration is global infrastructure data and must be implemented with raw SQL inserts in the up method and matching deletes in down.
+Para revertir todo el proceso basta con ejecutar una sola vez `pnpm typeorm migration:revert`, lo que ejecutará el `down` de esa migración (dropping del schema completo).
