@@ -9,6 +9,7 @@ import {
 } from '../../domain/activo.list.types';
 import { CreateActivoCommand } from '../../domain/commands/create-activo.command';
 import { DeleteActivoCommand } from '../../domain/commands/delete-activo.command';
+import { UpdateActivoCommand } from '../../domain/commands/update-activo.command';
 
 // Repositorio TypeORM que ejecuta SQL crudo para leer activos.
 // Incluimos comentarios cortos para explicar cada paso de la construccion de la consulta.
@@ -51,15 +52,20 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
     }
   }
 
-  async isNiaTaken(nia: string): Promise<boolean> {
-    // Consulta rapida para saber si existe un NIA igual.
+  async isNiaTaken(nia: string, excludeId?: number): Promise<boolean> {
+    // Consulta rapida para saber si existe un NIA igual, excluyendo un id cuando se actualiza.
     const sql = `
       SELECT 1 AS existe
       FROM infraestructura.activos
       WHERE nia = $1
+      ${excludeId !== undefined ? 'AND id <> $2' : ''}
       LIMIT 1
     `;
-    const rows = await this.dataSource.query<{ existe: number }[]>(sql, [nia]);
+    const params: Array<string | number> = [nia];
+    if (excludeId !== undefined) {
+      params.push(excludeId);
+    }
+    const rows = await this.dataSource.query<{ existe: number }[]>(sql, params);
     // Si hay filas, significa que el NIA ya esta tomado.
     return rows.length > 0;
   }
@@ -95,6 +101,49 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
     return { id: Number(rows[0].id) };
   }
 
+  async update(command: UpdateActivoCommand): Promise<{ id: number }> {
+    // Construimos dinamicamente el SET con solo los campos enviados.
+    const setClauses: string[] = [];
+    const params: Array<string | number | null> = [];
+    let index = 1;
+
+    const push = (field: string, value: string | number | null) => {
+      setClauses.push(`${field} = $${index++}`);
+      params.push(value);
+    };
+
+    if (command.nia !== undefined) push('nia', command.nia);
+    if (command.nombre !== undefined) push('nombre', command.nombre);
+    if (command.descripcion !== undefined)
+      push('descripcion', command.descripcion);
+    if (command.ambiente_id !== undefined)
+      push('ambiente_id', command.ambiente_id);
+
+    // Si no hay campos para actualizar, devolvemos el id directamente.
+    if (setClauses.length === 0) {
+      return { id: command.id };
+    }
+
+    const sql = `
+      UPDATE infraestructura.activos
+      SET ${setClauses.join(', ')}
+      WHERE id = $${index}
+      RETURNING id
+    `;
+    params.push(command.id);
+
+    try {
+      const rows = await this.dataSource.query<{ id: number }[]>(sql, params);
+      if (rows.length === 0) {
+        return { id: command.id };
+      }
+      return { id: command.id };
+    } catch (error) {
+      this.handleUniqueNiaError(error);
+      throw error;
+    }
+  }
+
   async list(options: ListActivosOptions): Promise<ListActivosResult> {
     // Calculamos el offset a partir de la pagina solicitada.
     const offset = (options.page - 1) * options.take;
@@ -128,9 +177,10 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
 
     // Si se filtro por ambiente, agregamos la condicion exacta.
     if (options.ambienteId !== null) {
-      pushCondition((start) => `a.ambiente_id = $${start}`, [
-        options.ambienteId,
-      ]);
+      pushCondition(
+        (start) => `a.ambiente_id = $${start}`,
+        [options.ambienteId],
+      );
     }
 
     // Armamos la clausula WHERE final concatenando las condiciones que se hayan agregado.
@@ -217,7 +267,9 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
         throw new ConflictException({
           error: 'CONFLICT_ERROR',
           message: 'Los datos enviados no son validos',
-          details: [{ field: 'nia', message: 'Ya existe un activo con ese NIA' }],
+          details: [
+            { field: 'nia', message: 'Ya existe un activo con ese NIA' },
+          ],
         });
       }
     }
