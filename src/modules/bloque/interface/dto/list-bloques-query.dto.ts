@@ -1,7 +1,7 @@
 /* eslint-disable indent */
 
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import {
   IsInt,
   IsOptional,
@@ -12,6 +12,34 @@ import {
   IsBoolean,
   IsIn,
 } from 'class-validator';
+
+const transformToBoolean = ({ value }: { value: unknown }) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+
+    if (normalized === '') {
+      return false;
+    }
+
+    if (normalized === 'true') {
+      return true;
+    }
+
+    if (normalized === 'false') {
+      return false;
+    }
+  }
+
+  return Boolean(value);
+};
 
 export class ListBloquesQueryDto {
   @ApiPropertyOptional({ example: 1, minimum: 1 })
@@ -55,7 +83,7 @@ export class ListBloquesQueryDto {
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
-  @Type(() => Boolean)
+  @Transform(transformToBoolean)
   @IsBoolean({ message: 'El activo debe ser un valor booleano' })
   activo?: boolean;
 
