@@ -91,6 +91,45 @@ describe('TypeormActivoRepository', () => {
     expect(exists).toBe(true);
   });
 
+  it('busca un activo por id y devuelve null si no existe', async () => {
+    // Arrange: simulamos que no hay filas.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act: buscamos un id inexistente.
+    const found = await repository.findById(33);
+
+    // Assert: se consultГі con limit 1 y devuelve null.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    expect(sql).toContain('LIMIT 1');
+    expect(params).toEqual([33]);
+    expect(found).toBeNull();
+  });
+
+  it('elimina un activo y devuelve su id', async () => {
+    // Arrange: simulamos que el delete devuelve el id.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([{ id: 5 }]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act: ejecutamos delete.
+    const result = await repository.delete({ id: 5 });
+
+    // Assert: se usa RETURNING id y se normaliza a numero.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    const normalizedSql = (sql as string).replace(/\s+/g, ' ').trim();
+    expect(normalizedSql).toContain(
+      'DELETE FROM infraestructura.activos WHERE id = $1 RETURNING id',
+    );
+    expect(params).toEqual([5]);
+    expect(result).toEqual({ id: 5 });
+  });
+
   it('devuelve items paginados y metadatos correctos', async () => {
     // Arrange: simulamos dos llamadas a query: una para datos y otra para el total.
     const dataSource = createFakeDataSource();
