@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -26,6 +27,8 @@ import { ListActivosQueryDto } from './dto/list-activos-query.dto';
 import { CreateActivoUseCase } from '../application/create-activo.usecase';
 import { CreateActivoDto } from './dto/create-activo.dto';
 import { DeleteActivoUseCase } from '../application/delete-activo.usecase';
+import { UpdateActivoUseCase } from '../application/update-activo.usecase';
+import { UpdateActivoDto } from './dto/update-activo.dto';
 
 @ApiTags('Activos')
 @Controller('activos')
@@ -34,6 +37,7 @@ export class ActivoController {
     private readonly listActivosUseCase: ListActivosUseCase,
     private readonly createActivoUseCase: CreateActivoUseCase,
     private readonly deleteActivoUseCase: DeleteActivoUseCase,
+    private readonly updateActivoUseCase: UpdateActivoUseCase,
   ) {}
 
   @Get()
@@ -168,6 +172,62 @@ export class ActivoController {
   ): Promise<ReturnType<CreateActivoUseCase['execute']>> {
     // Delegamos la validacion y persistencia al caso de uso.
     return this.createActivoUseCase.execute(dto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Actualizar un activo',
+    description: 'Permite modificar uno o varios campos de un activo existente.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'payload',
+            message: 'Debes enviar al menos un campo para actualizar',
+          },
+        ],
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'NIA duplicado',
+    schema: {
+      example: {
+        statusCode: 409,
+        error: 'CONFLICT_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field: 'nia', message: 'Ya existe un activo con ese NIA' }],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Activo no existe',
+    schema: {
+      example: {
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'No se encontro el activo solicitado',
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Activo actualizado correctamente',
+    schema: { example: { id: 12 } },
+  })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateActivoDto,
+  ): Promise<ReturnType<UpdateActivoUseCase['execute']>> {
+    return this.updateActivoUseCase.execute({
+      id,
+      ...dto,
+    });
   }
 
   @Delete(':id')
