@@ -10,6 +10,7 @@ import { TipoBloqueModule } from './modules/tipo-bloque/tipo-bloque.module';
 import { BloqueModule } from './modules/bloque/bloque.module';
 import { TipoAmbienteModule } from './modules/tipo-ambiente/tipo-ambiente.module';
 import { AmbienteModule } from './modules/ambiente/ambiente.module';
+import { ActivoModule } from './modules/activo/activo.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AmbienteModule } from './modules/ambiente/ambiente.module';
     TipoAmbienteModule,
     BloqueModule,
     AmbienteModule,
+    ActivoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
