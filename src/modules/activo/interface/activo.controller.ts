@@ -1,6 +1,16 @@
-import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
@@ -8,11 +18,16 @@ import {
 } from '@nestjs/swagger';
 import { ListActivosUseCase } from '../application/list-activos.usecase';
 import { ListActivosQueryDto } from './dto/list-activos-query.dto';
+import { CreateActivoUseCase } from '../application/create-activo.usecase';
+import { CreateActivoDto } from './dto/create-activo.dto';
 
 @ApiTags('Activos')
 @Controller('activos')
 export class ActivoController {
-  constructor(private readonly listActivosUseCase: ListActivosUseCase) {}
+  constructor(
+    private readonly listActivosUseCase: ListActivosUseCase,
+    private readonly createActivoUseCase: CreateActivoUseCase,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -106,5 +121,45 @@ export class ActivoController {
       orderDir: query.orderDir,
       ambienteId: query.ambienteId,
     });
+  }
+
+  @Post()
+  @ApiOperation({
+    summary: 'Crear un activo',
+    description:
+      'Registra un nuevo activo con su NIA, nombre, descripcion y ambiente opcional.',
+  })
+  @ApiCreatedResponse({
+    description: 'Activo creado correctamente',
+    schema: { example: { id: 7 } },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field: 'nia', message: 'El NIA no puede estar vacio' }],
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'NIA duplicado',
+    schema: {
+      example: {
+        statusCode: 409,
+        error: 'CONFLICT_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field: 'nia', message: 'Ya existe un activo con ese NIA' }],
+      },
+    },
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body() dto: CreateActivoDto,
+  ): Promise<ReturnType<CreateActivoUseCase['execute']>> {
+    // Delegamos la validacion y persistencia al caso de uso.
+    return this.createActivoUseCase.execute(dto);
   }
 }
