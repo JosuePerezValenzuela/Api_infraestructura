@@ -14,17 +14,23 @@ import { ListActivosResult } from '../domain/activo.list.types';
 import { CreateActivoUseCase } from '../application/create-activo.usecase';
 import { CreateActivoDto } from './dto/create-activo.dto';
 import { DeleteActivoUseCase } from '../application/delete-activo.usecase';
+import { UpdateActivoUseCase } from '../application/update-activo.usecase';
+import { UpdateActivoDto } from './dto/update-activo.dto';
 
 // Definimos el tipo del mock para el caso de uso de listado.
 type ListUseCaseMock = {
   execute: jest.Mock<Promise<ListActivosResult>, [any]>;
 };
-// Definimos el tipo del mock para el caso de uso de creación.
+// Definimos el tipo del mock para el caso de uso de creacion.
 type CreateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
-// Definimos el tipo del mock para el caso de uso de eliminaciГіn.
+// Definimos el tipo del mock para el caso de uso de eliminacion.
 type DeleteUseCaseMock = {
+  execute: jest.Mock<Promise<{ id: number }>, [any]>;
+};
+// Definimos el tipo del mock para el caso de uso de actualizacion.
+type UpdateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
 
@@ -33,12 +39,14 @@ describe('ActivoController', () => {
   let listUseCase: ListUseCaseMock;
   let createUseCase: CreateUseCaseMock;
   let deleteUseCase: DeleteUseCaseMock;
+  let updateUseCase: UpdateUseCaseMock;
 
   // Antes de cada prueba armamos el modulo de testing con el controlador real y los casos de uso simulados.
   beforeEach(async () => {
     listUseCase = { execute: jest.fn() };
     createUseCase = { execute: jest.fn() };
     deleteUseCase = { execute: jest.fn() };
+    updateUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ActivoController],
@@ -46,6 +54,7 @@ describe('ActivoController', () => {
         { provide: ListActivosUseCase, useValue: listUseCase },
         { provide: CreateActivoUseCase, useValue: createUseCase },
         { provide: DeleteActivoUseCase, useValue: deleteUseCase },
+        { provide: UpdateActivoUseCase, useValue: updateUseCase },
       ],
     }).compile();
 
@@ -120,7 +129,7 @@ describe('ActivoController', () => {
     });
 
     it('propaga BadRequestException cuando el caso de uso lo indica', async () => {
-      // Arrange: el mock rechazará con error de validación.
+      // Arrange: el mock rechazara con error de validacion.
       createUseCase.execute.mockRejectedValue(
         new BadRequestException({
           error: 'VALIDATION_ERROR',
@@ -135,7 +144,7 @@ describe('ActivoController', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('propaga ConflictException cuando el NIA está duplicado', async () => {
+    it('propaga ConflictException cuando el NIA esta duplicado', async () => {
       // Arrange: el mock simula un conflicto por NIA duplicado.
       createUseCase.execute.mockRejectedValue(
         new ConflictException('NIA duplicado'),
@@ -148,6 +157,40 @@ describe('ActivoController', () => {
     });
   });
 
+  describe('update', () => {
+    it('invoca al caso de uso con el id y el payload y devuelve el id', async () => {
+      // Arrange: mock devolviendo un id.
+      updateUseCase.execute.mockResolvedValue({ id: 77 });
+      const dto: UpdateActivoDto = {
+        nombre: 'Nuevo nombre',
+        descripcion: 'Actualizado',
+        ambiente_id: 4,
+      };
+
+      // Act: llamamos al controlador.
+      const result = await controller.update(77, dto);
+
+      // Assert: revisamos los argumentos y el resultado.
+      expect(updateUseCase.execute).toHaveBeenCalledWith({
+        id: 77,
+        ...dto,
+      });
+      expect(result).toEqual({ id: 77 });
+    });
+
+    it('propaga ConflictException del caso de uso', async () => {
+      // Arrange: el mock rechaza con conflicto.
+      updateUseCase.execute.mockRejectedValue(
+        new ConflictException('NIA duplicado'),
+      );
+
+      // Act & Assert: el controlador debe propagar el error.
+      await expect(
+        controller.update(10, { nia: 'NIA-1' }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
   describe('delete', () => {
     it('invoca al caso de uso y devuelve 204', async () => {
       // Arrange: el mock no necesita devolver nada en especial.
@@ -156,7 +199,7 @@ describe('ActivoController', () => {
       // Act: llamamos al controlador con un id.
       await controller.delete(9);
 
-      // Assert: verificamos que se llamГі con el id correcto.
+      // Assert: verificamos que se llamo con el id correcto.
       expect(deleteUseCase.execute).toHaveBeenCalledWith({ id: 9 });
     });
 
@@ -166,7 +209,7 @@ describe('ActivoController', () => {
         new NotFoundException('No existe'),
       );
 
-      // Act & Assert: el controlador debe propagar la excepciГіn.
+      // Act & Assert: el controlador debe propagar la excepcion.
       await expect(controller.delete(999)).rejects.toBeInstanceOf(
         NotFoundException,
       );
