@@ -1,12 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, QueryFailedError } from 'typeorm';
 import { ActivoRepositoryPort } from '../../domain/activo.repository.port';
 import {
   ActivoListItem,
   ListActivosOptions,
   ListActivosResult,
 } from '../../domain/activo.list.types';
+import { CreateActivoCommand } from '../../domain/commands/create-activo.command';
 
 // Repositorio TypeORM que ejecuta SQL crudo para leer activos.
 // Incluimos comentarios cortos para explicar cada paso de la construccion de la consulta.
@@ -16,6 +17,51 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
+
+  async create(command: CreateActivoCommand): Promise<{ id: number }> {
+    // SQL parametrizado para insertar el activo.
+    const sql = `
+      INSERT INTO infraestructura.activos (
+        nia,
+        nombre,
+        descripcion,
+        ambiente_id
+      )
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `;
+    // Arreglo con los valores en el mismo orden que el SQL.
+    const params = [
+      command.nia,
+      command.nombre,
+      command.descripcion ?? null,
+      command.ambiente_id ?? null,
+    ];
+
+    try {
+      // Ejecutamos el query y extraemos el id generado.
+      const rows = await this.dataSource.query<{ id: number }[]>(sql, params);
+      const [row] = rows;
+      return { id: Number(row.id) };
+    } catch (error) {
+      // Si es un error de clave duplicada, lo convertimos a ConflictException.
+      this.handleUniqueNiaError(error);
+      throw error;
+    }
+  }
+
+  async isNiaTaken(nia: string): Promise<boolean> {
+    // Consulta rapida para saber si existe un NIA igual.
+    const sql = `
+      SELECT 1 AS existe
+      FROM infraestructura.activos
+      WHERE nia = $1
+      LIMIT 1
+    `;
+    const rows = await this.dataSource.query<{ existe: number }[]>(sql, [nia]);
+    // Si hay filas, significa que el NIA ya esta tomado.
+    return rows.length > 0;
+  }
 
   async list(options: ListActivosOptions): Promise<ListActivosResult> {
     // Calculamos el offset a partir de la pagina solicitada.
@@ -128,5 +174,20 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
         hasPreviousPage,
       },
     };
+  }
+
+  private handleUniqueNiaError(error: unknown): void {
+    // Detectamos el codigo de error de Postgres para clave duplicada.
+    if (error instanceof QueryFailedError) {
+      const driverError = error.driverError as { code?: string } | undefined;
+      if (driverError?.code === '23505') {
+        // Re-lanzamos un ConflictException con el formato estandar.
+        throw new ConflictException({
+          error: 'CONFLICT_ERROR',
+          message: 'Los datos enviados no son validos',
+          details: [{ field: 'nia', message: 'Ya existe un activo con ese NIA' }],
+        });
+      }
+    }
   }
 }
