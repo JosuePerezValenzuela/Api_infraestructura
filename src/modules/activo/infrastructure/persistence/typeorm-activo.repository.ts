@@ -8,6 +8,7 @@ import {
   ListActivosResult,
 } from '../../domain/activo.list.types';
 import { CreateActivoCommand } from '../../domain/commands/create-activo.command';
+import { DeleteActivoCommand } from '../../domain/commands/delete-activo.command';
 
 // Repositorio TypeORM que ejecuta SQL crudo para leer activos.
 // Incluimos comentarios cortos para explicar cada paso de la construccion de la consulta.
@@ -61,6 +62,37 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
     const rows = await this.dataSource.query<{ existe: number }[]>(sql, [nia]);
     // Si hay filas, significa que el NIA ya esta tomado.
     return rows.length > 0;
+  }
+
+  async findById(id: number): Promise<{ id: number } | null> {
+    // Consulta simple para verificar existencia por id.
+    const sql = `
+      SELECT id
+      FROM infraestructura.activos
+      WHERE id = $1
+      LIMIT 1
+    `;
+    const rows = await this.dataSource.query<{ id: number }[]>(sql, [id]);
+    if (rows.length === 0) {
+      return null;
+    }
+    return { id: Number(rows[0].id) };
+  }
+
+  async delete(command: DeleteActivoCommand): Promise<{ id: number }> {
+    // Eliminamos por id y devolvemos el id borrado.
+    const sql = `
+      DELETE FROM infraestructura.activos
+      WHERE id = $1
+      RETURNING id
+    `;
+    const rows = await this.dataSource.query<{ id: number }[]>(sql, [
+      command.id,
+    ]);
+    if (rows.length === 0) {
+      return { id: command.id };
+    }
+    return { id: Number(rows[0].id) };
   }
 
   async list(options: ListActivosOptions): Promise<ListActivosResult> {
