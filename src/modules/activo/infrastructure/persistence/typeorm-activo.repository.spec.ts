@@ -1,8 +1,11 @@
 // Este archivo describe con detalle como debe comportarse TypeormActivoRepository.
 // Las pruebas usan un DataSource falso para inspeccionar las consultas sin tocar una base real.
 
+import { ConflictException } from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
 import { TypeormActivoRepository } from './typeorm-activo.repository';
 import { ListActivosOptions } from '../../domain/activo.list.types';
+import { CreateActivoCommand } from '../../domain/commands/create-activo.command';
 
 // Fabrica un DataSource falso con jest.fn para espiar llamadas a query.
 const createFakeDataSource = () => ({
@@ -12,6 +15,80 @@ const createFakeDataSource = () => ({
 describe('TypeormActivoRepository', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('inserta un activo y devuelve su id', async () => {
+    // Arrange: simulamos que la base devuelve id 9 tras el insert.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([{ id: '9' }]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+    // Comando de ejemplo para insertar.
+    const command: CreateActivoCommand = {
+      nia: 'NIA-9999',
+      nombre: 'Impresora',
+      descripcion: 'Laser monocromatica',
+      ambiente_id: 2,
+    };
+
+    // Act: ejecutamos create.
+    const result = await repository.create(command);
+
+    // Assert: se llamo al query con el SQL de insert y los parametros correctos.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    const normalizedSql = (sql as string).replace(/\s+/g, ' ').trim();
+    expect(normalizedSql).toContain(
+      'INSERT INTO infraestructura.activos ( nia, nombre, descripcion, ambiente_id )',
+    );
+    expect(params).toEqual([
+      'NIA-9999',
+      'Impresora',
+      'Laser monocromatica',
+      2,
+    ]);
+    expect(result).toEqual({ id: 9 });
+  });
+
+  it('lanza ConflictException cuando postgres reporta clave duplicada', async () => {
+    // Arrange: simulamos un error 23505 de Postgres.
+    const dataSource = createFakeDataSource();
+    const driverError = { code: '23505' };
+    const queryError = new QueryFailedError(
+      'insert',
+      [],
+      driverError as unknown as Error,
+    );
+    dataSource.query.mockRejectedValueOnce(queryError);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act & Assert: create debe convertirlo en ConflictException.
+    await expect(
+      repository.create({
+        nia: 'NIA-dup',
+        nombre: 'Duplicado',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('detecta si un NIA ya existe', async () => {
+    // Arrange: devolvemos una fila para simular existencia.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([{ existe: 1 }]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act: consultamos por el NIA.
+    const exists = await repository.isNiaTaken('NIA-0001');
+
+    // Assert: debe devolver true y usar LIMIT en la consulta.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    expect(sql).toContain('LIMIT 1');
+    expect(params).toEqual(['NIA-0001']);
+    expect(exists).toBe(true);
   });
 
   it('devuelve items paginados y metadatos correctos', async () => {
