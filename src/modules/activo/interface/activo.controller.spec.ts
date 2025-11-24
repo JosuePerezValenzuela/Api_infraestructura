@@ -1,7 +1,11 @@
 // En este archivo explicamos el comportamiento esperado de ActivoController.
 // Cada prueba describe la historia completa para que alguien sin experiencia entienda la API.
 
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ActivoController } from './activo.controller';
 import { ListActivosUseCase } from '../application/list-activos.usecase';
@@ -9,6 +13,7 @@ import { ListActivosQueryDto } from './dto/list-activos-query.dto';
 import { ListActivosResult } from '../domain/activo.list.types';
 import { CreateActivoUseCase } from '../application/create-activo.usecase';
 import { CreateActivoDto } from './dto/create-activo.dto';
+import { DeleteActivoUseCase } from '../application/delete-activo.usecase';
 
 // Definimos el tipo del mock para el caso de uso de listado.
 type ListUseCaseMock = {
@@ -18,22 +23,29 @@ type ListUseCaseMock = {
 type CreateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
+// Definimos el tipo del mock para el caso de uso de eliminaciГіn.
+type DeleteUseCaseMock = {
+  execute: jest.Mock<Promise<{ id: number }>, [any]>;
+};
 
 describe('ActivoController', () => {
   let controller: ActivoController;
   let listUseCase: ListUseCaseMock;
   let createUseCase: CreateUseCaseMock;
+  let deleteUseCase: DeleteUseCaseMock;
 
   // Antes de cada prueba armamos el modulo de testing con el controlador real y los casos de uso simulados.
   beforeEach(async () => {
     listUseCase = { execute: jest.fn() };
     createUseCase = { execute: jest.fn() };
+    deleteUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ActivoController],
       providers: [
         { provide: ListActivosUseCase, useValue: listUseCase },
         { provide: CreateActivoUseCase, useValue: createUseCase },
+        { provide: DeleteActivoUseCase, useValue: deleteUseCase },
       ],
     }).compile();
 
@@ -133,6 +145,31 @@ describe('ActivoController', () => {
       await expect(
         controller.create({ nia: 'NIA-1', nombre: 'PC' } as CreateActivoDto),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('delete', () => {
+    it('invoca al caso de uso y devuelve 204', async () => {
+      // Arrange: el mock no necesita devolver nada en especial.
+      deleteUseCase.execute.mockResolvedValue({ id: 9 });
+
+      // Act: llamamos al controlador con un id.
+      await controller.delete(9);
+
+      // Assert: verificamos que se llamГі con el id correcto.
+      expect(deleteUseCase.execute).toHaveBeenCalledWith({ id: 9 });
+    });
+
+    it('propaga NotFoundException cuando el caso de uso falla', async () => {
+      // Arrange: simulamos un not found.
+      deleteUseCase.execute.mockRejectedValue(
+        new NotFoundException('No existe'),
+      );
+
+      // Act & Assert: el controlador debe propagar la excepciГіn.
+      await expect(controller.delete(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });
