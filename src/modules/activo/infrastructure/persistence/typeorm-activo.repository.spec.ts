@@ -91,6 +91,23 @@ describe('TypeormActivoRepository', () => {
     expect(exists).toBe(true);
   });
 
+  it('detecta NIA excluyendo el propio id cuando se actualiza', async () => {
+    // Arrange: simulamos la consulta con excludeId.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act: llamamos con excludeId=5.
+    await repository.isNiaTaken('NIA-2', 5);
+
+    // Assert: la consulta debe incluir la clausula id <> $2 y los parametros correctos.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    expect(sql).toContain('id <> $2');
+    expect(params).toEqual(['NIA-2', 5]);
+  });
+
   it('busca un activo por id y devuelve null si no existe', async () => {
     // Arrange: simulamos que no hay filas.
     const dataSource = createFakeDataSource();
@@ -128,6 +145,51 @@ describe('TypeormActivoRepository', () => {
     );
     expect(params).toEqual([5]);
     expect(result).toEqual({ id: 5 });
+  });
+
+  it('actualiza los campos enviados y devuelve el id', async () => {
+    // Arrange: preparamos el dataSource con una fila devuelta.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([{ id: 11 }]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act: ejecutamos update con nia y descripcion.
+    const result = await repository.update({
+      id: 11,
+      nia: 'NIA-500',
+      descripcion: 'Actualizado',
+    });
+
+    // Assert: revisamos el SQL y los parametros.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    const normalizedSql = (sql as string).replace(/\s+/g, ' ').trim();
+    expect(normalizedSql).toContain('UPDATE infraestructura.activos');
+    expect(normalizedSql).toContain('nia = $1');
+    expect(normalizedSql).toContain('descripcion = $2');
+    expect(params).toEqual(['NIA-500', 'Actualizado', 11]);
+    expect(result).toEqual({ id: 11 });
+  });
+
+  it('lanza ConflictException en update cuando hay clave duplicada', async () => {
+    // Arrange: simulamos error 23505.
+    const dataSource = createFakeDataSource();
+    const driverError = { code: '23505' };
+    const queryError = new QueryFailedError(
+      'update',
+      [],
+      driverError as unknown as Error,
+    );
+    dataSource.query.mockRejectedValueOnce(queryError);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act & Assert.
+    await expect(
+      repository.update({ id: 3, nia: 'NIA-dup' }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('devuelve items paginados y metadatos correctos', async () => {
