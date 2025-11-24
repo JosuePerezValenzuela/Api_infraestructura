@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
   Post,
   Query,
 } from '@nestjs/common';
@@ -11,6 +14,8 @@ import {
   ApiBadRequestResponse,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
@@ -20,6 +25,7 @@ import { ListActivosUseCase } from '../application/list-activos.usecase';
 import { ListActivosQueryDto } from './dto/list-activos-query.dto';
 import { CreateActivoUseCase } from '../application/create-activo.usecase';
 import { CreateActivoDto } from './dto/create-activo.dto';
+import { DeleteActivoUseCase } from '../application/delete-activo.usecase';
 
 @ApiTags('Activos')
 @Controller('activos')
@@ -27,6 +33,7 @@ export class ActivoController {
   constructor(
     private readonly listActivosUseCase: ListActivosUseCase,
     private readonly createActivoUseCase: CreateActivoUseCase,
+    private readonly deleteActivoUseCase: DeleteActivoUseCase,
   ) {}
 
   @Get()
@@ -161,5 +168,39 @@ export class ActivoController {
   ): Promise<ReturnType<CreateActivoUseCase['execute']>> {
     // Delegamos la validacion y persistencia al caso de uso.
     return this.createActivoUseCase.execute(dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Eliminar un activo',
+    description: 'Elimina un activo existente por su identificador.',
+  })
+  @ApiNoContentResponse({ description: 'Activo eliminado correctamente' })
+  @ApiBadRequestResponse({
+    description: 'Id invalido',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field: 'id', message: 'El id debe ser un numero entero >= 1' }],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Activo no existe',
+    schema: {
+      example: {
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'No se encontro el activo solicitado',
+      },
+    },
+  })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async delete(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<void> {
+    await this.deleteActivoUseCase.execute({ id });
   }
 }
