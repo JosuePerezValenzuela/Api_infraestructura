@@ -25,7 +25,7 @@ export class ListFacultadesQueryDto {
   @Type(() => Number)
   @IsInt({ message: 'El limit debe ser entero' })
   @Min(1, { message: 'El valor minimo de limite es 1' })
-  @Max(50, { message: 'El valor maximo de limit es 50' })
+  @Max(200, { message: 'El valor maximo de limit es 200' })
   limit?: number = 8;
 
   @ApiPropertyOptional({ example: 'tecnologia' })
