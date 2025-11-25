@@ -7,6 +7,7 @@ export type ListCampusInput = {
   search?: string;
   orderBy?: 'nombre' | 'creado_en';
   direction?: 'asc' | 'desc';
+  activo?: boolean;
 };
 
 @Injectable()
@@ -22,6 +23,7 @@ export class ListCampusUseCase {
       search,
       orderBy = 'creado_en',
       direction = 'asc',
+      activo,
     } = input;
 
     const { items, total } = await this.repo.list({
@@ -30,6 +32,7 @@ export class ListCampusUseCase {
       search,
       orderBy,
       direction,
+      activo,
     });
 
     const page = Math.floor(skip / take) + 1;
