@@ -90,7 +90,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     //Cantidad de registros que debemos saltar antes de empezar a mostrar resultados
     const offset = (opts.page - 1) * opts.take;
 
-    const filterParams: Array<string | number> = [];
+    const filterParams: Array<string | number | boolean> = [];
 
     const whereClauses: string[] = [];
 
@@ -110,6 +110,12 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       whereClauses.push(
         `(f.codigo ILIKE $${codigoIndex} OR f.nombre ILIKE $${nombreIndex} OR c.nombre ILIKE $${campusIndex})`,
       );
+    }
+
+    if (opts.activo !== undefined) {
+      const idx = filterParams.length + 1;
+      filterParams.push(opts.activo);
+      whereClauses.push(`f.activo = $${idx}`);
     }
 
     // Union de todas las clausulas

@@ -89,6 +89,7 @@ export class FacultadController {
       search: query.search?.trim()?.length ? query.search.trim() : null,
       orderBy: query.orderBy ?? 'nombre',
       orderDir: query.orderDir ?? 'asc',
+      activo: query.activo,
     };
     const result = await this.listFacultades.execute(filters);
     return result;

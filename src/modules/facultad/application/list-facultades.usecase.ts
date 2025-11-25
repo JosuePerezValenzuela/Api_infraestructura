@@ -17,6 +17,7 @@ export class ListFacultadesUseCase {
       search = null,
       orderBy = 'nombre',
       orderDir = 'asc',
+      activo,
     } = input;
 
     // Definimos una lista de columnas permitidas para ordenar y evitar que alguien pida campos prohibidos que rompan la consulta.
@@ -40,6 +41,7 @@ export class ListFacultadesUseCase {
       search,
       orderBy,
       orderDir,
+      activo,
     };
     // Pedimos al repositorio que ejecute la busqueda paginada en la base de datos y nos devuelva el resultado.
     const resp = await this.facultadRepository.findPaginated(query);

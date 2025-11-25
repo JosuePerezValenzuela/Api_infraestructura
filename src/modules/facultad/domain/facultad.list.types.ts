@@ -16,6 +16,7 @@ export interface ListFacultadesQuery {
   search?: string | null;
   orderBy: 'nombre' | 'codigo' | 'creado_en';
   orderDir: 'asc' | 'desc';
+  activo?: boolean;
 }
 
 export interface ListFacultadesItem {

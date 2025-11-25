@@ -7,10 +7,22 @@ import {
   Max,
   MaxLength,
   IsIn,
+  IsBoolean,
 } from 'class-validator';
 
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+
+const transformToBoolean = ({ value }: { value: unknown }) => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return Boolean(value);
+};
 
 export class ListFacultadesQueryDto {
   @ApiPropertyOptional({ example: 1 })
@@ -49,4 +61,13 @@ export class ListFacultadesQueryDto {
     message: 'Solo se puede ordenar de forma asc o desc',
   })
   orderDir?: 'asc' | 'desc' = 'asc';
+
+  @ApiPropertyOptional({
+    description: 'Filtra facultades activas o inactivas',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(transformToBoolean)
+  @IsBoolean({ message: 'activo debe ser booleano' })
+  activo?: boolean;
 }
