@@ -15,6 +15,7 @@ import {
   ApiBadRequestResponse,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -29,8 +30,11 @@ import { CreateActivoDto } from './dto/create-activo.dto';
 import { DeleteActivoUseCase } from '../application/delete-activo.usecase';
 import { UpdateActivoUseCase } from '../application/update-activo.usecase';
 import { UpdateActivoDto } from './dto/update-activo.dto';
+import { AssignActivosToAmbienteUseCase } from '../application/assign-activos-to-ambiente.usecase';
+import { AssignActivosDto } from './dto/assign-activos.dto';
 
 @ApiTags('Activos')
+@ApiExtraModels(AssignActivosDto)
 @Controller('activos')
 export class ActivoController {
   constructor(
@@ -38,6 +42,7 @@ export class ActivoController {
     private readonly createActivoUseCase: CreateActivoUseCase,
     private readonly deleteActivoUseCase: DeleteActivoUseCase,
     private readonly updateActivoUseCase: UpdateActivoUseCase,
+    private readonly assignActivosToAmbienteUseCase: AssignActivosToAmbienteUseCase,
   ) {}
 
   @Get()
@@ -227,6 +232,49 @@ export class ActivoController {
     return this.updateActivoUseCase.execute({
       id,
       ...dto,
+    });
+  }
+
+  @Patch('ambientes/:ambienteId/activos')
+  @ApiOperation({
+    summary: 'Asociar varios activos a un ambiente',
+    description:
+      'Permite asignar en lote una lista de activos a un ambiente especifico.',
+  })
+  @ApiOkResponse({
+    description: 'Activos asociados correctamente',
+    schema: { example: { updatedIds: [1, 2, 3] } },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          { field: 'ambienteId', message: 'El ambienteId debe ser un entero >= 1' },
+        ],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Ambiente o activos inexistentes',
+    schema: {
+      example: {
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'Algunos activos no existen',
+      },
+    },
+  })
+  async assignActivosToAmbiente(
+    @Param('ambienteId', ParseIntPipe) ambienteId: number,
+    @Body() dto: AssignActivosDto,
+  ): Promise<ReturnType<AssignActivosToAmbienteUseCase['execute']>> {
+    return this.assignActivosToAmbienteUseCase.execute({
+      ambienteId,
+      activoIds: dto.activoIds,
     });
   }
 

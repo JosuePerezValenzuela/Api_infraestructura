@@ -10,6 +10,7 @@ import {
 import { CreateActivoCommand } from '../../domain/commands/create-activo.command';
 import { DeleteActivoCommand } from '../../domain/commands/delete-activo.command';
 import { UpdateActivoCommand } from '../../domain/commands/update-activo.command';
+import { AssignActivosToAmbienteCommand } from '../../domain/commands/assign-activos-to-ambiente.command';
 
 // Repositorio TypeORM que ejecuta SQL crudo para leer activos.
 // Incluimos comentarios cortos para explicar cada paso de la construccion de la consulta.
@@ -142,6 +143,25 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
       this.handleUniqueNiaError(error);
       throw error;
     }
+  }
+
+  async assignToAmbiente(
+    ambienteId: number,
+    activoIds: AssignActivosToAmbienteCommand['activoIds'],
+  ): Promise<{ updatedIds: number[] }> {
+    // Actualizamos todos los activos solicitados al ambiente indicado.
+    const sql = `
+      UPDATE infraestructura.activos
+      SET ambiente_id = $1
+      WHERE id = ANY($2::int[])
+      RETURNING id
+    `;
+    const rows = await this.dataSource.query<{ id: number }[]>(sql, [
+      ambienteId,
+      activoIds,
+    ]);
+    const updatedIds = rows.map((row) => Number(row.id));
+    return { updatedIds };
   }
 
   async list(options: ListActivosOptions): Promise<ListActivosResult> {

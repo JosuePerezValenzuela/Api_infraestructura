@@ -172,6 +172,26 @@ describe('TypeormActivoRepository', () => {
     expect(result).toEqual({ id: 11 });
   });
 
+  it('asigna varios activos a un ambiente y devuelve los ids actualizados', async () => {
+    // Arrange: simulamos que se actualizan 2 activos.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([{ id: 1 }, { id: 2 }]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act: llamamos al metodo de asignacion.
+    const result = await repository.assignToAmbiente(5, [1, 2]);
+
+    // Assert: verificamos SQL, parametros y retorno.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    const normalizedSql = (sql as string).replace(/\s+/g, ' ').trim().toLowerCase();
+    expect(normalizedSql).toContain('update infraestructura.activos');
+    expect(normalizedSql).toContain('where id = any($2::int[])');
+    expect(params).toEqual([5, [1, 2]]);
+    expect(result).toEqual({ updatedIds: [1, 2] });
+  });
+
   it('lanza ConflictException en update cuando hay clave duplicada', async () => {
     // Arrange: simulamos error 23505.
     const dataSource = createFakeDataSource();

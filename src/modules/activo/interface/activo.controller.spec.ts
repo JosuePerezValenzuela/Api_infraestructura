@@ -16,6 +16,8 @@ import { CreateActivoDto } from './dto/create-activo.dto';
 import { DeleteActivoUseCase } from '../application/delete-activo.usecase';
 import { UpdateActivoUseCase } from '../application/update-activo.usecase';
 import { UpdateActivoDto } from './dto/update-activo.dto';
+import { AssignActivosToAmbienteUseCase } from '../application/assign-activos-to-ambiente.usecase';
+import { AssignActivosDto } from './dto/assign-activos.dto';
 
 // Definimos el tipo del mock para el caso de uso de listado.
 type ListUseCaseMock = {
@@ -33,6 +35,10 @@ type DeleteUseCaseMock = {
 type UpdateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
+// Definimos el tipo del mock para el caso de uso de asignacion masiva.
+type AssignUseCaseMock = {
+  execute: jest.Mock<Promise<{ updatedIds: number[] }>, [any]>;
+};
 
 describe('ActivoController', () => {
   let controller: ActivoController;
@@ -40,6 +46,7 @@ describe('ActivoController', () => {
   let createUseCase: CreateUseCaseMock;
   let deleteUseCase: DeleteUseCaseMock;
   let updateUseCase: UpdateUseCaseMock;
+  let assignUseCase: AssignUseCaseMock;
 
   // Antes de cada prueba armamos el modulo de testing con el controlador real y los casos de uso simulados.
   beforeEach(async () => {
@@ -47,6 +54,7 @@ describe('ActivoController', () => {
     createUseCase = { execute: jest.fn() };
     deleteUseCase = { execute: jest.fn() };
     updateUseCase = { execute: jest.fn() };
+    assignUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ActivoController],
@@ -55,6 +63,7 @@ describe('ActivoController', () => {
         { provide: CreateActivoUseCase, useValue: createUseCase },
         { provide: DeleteActivoUseCase, useValue: deleteUseCase },
         { provide: UpdateActivoUseCase, useValue: updateUseCase },
+        { provide: AssignActivosToAmbienteUseCase, useValue: assignUseCase },
       ],
     }).compile();
 
@@ -213,6 +222,34 @@ describe('ActivoController', () => {
       await expect(controller.delete(999)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('assignActivosToAmbiente', () => {
+    it('llama al caso de uso con el ambienteId y la lista de activos', async () => {
+      // Arrange: mock devolverá los ids actualizados.
+      assignUseCase.execute.mockResolvedValue({ updatedIds: [1, 2] });
+      const dto: AssignActivosDto = { activoIds: [1, 2] };
+
+      // Act: invocamos el controlador.
+      const result = await controller.assignActivosToAmbiente(5, dto);
+
+      // Assert: se pasaron los argumentos correctos y el resultado se propaga.
+      expect(assignUseCase.execute).toHaveBeenCalledWith({
+        ambienteId: 5,
+        activoIds: [1, 2],
+      });
+      expect(result).toEqual({ updatedIds: [1, 2] });
+    });
+
+    it('propaga NotFoundException cuando el caso de uso lo indica', async () => {
+      assignUseCase.execute.mockRejectedValue(
+        new NotFoundException('No existe'),
+      );
+
+      await expect(
+        controller.assignActivosToAmbiente(99, { activoIds: [1] } as AssignActivosDto),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });
