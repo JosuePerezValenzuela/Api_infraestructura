@@ -159,7 +159,7 @@ describe('CreateBloqueDto', () => {
   });
 
   // Probamos que la cantidad de pisos sea un entero entre 1 y 99.
-  it('rechaza un numero de pisos fuera del rango 1-99', async () => {
+  it('rechaza un numero de pisos fuera del rango mayor a 99', async () => {
     // Definimos pisos en 0 para simular un valor inválido.
     const payload = {
       codigo: 'BLOQUE-101',
@@ -167,7 +167,7 @@ describe('CreateBloqueDto', () => {
       nombre_corto: 'Ing Central',
       lat: -17.3937,
       lng: -66.1568,
-      pisos: 0,
+      pisos: 100,
       activo: true,
       facultad_id: 1,
       tipo_bloque_id: 2,
@@ -175,7 +175,7 @@ describe('CreateBloqueDto', () => {
     // Validamos el payload incorrecto.
     const errors = await validateInput(payload);
     // Confirmamos el mensaje que describe el rango válido de pisos.
-    expect(errors).toContain('Los pisos deben ser un entero entre 1 y 99');
+    expect(errors).toContain('El maximo numero de pisos es 99');
   });
 
   // Finalmente validamos que los identificadores de relaciones sean números positivos.

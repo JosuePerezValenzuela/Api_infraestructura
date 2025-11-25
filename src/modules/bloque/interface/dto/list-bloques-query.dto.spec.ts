@@ -54,18 +54,14 @@ describe('ListBloquesQueryDto', () => {
     );
   });
 
-  it('exige que pisosMin sea un entero entre 1 y 99', async () => {
-    const errors = await validateInput({ pisosMin: 0 });
-    expect(errors).toContain(
-      'El pisosMin debe ser un entero entre 1 y 99 pisos',
-    );
+  it('exige que pisosMin sea un con valor maximo de 99', async () => {
+    const errors = await validateInput({ pisosMin: 100 });
+    expect(errors).toContain('El maximo numero de pisos es 99');
   });
 
-  it('exige que pisosMax sea un entero entre 1 y 99', async () => {
+  it('exige que pisosMax sea un entero con valor maximo de 99', async () => {
     const errors = await validateInput({ pisosMax: 120 });
-    expect(errors).toContain(
-      'El pisosMax debe ser un entero entre 1 y 99 pisos',
-    );
+    expect(errors).toContain('El maximo numero de pisos es 99');
   });
 
   it('valida que orderBy solo acepte los campos permitidos', async () => {

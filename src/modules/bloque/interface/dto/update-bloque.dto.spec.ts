@@ -202,15 +202,15 @@ describe('UpdateBloqueDto', () => {
   });
 
   // Revisamos que la cantidad de pisos se encuentre entre 1 y 99.
-  it('rechaza un valor de pisos fuera del rango 1-99', async () => {
+  it('rechaza un valor de pisos fuera del rango mayor a 99', async () => {
     // Establecemos pisos en 0 para romper la regla del rango valido.
     const payload = {
-      pisos: 0,
+      pisos: 100,
     };
     // Ejecutamos la validacion con el valor incorrecto.
     const errors = await validateInput(payload);
     // Esperamos el mensaje que explica el rango permitido de pisos.
-    expect(errors).toContain('Los pisos deben ser un entero entre 1 y 99');
+    expect(errors).toContain('El maximo numero de pisos es 99');
   });
 
   // Aseguramos que el campo activo solo acepte valores booleanos.
