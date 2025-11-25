@@ -57,6 +57,7 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
       search,
       orderBy = 'creado_en',
       direction = 'asc',
+      activo,
     } = opts;
 
     const ORDER_COLUMNS: Record<'nombre' | 'creado_en', string> = {
@@ -90,6 +91,10 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
       );
     }
 
+    if (activo !== undefined) {
+      qb = qb.andWhere('c.activo = :activo', { activo });
+    }
+
     qb = qb.orderBy(orderCol, dir).skip(skip).take(take);
 
     const [items, total] = await Promise.all([
@@ -103,6 +108,10 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
             '(c.nombre ILIKE :q OR c.direccion ILIKE :q OR c.codigo ILIKE :q)',
             { q: `%${search}%` },
           );
+        }
+
+        if (activo !== undefined) {
+          countQb = countQb.andWhere('c.activo = :activo', { activo });
         }
         const { cnt } = (await countQb.getRawOne<{ cnt: string }>()) ?? {
           cnt: '0',

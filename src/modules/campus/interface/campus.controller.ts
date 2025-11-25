@@ -74,6 +74,7 @@ export class CampusController {
   async list(@Query() query: ListCampusQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
+    const activo = query.activo;
 
     const result = await this.listCampus.execute({
       skip: (page - 1) * limit,
@@ -81,6 +82,7 @@ export class CampusController {
       search: query.search,
       orderBy: query.orderBy ?? 'nombre',
       direction: query.orderDir ?? 'asc',
+      activo,
     });
 
     return {

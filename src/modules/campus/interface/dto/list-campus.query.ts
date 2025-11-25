@@ -2,6 +2,7 @@
 import {
   IsIn,
   IsInt,
+  IsBoolean,
   IsOptional,
   IsString,
   Max,
@@ -9,8 +10,21 @@ import {
   Min,
 } from 'class-validator';
 
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+
+const transformToBoolean = ({ value }: { value: unknown }) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return Boolean(value);
+};
 
 export class ListCampusQueryDto {
   // Pagina
@@ -48,4 +62,13 @@ export class ListCampusQueryDto {
   @IsOptional()
   @IsIn(['asc', 'desc'], { message: 'asc o desc' })
   orderDir: 'asc' | 'desc' = 'desc';
+
+  @ApiPropertyOptional({
+    description: 'Filtra campus activos o inactivos',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(transformToBoolean)
+  @IsBoolean({ message: 'activo debe ser booleano' })
+  activo?: boolean;
 }
