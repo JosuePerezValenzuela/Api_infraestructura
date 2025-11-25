@@ -91,15 +91,27 @@ export class TypeormTipoAmbienteRepository
     options: ListTipoAmbientesOptions,
   ): Promise<ListTipoAmbientesResult> {
     const search = options.search?.trim();
-    const dataParams: Array<string | number> = [];
-    const countParams: Array<string | number> = [];
-    let whereClause = '';
+    const dataParams: Array<string | number | boolean> = [];
+    const countParams: Array<string | number | boolean> = [];
+    const conditions: string[] = [];
+
+    const pushCondition = (
+      clause: string,
+      value: string | number | boolean,
+    ) => {
+      const index = dataParams.length + 1;
+      conditions.push(clause.replace('$idx', `$${index}`));
+      dataParams.push(value);
+      countParams.push(value);
+    };
 
     if (search && search.length > 0) {
       const pattern = `%${search}%`;
-      whereClause = 'WHERE ta.nombre ILIKE $1';
-      dataParams.push(pattern);
-      countParams.push(pattern);
+      pushCondition('ta.nombre ILIKE $idx', pattern);
+    }
+
+    if (options.activo !== undefined) {
+      pushCondition('ta.activo = $idx', options.activo);
     }
 
     dataParams.push(options.take);
@@ -111,6 +123,9 @@ export class TypeormTipoAmbienteRepository
       nombre: 'ta.nombre',
       creado_en: 'ta.creado_en',
     };
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const dataSql = `
       SELECT

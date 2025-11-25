@@ -149,6 +149,7 @@ describe('TipoAmbienteController', () => {
         search: null,
         orderBy: 'nombre',
         orderDir: 'asc',
+        activo: undefined,
       });
       expect(result.meta.total).toBe(0);
     });
@@ -165,6 +166,34 @@ describe('TipoAmbienteController', () => {
       await expect(controller.findAll({ page: 0 })).rejects.toBeInstanceOf(
         BadRequestException,
       );
+    });
+
+    it('envヴa el filtro activo al caso de uso cuando llega en el query', async () => {
+      // Preparamos la respuesta simulada del caso de uso para no depender de la base de datos real.
+      listUseCase.execute.mockResolvedValue({
+        items: [],
+        meta: {
+          total: 0,
+          page: 1,
+          take: 8,
+          pages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      });
+      // Definimos el query que representarヴa la peticiИn HTTP incluyendo el flag activo=true.
+      const query: ListTipoAmbientesQueryDto = { activo: true } as any;
+      // Ejecutamos el controlador con el query simulado.
+      await controller.findAll(query);
+      // Validamos que el controlador forwardee el flag activo al caso de uso junto con los defaults.
+      expect(listUseCase.execute).toHaveBeenCalledWith({
+        page: 1,
+        limit: 8,
+        search: null,
+        orderBy: 'nombre',
+        orderDir: 'asc',
+        activo: true,
+      });
     });
   });
 

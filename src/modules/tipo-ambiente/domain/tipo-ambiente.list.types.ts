@@ -17,6 +17,7 @@ export interface ListTipoAmbientesOptions {
   search?: string | null;
   orderBy: TipoAmbienteOrderBy;
   orderDir: TipoAmbienteOrderDir;
+  activo?: boolean;
 }
 
 export interface ListTipoAmbientesResult {

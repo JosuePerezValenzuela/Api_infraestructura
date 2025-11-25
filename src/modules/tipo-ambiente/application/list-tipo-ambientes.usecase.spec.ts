@@ -45,6 +45,7 @@ describe('ListTipoAmbientesUseCase', () => {
       search: null,
       orderBy: 'nombre',
       orderDir: 'asc',
+      activo: undefined,
     });
     expect(result.meta.total).toBe(0);
   });
@@ -66,7 +67,33 @@ describe('ListTipoAmbientesUseCase', () => {
       search: 'lab',
       orderBy: 'creado_en',
       orderDir: 'desc',
+      activo: undefined,
     });
+  });
+
+  it('envヴa el filtro activo al repositorio cuando se proporciona', async () => {
+    // Creamos el sistema de pruebas con mocks listos para inspeccionar las llamadas.
+    const { useCase, repo } = buildSystem();
+    // Ejecutamos el caso de uso indicando que queremos solo los inactivos.
+    await useCase.execute({ activo: false });
+    // Verificamos que el repositorio recibiИ el flag activo junto con los defaults.
+    expect(repo.list).toHaveBeenCalledWith({
+      page: 1,
+      take: 8,
+      search: null,
+      orderBy: 'nombre',
+      orderDir: 'asc',
+      activo: false,
+    });
+  });
+
+  it('lanza BadRequestException cuando activo no es booleano', async () => {
+    // Preparamos el caso de uso.
+    const { useCase } = buildSystem();
+    // Intentamos listar con un valor invケlido para activo.
+    await expect(
+      useCase.execute({ activo: 'si' as unknown as boolean }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('lanza BadRequestException cuando page es menor a 1', async () => {

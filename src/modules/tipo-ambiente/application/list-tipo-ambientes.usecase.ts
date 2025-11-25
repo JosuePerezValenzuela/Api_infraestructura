@@ -18,17 +18,20 @@ export class ListTipoAmbientesUseCase {
     search?: string | null;
     orderBy?: 'nombre' | 'creado_en';
     orderDir?: 'asc' | 'desc';
+    activo?: boolean;
   }): Promise<ListTipoAmbientesResult> {
     const page = input.page ?? 1;
     const limit = input.limit ?? 8;
     const orderBy = input.orderBy ?? 'nombre';
     const orderDir = input.orderDir ?? 'asc';
     const search = input.search?.trim();
+    const activo = input.activo;
 
     this.ensurePageIsValid(page);
     this.ensureLimitIsValid(limit);
     this.ensureOrderByIsValid(orderBy);
     this.ensureOrderDirIsValid(orderDir);
+    this.ensureActivoIsValid(activo);
 
     const options: ListTipoAmbientesOptions = {
       page,
@@ -36,6 +39,7 @@ export class ListTipoAmbientesUseCase {
       search: search && search.length > 0 ? search : null,
       orderBy,
       orderDir,
+      activo,
     };
 
     return this.repo.list(options);
@@ -94,6 +98,21 @@ export class ListTipoAmbientesUseCase {
           {
             field: 'orderDir',
             message: 'Solo se aceptan las direcciones asc o desc',
+          },
+        ],
+      });
+    }
+  }
+
+  private ensureActivoIsValid(activo: boolean | undefined) {
+    if (activo !== undefined && typeof activo !== 'boolean') {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'activo',
+            message: 'El campo activo debe ser booleano',
           },
         ],
       });

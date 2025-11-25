@@ -157,6 +157,34 @@ describe('TypeormTipoAmbienteRepository', () => {
     expect(countParams).toEqual(['%lab%']);
   });
 
+  it('agrega la condiciИn activo cuando se solicita filtrar por estado', async () => {
+    // Construimos el repositorio con el datasource simulado.
+    const { dataSource, repository } = buildRepository();
+    // Configuramos las respuestas vacヴas para que la consulta continゼe sin fallar.
+    dataSource.query
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 0 }]);
+    // Ejecutamos el listado pidiendo solo los registros activos.
+    await repository.list({
+      page: 1,
+      take: 10,
+      search: null,
+      orderBy: 'nombre',
+      orderDir: 'asc',
+      activo: true,
+    });
+    // Obtenemos el SQL y los parケmetros enviados a la primera llamada (datos).
+    const [selectSql, selectParams] = dataSource.query.mock.calls[0];
+    expect(selectSql.replace(/\s+/g, ' ').trim()).toContain(
+      'WHERE ta.activo = $1',
+    );
+    expect(selectParams).toEqual([true, 10, 0]);
+    // Validamos que el conteo tambiИn reciba el filtro de activo.
+    const [countSql, countParams] = dataSource.query.mock.calls[1];
+    expect(countSql.replace(/\s+/g, ' ').trim()).toContain('WHERE ta.activo');
+    expect(countParams).toEqual([true]);
+  });
+
   it('elimina un tipo de ambiente y sus dependencias', async () => {
     const { dataSource, repository } = buildRepository();
     dataSource.query

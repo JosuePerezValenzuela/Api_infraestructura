@@ -1,7 +1,27 @@
 /* eslint-disable indent */
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+
+// Convierte valores de query como "true"/"false" a booleanos reales.
+const transformToBoolean = ({ value }: { value: unknown }) => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return Boolean(value);
+};
 
 export class ListTipoAmbientesQueryDto {
   @ApiPropertyOptional({
@@ -54,4 +74,13 @@ export class ListTipoAmbientesQueryDto {
     message: 'Solo se aceptan las direcciones asc o desc',
   })
   orderDir: 'asc' | 'desc' = 'asc';
+
+  @ApiPropertyOptional({
+    description: 'Filtra tipos de ambiente activos o inactivos',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(transformToBoolean)
+  @IsBoolean({ message: 'activo debe ser booleano' })
+  activo?: boolean;
 }

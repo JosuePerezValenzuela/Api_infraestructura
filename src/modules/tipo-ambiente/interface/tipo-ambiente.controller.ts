@@ -116,6 +116,12 @@ export class TipoAmbienteController {
     enum: ['asc', 'desc'],
     description: 'Dirección del ordenamiento. Por defecto asc.',
   })
+  @ApiQuery({
+    name: 'activo',
+    required: false,
+    type: Boolean,
+    description: 'Filtra tipos de ambiente activos o inactivos.',
+  })
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: ListTipoAmbientesQueryDto,
@@ -125,6 +131,7 @@ export class TipoAmbienteController {
     const orderBy = query.orderBy ?? 'nombre';
     const orderDir = query.orderDir ?? 'asc';
     const search = query.search?.trim();
+    const activo = query.activo;
 
     return this.listTipoAmbientesUseCase.execute({
       page,
@@ -132,6 +139,7 @@ export class TipoAmbienteController {
       search: search && search.length > 0 ? search : null,
       orderBy,
       orderDir,
+      activo,
     });
   }
 
