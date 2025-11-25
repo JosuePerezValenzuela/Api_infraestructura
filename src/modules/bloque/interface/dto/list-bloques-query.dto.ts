@@ -87,20 +87,18 @@ export class ListBloquesQueryDto {
   @IsBoolean({ message: 'El activo debe ser un valor booleano' })
   activo?: boolean;
 
-  @ApiPropertyOptional({ example: 1, minimum: 1, maximum: 99 })
+  @ApiPropertyOptional({ example: 1, maximum: 99 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'El pisosMin debe ser un entero entre 1 y 99 pisos' })
-  @Min(1, { message: 'El pisosMin debe ser un entero entre 1 y 99 pisos' })
-  @Max(99, { message: 'El pisosMin debe ser un entero entre 1 y 99 pisos' })
+  @IsInt({ message: 'El maximo numero de pisos es 99' })
+  @Max(99, { message: 'El maximo numero de pisos es 99' })
   pisosMin?: number;
 
-  @ApiPropertyOptional({ example: 1, minimum: 1, maximum: 99 })
+  @ApiPropertyOptional({ example: 1, maximum: 99 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'El pisosMax debe ser un entero entre 1 y 99 pisos' })
-  @Min(1, { message: 'El pisosMax debe ser un entero entre 1 y 99 pisos' })
-  @Max(99, { message: 'El pisosMax debe ser un entero entre 1 y 99 pisos' })
+  @IsInt({ message: 'El maximo numero de pisos es 99' })
+  @Max(99, { message: 'El maximo numero de pisos es 99' })
   pisosMax?: number;
 
   @ApiPropertyOptional({ example: 'nombre' })

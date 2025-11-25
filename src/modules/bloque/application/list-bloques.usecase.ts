@@ -108,7 +108,7 @@ export class ListBloquesUseCase {
     }
 
     if (pisosMin !== null) {
-      if (!Number.isInteger(pisosMin) || pisosMin < 1 || pisosMin > 99) {
+      if (!Number.isInteger(pisosMin) || pisosMin > 99) {
         validationError(
           'pisosMin',
           'El pisosMin debe ser un entero entre 1 y 99 pisos',
@@ -117,7 +117,7 @@ export class ListBloquesUseCase {
     }
 
     if (pisosMax !== null) {
-      if (!Number.isInteger(pisosMax) || pisosMax < 1 || pisosMax > 99) {
+      if (!Number.isInteger(pisosMax) || pisosMax > 99) {
         validationError(
           'pisosMax',
           'El pisosMax debe ser un entero entre 1 y 99 pisos',
