@@ -5,6 +5,7 @@ export interface ListOptions {
   search?: string;
   orderBy?: 'nombre' | 'creado_en';
   direction?: OrderDirection;
+  activo?: boolean;
 }
 
 export interface CampusListItem {
