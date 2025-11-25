@@ -70,15 +70,13 @@ export class UpdateBloqueDto {
 
   @ApiPropertyOptional({
     description: 'Cantidad de pisos',
-    minimum: 1,
     maximum: 99,
     example: 1,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Los pisos deben ser un entero entre 1 y 99' })
-  @Min(1, { message: 'Los pisos deben ser un entero entre 1 y 99' })
-  @Max(99, { message: 'Los pisos deben ser un entero entre 1 y 99' })
+  @IsInt({ message: 'El maximo numero de pisos es 99' })
+  @Max(99, { message: 'El maximo numero de pisos es 99' })
   pisos?: number;
 
   @ApiPropertyOptional({

@@ -125,18 +125,14 @@ export class UpdateBloqueUseCase {
     }
 
     if (input.pisos !== undefined) {
-      if (
-        !Number.isInteger(input.pisos) ||
-        input.pisos < 1 ||
-        input.pisos > 99
-      ) {
+      if (!Number.isInteger(input.pisos) || input.pisos > 99) {
         throw new BadRequestException({
           error: 'VALIDATION_ERROR',
           message: 'Los datos enviados no son validos',
           details: [
             {
               field: 'pisos',
-              message: 'Los pisos deben ser un entero entre 1 y 99',
+              message: 'Maximo numero de pisos 99',
             },
           ],
         });
