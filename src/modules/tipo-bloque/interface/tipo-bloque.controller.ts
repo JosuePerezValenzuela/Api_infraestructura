@@ -95,6 +95,7 @@ export class TipoBloqueController {
       search: query.search?.trim()?.length ? query.search.trim() : null,
       orderBy: (query.orderBy ?? 'nombre') as TipoBloqueOrderBy,
       orderDir: (query.orderDir ?? 'asc') as TipoBloqueOrderDir,
+      activo: query.activo,
     };
     return this.listTipoBloquesUse.execute(filters);
   }

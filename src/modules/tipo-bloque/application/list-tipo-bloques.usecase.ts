@@ -27,12 +27,14 @@ export class ListTipoBloquesUseCase {
     search?: string | null;
     orderBy?: TipoBloqueOrderBy;
     orderDir?: TipoBloqueOrderDir;
+    activo?: boolean;
   }): Promise<ListTipoBloquesResult> {
     const page = input.page ?? 1;
     const limit = input.limit ?? 6;
     const orderBy = input.orderBy ?? 'nombre';
     const orderDir = input.orderDir ?? 'asc';
     const search = input.search?.trim()?.length ? input.search.trim() : null;
+    const activo = input.activo;
 
     const validationError = (field: string, message: string) => {
       throw new BadRequestException({
@@ -67,12 +69,17 @@ export class ListTipoBloquesUseCase {
       validationError('orderDir', 'La direccion de orden debe ser asc o desc');
     }
 
+    if (activo !== undefined && typeof activo !== 'boolean') {
+      validationError('activo', 'El campo activo debe ser booleano');
+    }
+
     const options: ListTipoBloquesOptions = {
       page,
       take: limit,
       search,
       orderBy,
       orderDir,
+      activo,
     };
 
     return this.repo.list(options);

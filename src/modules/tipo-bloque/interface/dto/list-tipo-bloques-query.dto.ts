@@ -1,6 +1,7 @@
 /* eslint-disable indent */
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
@@ -8,7 +9,18 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+
+const transformToBoolean = ({ value }: { value: unknown }) => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return Boolean(value);
+};
 
 export class ListTipoBloquesQueryDto {
   @ApiPropertyOptional()
@@ -44,4 +56,13 @@ export class ListTipoBloquesQueryDto {
     message: 'La direccion de orden debe ser asc o desc',
   })
   orderDir?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtra tipos de bloque activos o inactivos',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(transformToBoolean)
+  @IsBoolean({ message: 'activo debe ser booleano' })
+  activo?: boolean;
 }

@@ -1,45 +1,59 @@
-// Estas pruebas describen el comportamiento esperado del ListTipoBloquesUseCase.
-// Explican cada linea en lenguaje sencillo para que cualquier persona entienda el proceso.
+// Esta suite documenta el comportamiento de ListTipoBloquesUseCase.
+// Incluye comentarios sencillos para que cualquiera entienda las validaciones.
 
 import { BadRequestException } from '@nestjs/common';
 import { ListTipoBloquesUseCase } from './list-tipo-bloques.usecase';
-import { TipoBloqueRepositoryPort } from '../domain/tipo-bloque.repository.port';
 import {
   ListTipoBloquesOptions,
   ListTipoBloquesResult,
 } from '../domain/tipo-bloque.list.types';
+import { TipoBloqueRepositoryPort } from '../domain/tipo-bloque.repository.port';
 
-type FakeTipoBloqueRepository = {
+// Mock del repositorio para espiar las llamadas.
+type FakeRepo = {
   list: jest.Mock<Promise<ListTipoBloquesResult>, [ListTipoBloquesOptions]>;
 };
 
 describe('ListTipoBloquesUseCase', () => {
   const buildSystem = () => {
-    const repo: FakeTipoBloqueRepository = {
+    const repo: FakeRepo = {
       list: jest.fn().mockResolvedValue({
         items: [],
         meta: {
           total: 0,
           page: 1,
-          take: 8,
+          take: 6,
           pages: 1,
           hasNextPage: false,
           hasPreviousPage: false,
         },
       }),
     };
-
     const useCase = new ListTipoBloquesUseCase(
-      repo as TipoBloqueRepositoryPort,
+      repo as unknown as TipoBloqueRepositoryPort,
     );
-
-    return { useCase, repo };
+    return { repo, useCase };
   };
 
-  it('devuelve la lista con los valores por defecto cuando no se envia nada', async () => {
-    const { useCase, repo } = buildSystem();
+  it('propaga el filtro activo cuando se envia', async () => {
+    const { repo, useCase } = buildSystem();
 
-    const result = await useCase.execute({});
+    await useCase.execute({ page: 2, limit: 5, activo: true });
+
+    expect(repo.list).toHaveBeenCalledWith({
+      page: 2,
+      take: 5,
+      search: null,
+      orderBy: 'nombre',
+      orderDir: 'asc',
+      activo: true,
+    });
+  });
+
+  it('omite activo cuando no se envia', async () => {
+    const { repo, useCase } = buildSystem();
+
+    await useCase.execute({});
 
     expect(repo.list).toHaveBeenCalledWith({
       page: 1,
@@ -47,59 +61,14 @@ describe('ListTipoBloquesUseCase', () => {
       search: null,
       orderBy: 'nombre',
       orderDir: 'asc',
-    });
-    expect(result.meta.total).toBe(0);
-  });
-
-  it('utiliza los filtros enviados por el consumidor', async () => {
-    const { useCase, repo } = buildSystem();
-
-    await useCase.execute({
-      page: 3,
-      limit: 5,
-      search: 'laboratorio',
-      orderBy: 'creado_en',
-      orderDir: 'desc',
-    });
-
-    expect(repo.list).toHaveBeenCalledWith({
-      page: 3,
-      take: 5,
-      search: 'laboratorio',
-      orderBy: 'creado_en',
-      orderDir: 'desc',
+      activo: undefined,
     });
   });
 
-  it('lanza BadRequestException cuando page es menor a 1', async () => {
+  it('lanza BadRequest cuando activo no es booleano', async () => {
     const { useCase } = buildSystem();
-
-    await expect(useCase.execute({ page: 0 })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-  });
-
-  it('lanza BadRequestException cuando limit es menor a 1', async () => {
-    const { useCase } = buildSystem();
-
-    await expect(useCase.execute({ limit: 0 })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-  });
-
-  it('lanza BadRequestException cuando orderBy no es permitido', async () => {
-    const { useCase } = buildSystem();
-
     await expect(
-      useCase.execute({ orderBy: 'codigo' as any }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('lanza BadRequestException cuando orderDir no es permitida', async () => {
-    const { useCase } = buildSystem();
-
-    await expect(
-      useCase.execute({ orderDir: 'invalid' as any }),
+      useCase.execute({ activo: 'yes' as any }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

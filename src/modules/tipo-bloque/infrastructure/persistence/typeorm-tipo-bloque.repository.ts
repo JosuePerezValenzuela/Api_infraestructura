@@ -77,13 +77,27 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
   async list(options: ListTipoBloquesOptions): Promise<ListTipoBloquesResult> {
     const search = options.search?.trim();
     const offset = (options.page - 1) * options.take;
-    const dataParams: Array<string | number> = [];
-    const countParams: Array<string | number> = [];
+    const dataParams: Array<string | number | boolean> = [];
+    const countParams: Array<string | number | boolean> = [];
+    const conditions: string[] = [];
+
+    const pushCondition = (
+      clause: string,
+      value: string | number | boolean,
+    ) => {
+      const index = dataParams.length + 1;
+      conditions.push(clause.replace('$idx', `$${index}`));
+      dataParams.push(value);
+      countParams.push(value);
+    };
 
     if (search && search.length > 0) {
       const pattern = `%${search}%`;
-      dataParams.push(pattern);
-      countParams.push(pattern);
+      pushCondition('tb.nombre ILIKE $idx', pattern);
+    }
+
+    if (options.activo !== undefined) {
+      pushCondition('tb.activo = $idx', options.activo);
     }
 
     dataParams.push(options.take);
@@ -97,6 +111,9 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
       creado_en: 'tb.creado_en',
     };
 
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
     let dataSql = `
       SELECT
         tb.id,
@@ -108,9 +125,7 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
       FROM infraestructura.tipo_bloques tb
     `;
 
-    if (search && search.length > 0) {
-      dataSql += ` WHERE tb.nombre ILIKE $1`;
-    }
+    dataSql += ` ${whereClause}`;
 
     dataSql += ` ORDER BY ${orderByMap[options.orderBy]} ${options.orderDir.toUpperCase()}`;
 
@@ -121,9 +136,7 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
       FROM infraestructura.tipo_bloques tb
     `;
 
-    if (options.search && options.search.length > 0) {
-      countSql += ` WHERE tb.nombre ILIKE $1`;
-    }
+    countSql += ` ${whereClause}`;
 
     const rows = await this.dataSource.query<
       Array<{

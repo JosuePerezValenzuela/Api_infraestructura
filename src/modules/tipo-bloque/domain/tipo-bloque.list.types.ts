@@ -20,6 +20,7 @@ export interface ListTipoBloquesOptions {
   search?: string | null;
   orderBy: TipoBloqueOrderBy;
   orderDir: TipoBloqueOrderDir;
+  activo?: boolean;
 }
 
 // Lo que devolvera la api
