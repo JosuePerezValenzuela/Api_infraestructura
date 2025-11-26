@@ -8,8 +8,10 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Put,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -23,6 +25,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { ListActivosUseCase } from '../application/list-activos.usecase';
 import { ListActivosQueryDto } from './dto/list-activos-query.dto';
 import { CreateActivoUseCase } from '../application/create-activo.usecase';
@@ -32,6 +35,8 @@ import { UpdateActivoUseCase } from '../application/update-activo.usecase';
 import { UpdateActivoDto } from './dto/update-activo.dto';
 import { AssignActivosToAmbienteUseCase } from '../application/assign-activos-to-ambiente.usecase';
 import { AssignActivosDto } from './dto/assign-activos.dto';
+import { UpsertActivoByNiaUseCase } from '../application/upsert-activo-by-nia.usecase';
+import { UpsertActivoDto } from './dto/upsert-activo.dto';
 
 @ApiTags('Activos')
 @ApiExtraModels(AssignActivosDto)
@@ -43,6 +48,7 @@ export class ActivoController {
     private readonly deleteActivoUseCase: DeleteActivoUseCase,
     private readonly updateActivoUseCase: UpdateActivoUseCase,
     private readonly assignActivosToAmbienteUseCase: AssignActivosToAmbienteUseCase,
+    private readonly upsertActivoByNiaUseCase: UpsertActivoByNiaUseCase,
   ) {}
 
   @Get()
@@ -182,7 +188,8 @@ export class ActivoController {
   @Patch(':id')
   @ApiOperation({
     summary: 'Actualizar un activo',
-    description: 'Permite modificar uno o varios campos de un activo existente.',
+    description:
+      'Permite modificar uno o varios campos de un activo existente.',
   })
   @ApiBadRequestResponse({
     description: 'Datos invalidos',
@@ -253,7 +260,10 @@ export class ActivoController {
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
         details: [
-          { field: 'ambienteId', message: 'El ambienteId debe ser un entero >= 1' },
+          {
+            field: 'ambienteId',
+            message: 'El ambienteId debe ser un entero >= 1',
+          },
         ],
       },
     },
@@ -291,7 +301,9 @@ export class ActivoController {
         statusCode: 400,
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
-        details: [{ field: 'id', message: 'El id debe ser un numero entero >= 1' }],
+        details: [
+          { field: 'id', message: 'El id debe ser un numero entero >= 1' },
+        ],
       },
     },
   })
@@ -306,9 +318,64 @@ export class ActivoController {
     },
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<void> {
+  async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.deleteActivoUseCase.execute({ id });
+  }
+
+  @Put('nia/:nia')
+  @ApiOperation({
+    summary: 'Crear o actualizar un activo por NIA',
+    description:
+      'Si la NIA no existe, inserta un nuevo activo; si ya existe, actualiza solo los campos enviados.',
+  })
+  @ApiCreatedResponse({
+    description: 'Activo creado con la NIA indicada',
+    schema: { example: { nia: 'NIA-0009' } },
+  })
+  @ApiOkResponse({
+    description: 'Activo actualizado con la NIA indicada',
+    schema: { example: { nia: 'NIA-0009' } },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'payload',
+            message: 'Debes enviar al menos un campo para actualizar',
+          },
+        ],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Ambiente no existe',
+    schema: {
+      example: {
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'No se encontro el ambiente solicitado',
+      },
+    },
+  })
+  async upsertByNia(
+    @Param('nia') nia: string,
+    @Body() dto: UpsertActivoDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ nia: string }> {
+    // Delegamos la lógica de inserción/actualización al caso de uso.
+    const result = await this.upsertActivoByNiaUseCase.execute({
+      nia,
+      ...dto,
+    });
+
+    // Ajustamos el status HTTP según si fue creación (201) o actualización (200).
+    res.status(result.created ? HttpStatus.CREATED : HttpStatus.OK);
+
+    return { nia: result.nia };
   }
 }
