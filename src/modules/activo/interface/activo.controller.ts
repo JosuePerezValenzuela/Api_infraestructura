@@ -37,6 +37,8 @@ import { AssignActivosToAmbienteUseCase } from '../application/assign-activos-to
 import { AssignActivosDto } from './dto/assign-activos.dto';
 import { UpsertActivoByNiaUseCase } from '../application/upsert-activo-by-nia.usecase';
 import { UpsertActivoDto } from './dto/upsert-activo.dto';
+import { GetActivoByNiaUseCase } from '../application/get-activo-by-nia.usecase';
+import { GetActivoByNiaQueryDto } from './dto/get-activo-by-nia-query.dto';
 
 @ApiTags('Activos')
 @ApiExtraModels(AssignActivosDto)
@@ -49,6 +51,7 @@ export class ActivoController {
     private readonly updateActivoUseCase: UpdateActivoUseCase,
     private readonly assignActivosToAmbienteUseCase: AssignActivosToAmbienteUseCase,
     private readonly upsertActivoByNiaUseCase: UpsertActivoByNiaUseCase,
+    private readonly getActivoByNiaUseCase: GetActivoByNiaUseCase,
   ) {}
 
   @Get()
@@ -377,5 +380,57 @@ export class ActivoController {
     res.status(result.created ? HttpStatus.CREATED : HttpStatus.OK);
 
     return { nia: result.nia };
+  }
+
+  @Get('buscar_por_nia')
+  @ApiOperation({
+    summary: 'Buscar activo por NIA',
+    description:
+      'Devuelve los datos del activo y el nombre de su ambiente (si lo tiene) usando la NIA como clave.',
+  })
+  @ApiOkResponse({
+    description: 'Activo encontrado',
+    schema: {
+      example: {
+        id: 9,
+        nia: 'NIA-0009',
+        nombre: 'Laptop',
+        descripcion: 'Equipo principal',
+        ambiente_id: 4,
+        ambiente_nombre: 'Aula Magna',
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'NIA invalida',
+    schema: {
+      example: {
+        statusCode: 400,
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field: 'nia', message: 'El NIA no puede estar vacio' }],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Activo no existe',
+    schema: {
+      example: {
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'No se encontro el activo solicitado',
+      },
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  async getByNia(
+    @Query() query: GetActivoByNiaQueryDto,
+  ): Promise<
+    ReturnType<GetActivoByNiaUseCase['execute']> extends Promise<infer R>
+      ? R
+      : never
+  > {
+    // Delegamos la búsqueda al caso de uso, que valida y trae datos del ambiente.
+    return this.getActivoByNiaUseCase.execute({ nia: query.nia });
   }
 }

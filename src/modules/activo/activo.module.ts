@@ -9,6 +9,7 @@ import { ActivoRepositoryPort } from './domain/activo.repository.port';
 import { TypeormActivoRepository } from './infrastructure/persistence/typeorm-activo.repository';
 import { AmbienteModule } from '../ambiente/ambiente.module';
 import { UpsertActivoByNiaUseCase } from './application/upsert-activo-by-nia.usecase';
+import { GetActivoByNiaUseCase } from './application/get-activo-by-nia.usecase';
 
 @Module({
   imports: [AmbienteModule],
@@ -20,6 +21,7 @@ import { UpsertActivoByNiaUseCase } from './application/upsert-activo-by-nia.use
     UpdateActivoUseCase,
     AssignActivosToAmbienteUseCase,
     UpsertActivoByNiaUseCase,
+    GetActivoByNiaUseCase,
     {
       provide: ActivoRepositoryPort,
       useClass: TypeormActivoRepository,
@@ -33,6 +35,7 @@ import { UpsertActivoByNiaUseCase } from './application/upsert-activo-by-nia.use
     UpdateActivoUseCase,
     AssignActivosToAmbienteUseCase,
     UpsertActivoByNiaUseCase,
+    GetActivoByNiaUseCase,
   ],
 })
 export class ActivoModule {}

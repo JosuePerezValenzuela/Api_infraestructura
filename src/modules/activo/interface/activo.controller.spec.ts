@@ -20,6 +20,8 @@ import { AssignActivosToAmbienteUseCase } from '../application/assign-activos-to
 import { AssignActivosDto } from './dto/assign-activos.dto';
 import { UpsertActivoByNiaUseCase } from '../application/upsert-activo-by-nia.usecase';
 import { UpsertActivoDto } from './dto/upsert-activo.dto';
+import { GetActivoByNiaUseCase } from '../application/get-activo-by-nia.usecase';
+import { GetActivoByNiaQueryDto } from './dto/get-activo-by-nia-query.dto';
 
 // Definimos el tipo del mock para el caso de uso de listado.
 type ListUseCaseMock = {
@@ -45,6 +47,10 @@ type AssignUseCaseMock = {
 type UpsertUseCaseMock = {
   execute: jest.Mock<Promise<{ nia: string; created: boolean }>, [any]>;
 };
+// Mock para el caso de uso de consulta por NIA.
+type GetByNiaUseCaseMock = {
+  execute: jest.Mock<Promise<any>, [any]>;
+};
 
 describe('ActivoController', () => {
   let controller: ActivoController;
@@ -54,6 +60,7 @@ describe('ActivoController', () => {
   let updateUseCase: UpdateUseCaseMock;
   let assignUseCase: AssignUseCaseMock;
   let upsertUseCase: UpsertUseCaseMock;
+  let getByNiaUseCase: GetByNiaUseCaseMock;
 
   // Antes de cada prueba armamos el modulo de testing con el controlador real y los casos de uso simulados.
   beforeEach(async () => {
@@ -63,6 +70,7 @@ describe('ActivoController', () => {
     updateUseCase = { execute: jest.fn() };
     assignUseCase = { execute: jest.fn() };
     upsertUseCase = { execute: jest.fn() };
+    getByNiaUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ActivoController],
@@ -73,6 +81,7 @@ describe('ActivoController', () => {
         { provide: UpdateActivoUseCase, useValue: updateUseCase },
         { provide: AssignActivosToAmbienteUseCase, useValue: assignUseCase },
         { provide: UpsertActivoByNiaUseCase, useValue: upsertUseCase },
+        { provide: GetActivoByNiaUseCase, useValue: getByNiaUseCase },
       ],
     }).compile();
 
@@ -308,6 +317,37 @@ describe('ActivoController', () => {
       });
       expect(res.status).toHaveBeenCalledWith(200);
       expect(result).toEqual({ nia: 'NIA-002' });
+    });
+  });
+
+  describe('getByNia', () => {
+    it('retorna los datos del activo cuando existe', async () => {
+      // Preparamos el caso de uso para que responda con datos completos.
+      getByNiaUseCase.execute.mockResolvedValue({
+        id: 9,
+        nia: 'NIA-009',
+        nombre: 'Laptop',
+        descripcion: 'Sala A',
+        ambiente_id: 4,
+        ambiente_nombre: 'Aula Magna',
+      });
+      const query: GetActivoByNiaQueryDto = { nia: 'NIA-009' } as any;
+
+      const result = await controller.getByNia(query);
+
+      expect(getByNiaUseCase.execute).toHaveBeenCalledWith({ nia: 'NIA-009' });
+      expect(result.nia).toBe('NIA-009');
+      expect(result.ambiente_nombre).toBe('Aula Magna');
+    });
+
+    it('propaga NotFoundException cuando la NIA no existe', async () => {
+      getByNiaUseCase.execute.mockRejectedValue(
+        new NotFoundException('No existe'),
+      );
+
+      await expect(controller.getByNia({ nia: 'NIA-404' })).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });
