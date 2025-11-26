@@ -414,7 +414,7 @@ VALUES
 
 INSERT INTO infraestructura.bloques (nombre, nombre_corto, codigo, pisos, coordenadas, facultad_id, tipo_bloque_id)
 VALUES
-  ('Departamento de Sistemas e Informatica', 'Laboratorios SisInfo', '12', 0, POINT(-66.14698981637378,-17.39294682572144), 1, 2),
+  ('Departamento de Sistemas e Informatica', 'Labo SisInfo', '12', 0, POINT(-66.14698981637378,-17.39294682572144), 1, 2),
   ('Trencito', NULL, '15', 0, POINT(-66.1463724143366,-17.394032080491442), 1, 1),
   ('Administracion central FCyT', 'Central FCyT', '24', 4, POINT(-66.14490250841264,-17.39340754787264), 1, 3),
   ('Edificio ELEKTRO', 'ELEKTRO', '26', 2, POINT(-66.1453477700777,-17.393781243876205), 1, 1),
@@ -425,11 +425,10 @@ VALUES
 	('Bloque Antiguo AgroQuimica', 'Quimica Antiguo', '37', 0, POINT(-66.14421596169757,-17.393837554166712), 1, 1),
 	('Bloque Nuevo AgroQuimica', 'Quimica Nuevo', '38', 0, POINT(-66.14421596169757,-17.393837554166712), 1, 1),
 	('Edificio MEMI', 'MEMI', '45', 2, POINT(-66.14696796353066,-17.39325909308398), 1, 2),
-	('Alimentos y Aguas FCyT', 'Alimentos y Agua', '46', 0, POINT(-66.14445707610554,-17.39275741738934), 1, 2),
+	('Alimentos y Agua', 'Alimentos y Agua', '46', 0, POINT(-66.14445707610554,-17.39275741738934), 1, 2),
 	('Departamento Industrial', 'Industrial', '47', 0, POINT(-66.14584132347993,-17.393305165272665), 1, 1),
 	('Edificio Nuevo FCyT', 'Aulas FCyT', '191', 3, POINT(-66.14475757931423,-17.39480506463203), 1, 1),
 	('Edificio Laboratorios Basicso FCyT', 'Lab Basicos FCyT', '201', 3, POINT(-66.14435512971008,-17.39457982455748), 1, 5);
-
 
 INSERT INTO infraestructura.ambientes (nombre, nombre_corto, codigo, piso, capacidad, dimension, clases, tipo_ambiente_id, bloque_id)
   VALUES
@@ -558,40 +557,7 @@ INSERT INTO infraestructura.ambientes (nombre, nombre_corto, codigo, piso, capac
   ('LABORATORIO 4TO PISO (FISICA)', '684L7', 'FCyT-123', 4, '{"total": 30, "examen": 30}'::jsonb, '{"largo": 5, "ancho": 10, "alto": 3, "unid_med": "metros"}'::jsonb, TRUE, 1, 15),
   ('LABORATORIO 4TO PISO (FISICA)', '684L8', 'FCyT-124', 4, '{"total": 30, "examen": 30}'::jsonb, '{"largo": 5, "ancho": 10, "alto": 3, "unid_med": "metros"}'::jsonb, TRUE, 1, 15),
   ('LABORATORIO METROLOGIA', 'LABMETR', 'FCyT-125', 1, '{"total": 30, "examen": 30}'::jsonb, '{"largo": 5, "ancho": 10, "alto": 3, "unid_med": "metros"}'::jsonb, TRUE, 1, 15);
-
-INSERT INTO infraestructura.activos (nia, nombre, descripcion, ambiente_id)
-VALUES
-  (
-    'NIA-0001',
-    'Proyector Epson X12',
-    'Proyector principal del auditorio central',
-    (SELECT id FROM infraestructura.ambientes WHERE codigo = 'AUD-001')
-  ),
-  (
-    'NIA-0002',
-    'Router Cisco 2900',
-    'Router principal del laboratorio de redes',
-    (SELECT id FROM infraestructura.ambientes WHERE codigo = '55555')
-  ),
-  (
-    'NIA-0003',
-    'Computadora Lenovo AIO',
-    'Equipo para practicas de software',
-    (SELECT id FROM infraestructura.ambientes WHERE codigo = '77777')
-  ),
-  (
-    'NIA-0004',
-    'Aire acondicionado Samsung 36k',
-    'Equipo de climatizacion del consejo academico',
-    (SELECT id FROM infraestructura.ambientes WHERE codigo = 'CON-001')
-  ),
-  (
-    'NIA-0005',
-    'Juego de pupitres metalicos',
-    'Lote de 30 pupitres para aulas',
-    (SELECT id FROM infraestructura.ambientes WHERE codigo = '69111')
-  );
-            `);
+  `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
