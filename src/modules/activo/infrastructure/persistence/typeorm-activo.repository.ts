@@ -86,6 +86,35 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
     return { id: Number(rows[0].id) };
   }
 
+  async findByNia(nia: string): Promise<{ id: number } | null> {
+    // Busca un activo por su NIA y devuelve solo el id para decisiones de negocio.
+    const sql = `
+      SELECT id
+      FROM infraestructura.activos
+      WHERE nia = $1
+      LIMIT 1
+    `;
+    const rows = await this.dataSource.query<{ id: number }[]>(sql, [nia]);
+    if (rows.length === 0) {
+      return null;
+    }
+    return { id: Number(rows[0].id) };
+  }
+
+  async existsAmbiente(ambienteId: number): Promise<boolean> {
+    // Verificamos si el ambiente existe para evitar fallos por FK.
+    const sql = `
+      SELECT 1 AS existe
+      FROM infraestructura.ambientes
+      WHERE id = $1
+      LIMIT 1
+    `;
+    const rows = await this.dataSource.query<{ existe: number }[]>(sql, [
+      ambienteId,
+    ]);
+    return rows.length > 0;
+  }
+
   async delete(command: DeleteActivoCommand): Promise<{ id: number }> {
     // Eliminamos por id y devolvemos el id borrado.
     const sql = `
