@@ -101,6 +101,54 @@ export class TypeormActivoRepository implements ActivoRepositoryPort {
     return { id: Number(rows[0].id) };
   }
 
+  async findDetailsByNia(nia: string): Promise<{
+    id: number;
+    nia: string;
+    nombre: string;
+    descripcion: string | null;
+    ambiente_id: number | null;
+    ambiente_nombre: string | null;
+  } | null> {
+    // Consultamos el activo y el nombre del ambiente asociado (si existe).
+    const sql = `
+      SELECT
+        a.id,
+        a.nia,
+        a.nombre,
+        a.descripcion,
+        a.ambiente_id,
+        amb.nombre AS ambiente_nombre
+      FROM infraestructura.activos a
+      LEFT JOIN infraestructura.ambientes amb ON amb.id = a.ambiente_id
+      WHERE a.nia = $1
+      LIMIT 1
+    `;
+    const rows = await this.dataSource.query<
+      Array<{
+        id: number | string;
+        nia: string;
+        nombre: string;
+        descripcion: string | null;
+        ambiente_id: number | null;
+        ambiente_nombre: string | null;
+      }>
+    >(sql, [nia]);
+
+    const [row] = rows;
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: Number(row.id),
+      nia: row.nia,
+      nombre: row.nombre,
+      descripcion: row.descripcion ?? null,
+      ambiente_id: row.ambiente_id === null ? null : Number(row.ambiente_id),
+      ambiente_nombre: row.ambiente_nombre ?? null,
+    };
+  }
+
   async existsAmbiente(ambienteId: number): Promise<boolean> {
     // Verificamos si el ambiente existe para evitar fallos por FK.
     const sql = `
