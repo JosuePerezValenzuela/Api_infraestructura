@@ -18,6 +18,8 @@ import { UpdateActivoUseCase } from '../application/update-activo.usecase';
 import { UpdateActivoDto } from './dto/update-activo.dto';
 import { AssignActivosToAmbienteUseCase } from '../application/assign-activos-to-ambiente.usecase';
 import { AssignActivosDto } from './dto/assign-activos.dto';
+import { UpsertActivoByNiaUseCase } from '../application/upsert-activo-by-nia.usecase';
+import { UpsertActivoDto } from './dto/upsert-activo.dto';
 
 // Definimos el tipo del mock para el caso de uso de listado.
 type ListUseCaseMock = {
@@ -39,6 +41,10 @@ type UpdateUseCaseMock = {
 type AssignUseCaseMock = {
   execute: jest.Mock<Promise<{ updatedIds: number[] }>, [any]>;
 };
+// Definimos el tipo del mock para el caso de uso de upsert por NIA.
+type UpsertUseCaseMock = {
+  execute: jest.Mock<Promise<{ nia: string; created: boolean }>, [any]>;
+};
 
 describe('ActivoController', () => {
   let controller: ActivoController;
@@ -47,6 +53,7 @@ describe('ActivoController', () => {
   let deleteUseCase: DeleteUseCaseMock;
   let updateUseCase: UpdateUseCaseMock;
   let assignUseCase: AssignUseCaseMock;
+  let upsertUseCase: UpsertUseCaseMock;
 
   // Antes de cada prueba armamos el modulo de testing con el controlador real y los casos de uso simulados.
   beforeEach(async () => {
@@ -55,6 +62,7 @@ describe('ActivoController', () => {
     deleteUseCase = { execute: jest.fn() };
     updateUseCase = { execute: jest.fn() };
     assignUseCase = { execute: jest.fn() };
+    upsertUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ActivoController],
@@ -64,6 +72,7 @@ describe('ActivoController', () => {
         { provide: DeleteActivoUseCase, useValue: deleteUseCase },
         { provide: UpdateActivoUseCase, useValue: updateUseCase },
         { provide: AssignActivosToAmbienteUseCase, useValue: assignUseCase },
+        { provide: UpsertActivoByNiaUseCase, useValue: upsertUseCase },
       ],
     }).compile();
 
@@ -248,8 +257,57 @@ describe('ActivoController', () => {
       );
 
       await expect(
-        controller.assignActivosToAmbiente(99, { activoIds: [1] } as AssignActivosDto),
+        controller.assignActivosToAmbiente(99, {
+          activoIds: [1],
+        } as AssignActivosDto),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('upsertByNia', () => {
+    it('responde 201 con la nia cuando inserta un nuevo activo', async () => {
+      // Preparamos el mock para que el caso de uso indique que se creГі.
+      upsertUseCase.execute.mockResolvedValue({
+        nia: 'NIA-001',
+        created: true,
+      });
+      // Simulamos el response de Nest con un status que podemos inspeccionar.
+      const res = { status: jest.fn().mockReturnThis() } as any;
+      const dto: UpsertActivoDto = {
+        nombre: 'Proyector Epson',
+        descripcion: 'Sala grande',
+        ambiente_id: 3,
+      };
+
+      const result = await controller.upsertByNia('NIA-001', dto, res);
+
+      expect(upsertUseCase.execute).toHaveBeenCalledWith({
+        nia: 'NIA-001',
+        nombre: 'Proyector Epson',
+        descripcion: 'Sala grande',
+        ambiente_id: 3,
+      });
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(result).toEqual({ nia: 'NIA-001' });
+    });
+
+    it('responde 200 cuando actualiza un activo existente', async () => {
+      // El caso de uso devolverГЎ created=false para indicar actualizaciГіn.
+      upsertUseCase.execute.mockResolvedValue({
+        nia: 'NIA-002',
+        created: false,
+      });
+      const res = { status: jest.fn().mockReturnThis() } as any;
+      const dto: UpsertActivoDto = { nombre: 'Switch actualizado' };
+
+      const result = await controller.upsertByNia('NIA-002', dto, res);
+
+      expect(upsertUseCase.execute).toHaveBeenCalledWith({
+        nia: 'NIA-002',
+        nombre: 'Switch actualizado',
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(result).toEqual({ nia: 'NIA-002' });
     });
   });
 });
