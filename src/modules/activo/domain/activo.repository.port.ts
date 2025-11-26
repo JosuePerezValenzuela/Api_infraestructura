@@ -27,4 +27,13 @@ export interface ActivoRepositoryPort {
   ): Promise<{ updatedIds: number[] }>;
 
   list(options: ListActivosOptions): Promise<ListActivosResult>;
+
+  findDetailsByNia(nia: string): Promise<{
+    id: number;
+    nia: string;
+    nombre: string;
+    descripcion: string | null;
+    ambiente_id: number | null;
+    ambiente_nombre: string | null;
+  } | null>;
 }
