@@ -11,6 +11,10 @@ export interface ActivoRepositoryPort {
 
   isNiaTaken(nia: string, excludeId?: number): Promise<boolean>;
 
+  findByNia(nia: string): Promise<{ id: number } | null>;
+
+  existsAmbiente(ambienteId: number): Promise<boolean>;
+
   findById(id: number): Promise<{ id: number } | null>;
 
   delete(command: DeleteActivoCommand): Promise<{ id: number }>;
