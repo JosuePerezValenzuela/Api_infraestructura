@@ -41,12 +41,7 @@ describe('TypeormActivoRepository', () => {
     expect(normalizedSql).toContain(
       'INSERT INTO infraestructura.activos ( nia, nombre, descripcion, ambiente_id )',
     );
-    expect(params).toEqual([
-      'NIA-9999',
-      'Impresora',
-      'Laser monocromatica',
-      2,
-    ]);
+    expect(params).toEqual(['NIA-9999', 'Impresora', 'Laser monocromatica', 2]);
     expect(result).toEqual({ id: 9 });
   });
 
@@ -185,7 +180,10 @@ describe('TypeormActivoRepository', () => {
 
     // Assert: verificamos SQL, parametros y retorno.
     const [sql, params] = dataSource.query.mock.calls[0];
-    const normalizedSql = (sql as string).replace(/\s+/g, ' ').trim().toLowerCase();
+    const normalizedSql = (sql as string)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
     expect(normalizedSql).toContain('update infraestructura.activos');
     expect(normalizedSql).toContain('where id = any($2::int[])');
     expect(params).toEqual([5, [1, 2]]);
@@ -276,7 +274,9 @@ describe('TypeormActivoRepository', () => {
   it('agrega filtros de search y ambienteId en la consulta SQL', async () => {
     // Arrange: preparamos el dataSource falso y una respuesta vacia para simplificar.
     const dataSource = createFakeDataSource();
-    dataSource.query.mockResolvedValueOnce([]).mockResolvedValueOnce([{ total: 0 }]);
+    dataSource.query
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 0 }]);
     const repository = new TypeormActivoRepository(
       dataSource as unknown as any,
     );
@@ -294,7 +294,10 @@ describe('TypeormActivoRepository', () => {
 
     // Assert: obtenemos el SQL y lo normalizamos quitando espacios extra.
     const [sql, params] = dataSource.query.mock.calls[0];
-    const normalizedSql = (sql as string).replace(/\s+/g, ' ').trim().toLowerCase();
+    const normalizedSql = (sql as string)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
     // Debe contener el filtro de busqueda sobre nia, nombre o descripcion.
     expect(normalizedSql).toContain(
       '(a.nia ilike $1 or a.nombre ilike $2 or a.descripcion ilike $3)',
@@ -303,5 +306,61 @@ describe('TypeormActivoRepository', () => {
     expect(normalizedSql).toContain('a.ambiente_id = $4');
     // Los parametros deben respetar el orden: patron de search, patron de search, patron de search, ambienteId, take, offset.
     expect(params).toEqual(['%router%', '%router%', '%router%', 7, 5, 5]);
+  });
+
+  it('busca un activo por NIA y devuelve su id cuando existe', async () => {
+    // Arrange: el dataSource devolvera una fila con id 11.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([{ id: 11 }]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act: invocamos findByNia.
+    const result = await repository.findByNia('NIA-11');
+
+    // Assert: la consulta debe filtrar por nia y retornar el id numerico.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    const normalizedSql = (sql as string).replace(/\s+/g, ' ').trim();
+    expect(normalizedSql).toContain('FROM infraestructura.activos');
+    expect(params).toEqual(['NIA-11']);
+    expect(result).toEqual({ id: 11 });
+  });
+
+  it('indica null cuando findByNia no encuentra registros', async () => {
+    // Arrange: la consulta no devuelve filas.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act.
+    const result = await repository.findByNia('NIA-404');
+
+    // Assert.
+    expect(result).toBeNull();
+  });
+
+  it('verifica la existencia de un ambiente antes de operar', async () => {
+    // Arrange: simulamos que la consulta devuelve una fila.
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([{ existe: 1 }]);
+    const repository = new TypeormActivoRepository(
+      dataSource as unknown as any,
+    );
+
+    // Act: consultamos si existe el ambiente 7.
+    const exists = await repository.existsAmbiente(7);
+
+    // Assert: revisamos SQL y resultado booleano.
+    const [sql, params] = dataSource.query.mock.calls[0];
+    const normalizedSql = (sql as string)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+    expect(normalizedSql).toContain('from infraestructura.ambientes');
+    expect(params).toEqual([7]);
+    expect(exists).toBe(true);
   });
 });
