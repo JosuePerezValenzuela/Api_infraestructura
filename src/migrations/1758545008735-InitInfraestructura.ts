@@ -109,7 +109,7 @@ CREATE  TABLE infraestructura.activos (
 	actualizado_en       timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL  ,
 	ambiente_id          integer    ,
 	CONSTRAINT pk_activos PRIMARY KEY ( id ),
-	CONSTRAINT fk_activos_ambientes FOREIGN KEY ( ambiente_id ) REFERENCES infraestructura.ambientes( id )   
+	CONSTRAINT fk_activos_ambientes FOREIGN KEY ( ambiente_id ) REFERENCES infraestructura.ambientes( id ) ON DELETE SET NULL   
  );
 
 CREATE INDEX idx_activos_ambiente_id ON infraestructura.activos  ( ambiente_id );
