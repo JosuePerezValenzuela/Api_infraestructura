@@ -11,9 +11,11 @@ import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
 import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
+import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 import { UpdateAmbienteDto } from './dto/update-ambiente.dto';
+import { ReplaceHorariosDto } from './dto/replace-horarios.dto';
 import { ListAmbientesResult } from '../domain/ambiente.list.types';
 
 type CreateUseCaseMock = {
@@ -28,6 +30,9 @@ type DeleteUseCaseMock = {
 type UpdateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
+type ReplaceUseCaseMock = {
+  execute: jest.Mock<Promise<{ ambiente_id: number; total: number }>, [any]>;
+};
 
 describe('AmbienteController', () => {
   let controller: AmbienteController;
@@ -35,12 +40,14 @@ describe('AmbienteController', () => {
   let listUseCase: ListUseCaseMock;
   let deleteUseCase: DeleteUseCaseMock;
   let updateUseCase: UpdateUseCaseMock;
+  let replaceUseCase: ReplaceUseCaseMock;
 
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
     deleteUseCase = { execute: jest.fn() };
     updateUseCase = { execute: jest.fn() };
+    replaceUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AmbienteController],
@@ -49,6 +56,7 @@ describe('AmbienteController', () => {
         { provide: ListAmbientesUseCase, useValue: listUseCase },
         { provide: DeleteAmbienteUseCase, useValue: deleteUseCase },
         { provide: UpdateAmbienteUseCase, useValue: updateUseCase },
+        { provide: ReplaceHorariosUseCase, useValue: replaceUseCase },
       ],
     }).compile();
 
@@ -223,6 +231,41 @@ describe('AmbienteController', () => {
       await expect(controller.create(dto)).rejects.toBeInstanceOf(
         ConflictException,
       );
+    });
+  });
+  describe('replaceHorariosHandler', () => {
+    it('llama al caso de uso para reemplazar franjas', async () => {
+      replaceUseCase.execute.mockResolvedValue({ ambiente_id: 9, total: 2 });
+      const dto: ReplaceHorariosDto = {
+        franjas: [
+          { dia: 0, hora_inicio: '08:00', hora_fin: '10:00' },
+          { dia: 1, hora_inicio: '11:00', hora_fin: '12:00' },
+        ],
+      };
+
+      const result = await controller.replaceHorariosHandler(9, dto);
+
+      expect(replaceUseCase.execute).toHaveBeenCalledWith({
+        ambiente_id: 9,
+        franjas: [
+          { dia: 0, hora_inicio: '08:00', hora_fin: '10:00' },
+          { dia: 1, hora_inicio: '11:00', hora_fin: '12:00' },
+        ],
+      });
+      expect(result).toEqual({ ambiente_id: 9, total: 2 });
+    });
+
+    it('propaga excepciones lanzadas por el caso de uso', async () => {
+      replaceUseCase.execute.mockRejectedValue(
+        new ConflictException('solapamiento'),
+      );
+      const dto: ReplaceHorariosDto = {
+        franjas: [{ dia: 0, hora_inicio: '08:00', hora_fin: '09:00' }],
+      };
+
+      await expect(
+        controller.replaceHorariosHandler(1, dto),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 });

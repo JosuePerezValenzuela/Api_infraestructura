@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -27,9 +28,11 @@ import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
 import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
+import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 import { UpdateAmbienteDto } from './dto/update-ambiente.dto';
+import { ReplaceHorariosDto } from './dto/replace-horarios.dto';
 
 @ApiTags('Ambientes')
 @Controller('ambientes')
@@ -39,6 +42,7 @@ export class AmbienteController {
     private readonly listAmbientes: ListAmbientesUseCase,
     private readonly deleteAmbiente: DeleteAmbienteUseCase,
     private readonly updateAmbiente: UpdateAmbienteUseCase,
+    private readonly replaceHorarios: ReplaceHorariosUseCase,
   ) {}
 
   @Get()
@@ -236,5 +240,69 @@ export class AmbienteController {
   })
   async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.deleteAmbiente.execute({ id });
+  }
+
+  @Put(':id/horarios')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reemplazar todas las franjas horarias de un ambiente',
+  })
+  @ApiBody({ type: ReplaceHorariosDto })
+  @ApiOkResponse({
+    description: 'Horarios actualizados',
+    schema: { example: { ambiente_id: 1, total: 2 } },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos o ambiente inactivo',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'franjas',
+            message: 'hora_inicio debe ser menor que hora_fin',
+          },
+        ],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Ambiente no encontrado',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontro el ambiente solicitado',
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Traslape de franjas u otra restriccion de BD',
+    schema: {
+      example: {
+        error: 'CONFLICT_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'franjas',
+            message: 'Las franjas se traslapan o violan una restriccion unica',
+          },
+        ],
+      },
+    },
+  })
+  async replaceHorariosHandler(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReplaceHorariosDto,
+  ) {
+    const result = await this.replaceHorarios.execute({
+      ambiente_id: id,
+      franjas: dto.franjas.map((slot) => ({
+        dia: slot.dia as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+        hora_inicio: slot.hora_inicio,
+        hora_fin: slot.hora_fin,
+      })),
+    });
+    return result;
   }
 }

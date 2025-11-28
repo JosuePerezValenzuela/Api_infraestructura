@@ -4,8 +4,11 @@ import { CreateAmbienteUseCase } from './application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from './application/list-ambientes.usecase';
 import { DeleteAmbienteUseCase } from './application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from './application/update-ambiente.usecase';
+import { ReplaceHorariosUseCase } from './application/replace-horarios.usecase';
 import { AmbienteRepositoryPort } from './domain/ambiente.repository.port';
+import { HorarioRepositoryPort } from './domain/horario.repository.port';
 import { TypeormAmbienteRepository } from './infrastructure/persistence/typeorm-ambiente.repository';
+import { TypeormHorarioRepository } from './infrastructure/persistence/typeorm-horario.repository';
 import { BloqueModule } from '../bloque/bloque.module';
 import { TipoAmbienteModule } from '../tipo-ambiente/tipo-ambiente.module';
 
@@ -17,9 +20,14 @@ import { TipoAmbienteModule } from '../tipo-ambiente/tipo-ambiente.module';
     ListAmbientesUseCase,
     DeleteAmbienteUseCase,
     UpdateAmbienteUseCase,
+    ReplaceHorariosUseCase,
     {
       provide: AmbienteRepositoryPort,
       useClass: TypeormAmbienteRepository,
+    },
+    {
+      provide: HorarioRepositoryPort,
+      useClass: TypeormHorarioRepository,
     },
   ],
   exports: [
@@ -28,6 +36,8 @@ import { TipoAmbienteModule } from '../tipo-ambiente/tipo-ambiente.module';
     ListAmbientesUseCase,
     DeleteAmbienteUseCase,
     UpdateAmbienteUseCase,
+    ReplaceHorariosUseCase,
+    HorarioRepositoryPort,
   ],
 })
 export class AmbienteModule {}
