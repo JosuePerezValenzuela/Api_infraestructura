@@ -377,6 +377,9 @@ export class AmbienteController {
   ) {
     const result = await this.replaceHorarios.execute({
       ambiente_id: id,
+      hora_apertura: dto.hora_apertura,
+      hora_cierre: dto.hora_cierre,
+      periodo: dto.periodo,
       franjas: dto.franjas.map((slot) => ({
         dia: slot.dia as 0 | 1 | 2 | 3 | 4 | 5 | 6,
         hora_inicio: slot.hora_inicio,
