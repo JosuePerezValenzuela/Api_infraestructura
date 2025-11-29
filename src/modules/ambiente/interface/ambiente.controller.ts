@@ -1,4 +1,4 @@
-/* eslint-disable indent */
+﻿/* eslint-disable indent */
 import {
   Body,
   Controller,
@@ -27,6 +27,7 @@ import {
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
 import { ListAmbientesDisponiblesUseCase } from '../application/list-ambientes-disponibles.usecase';
+import { ListAmbienteHorariosUseCase } from '../application/list-ambiente-horarios.usecase';
 import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
 import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase';
@@ -43,6 +44,7 @@ export class AmbienteController {
     private readonly createAmbiente: CreateAmbienteUseCase,
     private readonly listAmbientes: ListAmbientesUseCase,
     private readonly listAmbientesDisponibles: ListAmbientesDisponiblesUseCase,
+    private readonly listAmbienteHorarios: ListAmbienteHorariosUseCase,
     private readonly deleteAmbiente: DeleteAmbienteUseCase,
     private readonly updateAmbiente: UpdateAmbienteUseCase,
     private readonly replaceHorarios: ReplaceHorariosUseCase,
@@ -163,6 +165,33 @@ export class AmbienteController {
     return this.listAmbientesDisponibles.execute(query);
   }
 
+  @Get(':id/horarios')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Listar horarios de un ambiente' })
+  @ApiOkResponse({
+    description: 'Listado de franjas horarias',
+    schema: {
+      example: {
+        items: [
+          { dia: 0, hora_inicio: '08:00', hora_fin: '10:00' },
+          { dia: 2, hora_inicio: '14:00', hora_fin: '16:00' },
+        ],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Ambiente no encontrado',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontro el ambiente solicitado',
+      },
+    },
+  })
+  async listHorarios(@Param('id', ParseIntPipe) id: number) {
+    return this.listAmbienteHorarios.execute({ ambiente_id: id });
+  }
+
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Actualizar parcialmente un ambiente' })
@@ -172,7 +201,7 @@ export class AmbienteController {
     schema: { example: { id: 1 } },
   })
   @ApiBadRequestResponse({
-    description: 'Datos inválidos',
+    description: 'Datos invalidos',
     schema: {
       example: {
         error: 'VALIDATION_ERROR',
@@ -184,7 +213,7 @@ export class AmbienteController {
     },
   })
   @ApiConflictResponse({
-    description: 'Conflicto por código duplicado',
+    description: 'Conflicto por codigo duplicado',
     schema: {
       example: {
         error: 'CONFLICT_ERROR',
@@ -203,7 +232,7 @@ export class AmbienteController {
     schema: {
       example: {
         error: 'NOT_FOUND',
-        message: 'No se encontró el ambiente solicitado',
+        message: 'No se encontro el ambiente solicitado',
       },
     },
   })
@@ -285,7 +314,7 @@ export class AmbienteController {
     schema: {
       example: {
         error: 'NOT_FOUND',
-        message: 'No se encontró el ambiente solicitado',
+        message: 'No se encontro el ambiente solicitado',
       },
     },
   })
