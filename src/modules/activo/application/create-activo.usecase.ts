@@ -13,7 +13,9 @@ export class CreateActivoUseCase {
     private readonly repo: ActivoRepositoryPort,
   ) {}
 
-  async execute(payload: Partial<CreateActivoCommand>): Promise<{ id: number }> {
+  async execute(
+    payload: Partial<CreateActivoCommand>,
+  ): Promise<{ id: number }> {
     // Tomamos el NIA y lo recortamos para eliminar espacios iniciales o finales.
     const nia = payload.nia?.trim();
     // Hacemos lo mismo con el nombre.
@@ -39,9 +41,7 @@ export class CreateActivoUseCase {
       throw new ConflictException({
         error: 'CONFLICT_ERROR',
         message: 'Los datos enviados no son validos',
-        details: [
-          { field: 'nia', message: 'Ya existe un activo con ese NIA' },
-        ],
+        details: [{ field: 'nia', message: 'Ya existe un activo con ese NIA' }],
       });
     }
 
@@ -92,7 +92,9 @@ export class CreateActivoUseCase {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
-        details: [{ field: 'nombre', message: 'El nombre no puede estar vacio' }],
+        details: [
+          { field: 'nombre', message: 'El nombre no puede estar vacio' },
+        ],
       });
     }
     // Limite superior de 32 caracteres.

@@ -43,7 +43,9 @@ export class DeleteActivoUseCase {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
-        details: [{ field: 'id', message: 'El id debe ser un numero entero >= 1' }],
+        details: [
+          { field: 'id', message: 'El id debe ser un numero entero >= 1' },
+        ],
       });
     }
   }

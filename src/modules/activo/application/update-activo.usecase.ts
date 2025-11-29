@@ -88,7 +88,9 @@ export class UpdateActivoUseCase {
         throw new ConflictException({
           error: 'CONFLICT_ERROR',
           message: 'Los datos enviados no son validos',
-          details: [{ field: 'nia', message: 'Ya existe un activo con ese NIA' }],
+          details: [
+            { field: 'nia', message: 'Ya existe un activo con ese NIA' },
+          ],
         });
       }
     }
@@ -113,7 +115,9 @@ export class UpdateActivoUseCase {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
-        details: [{ field: 'id', message: 'El id debe ser un numero entero >= 1' }],
+        details: [
+          { field: 'id', message: 'El id debe ser un numero entero >= 1' },
+        ],
       });
     }
   }
