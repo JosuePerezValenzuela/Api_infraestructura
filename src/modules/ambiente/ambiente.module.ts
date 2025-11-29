@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { AmbienteController } from './interface/ambiente.controller';
 import { CreateAmbienteUseCase } from './application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from './application/list-ambientes.usecase';
 import { ListAmbientesDisponiblesUseCase } from './application/list-ambientes-disponibles.usecase';
+import { ListAmbienteHorariosUseCase } from './application/list-ambiente-horarios.usecase';
 import { DeleteAmbienteUseCase } from './application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from './application/update-ambiente.usecase';
 import { ReplaceHorariosUseCase } from './application/replace-horarios.usecase';
@@ -22,6 +23,7 @@ import { TipoAmbienteModule } from '../tipo-ambiente/tipo-ambiente.module';
     CreateAmbienteUseCase,
     ListAmbientesUseCase,
     ListAmbientesDisponiblesUseCase,
+    ListAmbienteHorariosUseCase,
     DeleteAmbienteUseCase,
     UpdateAmbienteUseCase,
     ReplaceHorariosUseCase,
@@ -43,6 +45,7 @@ import { TipoAmbienteModule } from '../tipo-ambiente/tipo-ambiente.module';
     CreateAmbienteUseCase,
     ListAmbientesUseCase,
     ListAmbientesDisponiblesUseCase,
+    ListAmbienteHorariosUseCase,
     DeleteAmbienteUseCase,
     UpdateAmbienteUseCase,
     ReplaceHorariosUseCase,
