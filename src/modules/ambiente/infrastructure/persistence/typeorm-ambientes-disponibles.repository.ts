@@ -10,6 +10,27 @@ import {
   ListAmbientesDisponiblesResult,
 } from '../../domain/ambiente.disponibles.types';
 
+type DisponiblesDbRow = {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  piso: number;
+  capacidad: unknown;
+  clases: boolean;
+  activo: boolean;
+  bloque_id: number;
+  bloque_nombre: string;
+  facultad_id: number;
+  facultad_nombre: string;
+  campus_id: number;
+  campus_nombre: string;
+  tipo_bloque_id: number;
+  tipo_bloque_nombre: string;
+  tipo_ambiente_id: number;
+  tipo_ambiente_nombre: string;
+};
+
 export class TypeormAmbientesDisponiblesRepository
   implements AmbientesDisponiblesRepositoryPort
 {
@@ -90,6 +111,7 @@ export class TypeormAmbientesDisponiblesRepository
       );
     }
 
+    conditions.unshift('a.activo = TRUE');
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -127,7 +149,7 @@ export class TypeormAmbientesDisponiblesRepository
       ORDER BY ${orderColumn} ${orderDir}
     `;
 
-    const rows = await this.dataSource.query<AmbienteDisponibleItem[]>(
+    const rows = await this.dataSource.query<DisponiblesDbRow[]>(
       dataSql,
       dataParams,
     );
@@ -175,7 +197,7 @@ export class TypeormAmbientesDisponiblesRepository
   }
 
   private groupAmbientes(
-    rows: AmbienteDisponibleItem[],
+    rows: DisponiblesDbRow[],
     query: ListAmbientesDisponiblesQuery,
   ): ListAmbientesDisponiblesResult['items'] {
     const groups = new Map<
@@ -185,28 +207,44 @@ export class TypeormAmbientesDisponiblesRepository
 
     for (const raw of rows) {
       const capacidad = this.mapCapacidad(raw.capacidad as unknown);
-      const row: AmbienteDisponibleItem = { ...raw, capacidad };
-      const key = `${row.bloque_id}-${row.piso}`;
+      const ambient: AmbienteDisponibleItem = {
+        id: Number(raw.id),
+        codigo: String(raw.codigo),
+        nombre: String(raw.nombre),
+        nombre_corto:
+          raw.nombre_corto === null ? null : String(raw.nombre_corto),
+        piso: Number(raw.piso),
+        capacidad,
+        clases: Boolean(raw.clases),
+        activo: Boolean(raw.activo),
+        tipo_ambiente_id: Number(raw.tipo_ambiente_id),
+        tipo_ambiente_nombre: String(raw.tipo_ambiente_nombre),
+      };
+
+      const key = `${raw.bloque_id}-${raw.piso}`;
 
       if (!groups.has(key)) {
         groups.set(key, {
-          campus_id: row.campus_id,
-          campus_nombre: row.campus_nombre,
-          facultad_id: row.facultad_id,
-          facultad_nombre: row.facultad_nombre,
-          bloque_id: row.bloque_id,
-          bloque_nombre: row.bloque_nombre,
-          tipo_bloque_id: row.tipo_bloque_id,
-          tipo_bloque_nombre: row.tipo_bloque_nombre,
-          piso: row.piso,
+          campus_id: Number(raw.campus_id),
+          campus_nombre: String(raw.campus_nombre),
+          facultad_id: Number(raw.facultad_id),
+          facultad_nombre: String(raw.facultad_nombre),
+          bloque_id: Number(raw.bloque_id),
+          bloque_nombre: String(raw.bloque_nombre),
+          tipo_bloque_id: Number(raw.tipo_bloque_id),
+          tipo_bloque_nombre: String(raw.tipo_bloque_nombre),
+          piso: Number(raw.piso),
           capacidad_examen_total: 0,
           ambientes: [],
         });
       }
 
-      const group = groups.get(key)!;
-      group.capacidad_examen_total += row.capacidad.examen;
-      group.ambientes.push(row);
+      const group = groups.get(key);
+      if (!group) {
+        continue;
+      }
+      group.capacidad_examen_total += capacidad.examen;
+      group.ambientes.push(ambient);
     }
 
     let result = Array.from(groups.values());
