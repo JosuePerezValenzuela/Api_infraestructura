@@ -14,9 +14,18 @@ export interface ListAmbientesDisponiblesQuery {
   horario?: DisponiblesHorarioFiltro;
   page?: number;
   take?: number;
-  orderBy?: 'nombre' | 'codigo' | 'piso';
+  orderBy?:
+    | 'nombre'
+    | 'codigo'
+    | 'piso'
+    | 'capacidad_examen_total'
+    | 'capacidad_total';
   orderDir?: 'asc' | 'desc';
 }
+
+export type AmbientesDisponiblesOrderBy = NonNullable<
+  ListAmbientesDisponiblesQuery['orderBy']
+>;
 
 export interface AmbienteDisponibleItem {
   id: number;
@@ -43,6 +52,7 @@ export interface ListAmbientesDisponiblesResult {
     tipo_bloque_nombre: string;
     piso: number;
     capacidad_examen_total: number;
+    capacidad_total: number;
     ambientes: AmbienteDisponibleItem[];
   }>;
   meta: {
