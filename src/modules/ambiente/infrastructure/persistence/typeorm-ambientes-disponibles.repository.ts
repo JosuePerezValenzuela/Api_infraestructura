@@ -1,4 +1,5 @@
-﻿import { Injectable } from '@nestjs/common';
+﻿/* eslint-disable indent */
+import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { AmbientesDisponiblesRepositoryPort } from '../../domain/ambiente.disponibles.port';
@@ -137,14 +138,27 @@ export class TypeormAmbientesDisponiblesRepository
     const rows = await this.dataSource.query<DisponiblesRow[]>(dataSql, params);
     // Agrupamos los ambientes por bloque y piso o como individuales segun mismo_piso.
     const grouped = this.groupRows(rows, query.mismo_piso ?? false);
-    // Si se pidio capacidad de examen minima y se agrupa por piso, filtramos los grupos que no cumplen.
+
+    // Si se pidio capacidad de examen minima y se agrupa por piso, reducimos cada grupo al minimo de ambientes necesarios.
+    const normalizedGroups =
+      query.capacidad_examen_min !== undefined && (query.mismo_piso ?? false)
+        ? grouped.map((group) =>
+            this.pruneGroupByCapacidadExamen(
+              group,
+              query.capacidad_examen_min as number,
+            ),
+          )
+        : grouped;
+
+    // Filtramos grupos que cumplan la capacidad minima cuando aplique.
     const filteredGroups =
       query.capacidad_examen_min !== undefined && (query.mismo_piso ?? false)
-        ? grouped.filter(
+        ? normalizedGroups.filter(
             (group) =>
               group.capacidad_examen_total >= query.capacidad_examen_min!,
           )
-        : grouped;
+        : normalizedGroups;
+
     // Ordenamos los grupos segun la columna solicitada o por capacidad de examen total.
     const orderedGroups = this.sortGroups(
       filteredGroups,
@@ -314,6 +328,34 @@ export class TypeormAmbientesDisponiblesRepository
 
     // En cualquier otro caso, respondemos un objeto vacio para evitar errores.
     return {};
+  }
+
+  // Esta funcion selecciona la menor cantidad de ambientes cuyo total de examen alcanza la meta.
+  private pruneGroupByCapacidadExamen(
+    group: ListAmbientesDisponiblesResult['items'][0],
+    minimo: number,
+  ): ListAmbientesDisponiblesResult['items'][0] {
+    // Ordenamos los ambientes del grupo por capacidad de examen descendente para cubrir el minimo con menos ambientes.
+    const sorted = [...group.ambientes].sort(
+      (a, b) => b.capacidad.examen - a.capacidad.examen,
+    );
+
+    const seleccionados: typeof group.ambientes = [];
+    let acumulado = 0;
+
+    for (const ambiente of sorted) {
+      seleccionados.push(ambiente);
+      acumulado += ambiente.capacidad.examen;
+      if (acumulado >= minimo) {
+        break;
+      }
+    }
+
+    return {
+      ...group,
+      ambientes: seleccionados,
+      capacidad_examen_total: acumulado,
+    };
   }
 }
 

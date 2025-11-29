@@ -1,4 +1,4 @@
-// Pruebas pedag?gicas para el repositorio de ambientes disponibles.
+﻿// Pruebas pedag?gicas para el repositorio de ambientes disponibles.
 // Validamos que el SQL generado contenga los filtros esperados y que los datos se agrupen por bloque/piso con nombres enriquecidos.
 
 import { TypeormAmbientesDisponiblesRepository } from './typeorm-ambientes-disponibles.repository';
@@ -14,7 +14,7 @@ describe('TypeormAmbientesDisponiblesRepository', () => {
     jest.clearAllMocks();
   });
 
-  it('construye la consulta con filtros de ids, capacidades y horario agrupando por bloque y piso', async () => {
+  it('construye la consulta con filtros de ids, capacidades y horario agrupando por bloque y piso, limitando ambientes al minimo necesario', async () => {
     const dataSource = createFakeDataSource();
     dataSource.query.mockResolvedValueOnce([
       {
@@ -124,7 +124,7 @@ describe('TypeormAmbientesDisponiblesRepository', () => {
         tipo_bloque_id: 2,
         tipo_bloque_nombre: 'Tipo bloque',
         piso: 1,
-        capacidad_examen_total: 40,
+        capacidad_examen_total: 25,
         ambientes: [
           {
             id: 1,
@@ -133,18 +133,6 @@ describe('TypeormAmbientesDisponiblesRepository', () => {
             nombre_corto: '101',
             piso: 1,
             capacidad: { total: 40, examen: 25 },
-            clases: true,
-            activo: true,
-            tipo_ambiente_id: 3,
-            tipo_ambiente_nombre: 'Aula',
-          },
-          {
-            id: 2,
-            codigo: 'AULA-102',
-            nombre: 'Aula 102',
-            nombre_corto: '102',
-            piso: 1,
-            capacidad: { total: 20, examen: 15 },
             clases: true,
             activo: true,
             tipo_ambiente_id: 3,
