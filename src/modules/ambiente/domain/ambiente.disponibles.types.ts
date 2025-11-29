@@ -28,14 +28,31 @@ export interface AmbienteDisponibleItem {
   clases: boolean;
   activo: boolean;
   bloque_id: number;
+  bloque_nombre: string;
   facultad_id: number;
+  facultad_nombre: string;
   campus_id: number;
+  campus_nombre: string;
   tipo_bloque_id: number;
+  tipo_bloque_nombre: string;
   tipo_ambiente_id: number;
+  tipo_ambiente_nombre: string;
 }
 
 export interface ListAmbientesDisponiblesResult {
-  items: AmbienteDisponibleItem[];
+  items: Array<{
+    campus_id: number;
+    campus_nombre: string;
+    facultad_id: number;
+    facultad_nombre: string;
+    bloque_id: number;
+    bloque_nombre: string;
+    tipo_bloque_id: number;
+    tipo_bloque_nombre: string;
+    piso: number;
+    capacidad_examen_total: number;
+    ambientes: AmbienteDisponibleItem[];
+  }>;
   meta: {
     total: number;
     page: number;
