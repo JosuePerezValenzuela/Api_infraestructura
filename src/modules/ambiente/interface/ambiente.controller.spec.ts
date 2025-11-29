@@ -9,20 +9,26 @@ import {
 import { AmbienteController } from './ambiente.controller';
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
+import { ListAmbientesDisponiblesUseCase } from '../application/list-ambientes-disponibles.usecase';
 import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
 import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
+import { ListAmbientesDisponiblesQueryDto } from './dto/list-ambientes-disponibles-query.dto';
 import { UpdateAmbienteDto } from './dto/update-ambiente.dto';
 import { ReplaceHorariosDto } from './dto/replace-horarios.dto';
 import { ListAmbientesResult } from '../domain/ambiente.list.types';
+import { ListAmbientesDisponiblesResult } from '../domain/ambiente.disponibles.types';
 
 type CreateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
 type ListUseCaseMock = {
   execute: jest.Mock<Promise<ListAmbientesResult>, [any]>;
+};
+type ListDisponiblesUseCaseMock = {
+  execute: jest.Mock<Promise<ListAmbientesDisponiblesResult>, [any]>;
 };
 type DeleteUseCaseMock = {
   execute: jest.Mock<Promise<void>, [any]>;
@@ -38,6 +44,7 @@ describe('AmbienteController', () => {
   let controller: AmbienteController;
   let createUseCase: CreateUseCaseMock;
   let listUseCase: ListUseCaseMock;
+  let listDisponiblesUseCase: ListDisponiblesUseCaseMock;
   let deleteUseCase: DeleteUseCaseMock;
   let updateUseCase: UpdateUseCaseMock;
   let replaceUseCase: ReplaceUseCaseMock;
@@ -45,6 +52,7 @@ describe('AmbienteController', () => {
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
     listUseCase = { execute: jest.fn() };
+    listDisponiblesUseCase = { execute: jest.fn() };
     deleteUseCase = { execute: jest.fn() };
     updateUseCase = { execute: jest.fn() };
     replaceUseCase = { execute: jest.fn() };
@@ -54,6 +62,10 @@ describe('AmbienteController', () => {
       providers: [
         { provide: CreateAmbienteUseCase, useValue: createUseCase },
         { provide: ListAmbientesUseCase, useValue: listUseCase },
+        {
+          provide: ListAmbientesDisponiblesUseCase,
+          useValue: listDisponiblesUseCase,
+        },
         { provide: DeleteAmbienteUseCase, useValue: deleteUseCase },
         { provide: UpdateAmbienteUseCase, useValue: updateUseCase },
         { provide: ReplaceHorariosUseCase, useValue: replaceUseCase },
@@ -107,6 +119,63 @@ describe('AmbienteController', () => {
 
       await expect(
         controller.findAll({ page: 0 } as ListAmbientesQueryDto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('findDisponibles', () => {
+    it('normaliza filtros y llama al caso de uso de disponibles', async () => {
+      // Preparamos un resultado vacio para simular la respuesta del caso de uso.
+      const emptyResult: ListAmbientesDisponiblesResult = {
+        items: [],
+        meta: {
+          total: 0,
+          page: 1,
+          take: 10,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      };
+      // Indicamos al mock que resuelva con ese resultado.
+      listDisponiblesUseCase.execute.mockResolvedValue(emptyResult);
+
+      // Construimos un query con todos los filtros validos para probar la delegacion.
+      const query: ListAmbientesDisponiblesQueryDto = {
+        capacidad_min: 10,
+        capacidad_examen_min: 20,
+        mismo_piso: true,
+        tipo_ambiente_ids: [1, 2],
+        campus_ids: [1],
+        facultad_ids: [1],
+        bloque_ids: [1],
+        tipo_bloque_ids: [3],
+        dia: 1,
+        hora_inicio: '08:00',
+        hora_fin: '10:00',
+        page: 2,
+        take: 5,
+        orderBy: 'codigo',
+        orderDir: 'desc',
+      };
+
+      // Ejecutamos el controlador con el query y guardamos la respuesta.
+      const result = await controller.findDisponibles(query);
+
+      // Verificamos que haya delegado al caso de uso con el mismo payload recibido.
+      expect(listDisponiblesUseCase.execute).toHaveBeenCalledWith(query);
+      // Confirmamos que la respuesta sea la misma que retorna el caso de uso.
+      expect(result).toEqual(emptyResult);
+    });
+
+    it('propaga BadRequestException cuando el caso de uso lo indica', async () => {
+      // Configuramos el mock para rechazar con una BadRequestException.
+      listDisponiblesUseCase.execute.mockRejectedValue(
+        new BadRequestException('Datos invalidos'),
+      );
+
+      // Esperamos que el controlador propague la misma excepcion al llamarlo.
+      await expect(
+        controller.findDisponibles({ capacidad_min: -1 } as any),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });

@@ -26,11 +26,13 @@ import {
 } from '@nestjs/swagger';
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
+import { ListAmbientesDisponiblesUseCase } from '../application/list-ambientes-disponibles.usecase';
 import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
 import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
+import { ListAmbientesDisponiblesQueryDto } from './dto/list-ambientes-disponibles-query.dto';
 import { UpdateAmbienteDto } from './dto/update-ambiente.dto';
 import { ReplaceHorariosDto } from './dto/replace-horarios.dto';
 
@@ -40,6 +42,7 @@ export class AmbienteController {
   constructor(
     private readonly createAmbiente: CreateAmbienteUseCase,
     private readonly listAmbientes: ListAmbientesUseCase,
+    private readonly listAmbientesDisponibles: ListAmbientesDisponiblesUseCase,
     private readonly deleteAmbiente: DeleteAmbienteUseCase,
     private readonly updateAmbiente: UpdateAmbienteUseCase,
     private readonly replaceHorarios: ReplaceHorariosUseCase,
@@ -110,6 +113,54 @@ export class AmbienteController {
     };
 
     return this.listAmbientes.execute(filters);
+  }
+
+  @Get('disponibles')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Listado de ambientes disponibles con filtros' })
+  @ApiOkResponse({
+    description: 'Respuesta paginada de ambientes disponibles',
+    schema: {
+      example: {
+        items: [
+          {
+            id: 1,
+            codigo: 'AULA-101',
+            nombre: 'Aula principal',
+            nombre_corto: '101',
+            piso: 1,
+            capacidad: { total: 40, examen: 25 },
+            clases: true,
+            activo: true,
+            bloque_id: 5,
+            facultad_id: 2,
+            campus_id: 1,
+            tipo_bloque_id: 1,
+            tipo_ambiente_id: 3,
+          },
+        ],
+        meta: {
+          total: 1,
+          page: 1,
+          take: 10,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Filtros invalidos',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [{ field: 'capacidad_min', message: 'Debe ser >= 0' }],
+      },
+    },
+  })
+  async findDisponibles(@Query() query: ListAmbientesDisponiblesQueryDto) {
+    return this.listAmbientesDisponibles.execute(query);
   }
 
   @Patch(':id')
