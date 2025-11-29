@@ -234,7 +234,7 @@ export class ListAmbientesDisponiblesQueryDto {
   tipo_ambiente_ids?: number[];
 
   @ApiPropertyOptional({
-    description: 'Dia de la semana (0=domingo, 6=sabado)',
+    description: 'Dia de la semana (0=lunes, 6=domingo)',
     minimum: 0,
     maximum: 6,
     example: 0,
