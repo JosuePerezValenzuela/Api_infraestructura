@@ -12,6 +12,7 @@ import {
   Min,
   Validate,
   ValidateIf,
+  ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
@@ -45,12 +46,10 @@ const transformToIdsArray = ({ value }: { value: unknown }) => {
 @ValidatorConstraint({ name: 'HorarioOrdenValido', async: false })
 class HorarioOrdenValido implements ValidatorConstraintInterface {
   // Valida que el horario tenga las tres partes (dia, hora_inicio, hora_fin) y que el inicio sea menor al fin.
-  validate(
-    _value: unknown,
-    args: { object: ListAmbientesDisponiblesQueryDto },
-  ) {
+  validate(_value: unknown, args?: ValidationArguments) {
     // Obtenemos la instancia completa del DTO para leer las otras propiedades relacionadas.
-    const dto = args.object;
+    const dto = args?.object as ListAmbientesDisponiblesQueryDto | undefined;
+    if (!dto) return true;
     // Si no se envio ningun campo de horario, no aplicamos esta regla.
     if (
       dto.dia === undefined &&
@@ -85,12 +84,10 @@ class HorarioOrdenValido implements ValidatorConstraintInterface {
 @ValidatorConstraint({ name: 'FacultadCampusSubconjunto', async: false })
 class FacultadCampusSubconjunto implements ValidatorConstraintInterface {
   // Valida que cada facultad pertenezca al conjunto de campus enviado.
-  validate(
-    _value: unknown,
-    args: { object: ListAmbientesDisponiblesQueryDto },
-  ) {
+  validate(_value: unknown, args?: ValidationArguments) {
     // Obtenemos el DTO para revisar ambos arreglos.
-    const dto = args.object;
+    const dto = args?.object as ListAmbientesDisponiblesQueryDto | undefined;
+    if (!dto) return true;
     // Si falta alguno de los dos arreglos, no aplicamos la regla (no hay nada que comparar).
     if (!dto.campus_ids || !dto.facultad_ids) return true;
     // Confirmamos que cada facultad este incluida en los campus.
@@ -106,12 +103,10 @@ class FacultadCampusSubconjunto implements ValidatorConstraintInterface {
 @ValidatorConstraint({ name: 'BloqueFacultadSubconjunto', async: false })
 class BloqueFacultadSubconjunto implements ValidatorConstraintInterface {
   // Valida que cada bloque pertenezca al conjunto de facultades enviado.
-  validate(
-    _value: unknown,
-    args: { object: ListAmbientesDisponiblesQueryDto },
-  ) {
+  validate(_value: unknown, args?: ValidationArguments) {
     // Obtenemos el DTO para revisar ambos arreglos.
-    const dto = args.object;
+    const dto = args?.object as ListAmbientesDisponiblesQueryDto | undefined;
+    if (!dto) return true;
     // Si falta alguno de los dos arreglos, no aplicamos la regla.
     if (!dto.facultad_ids || !dto.bloque_ids) return true;
     // Confirmamos que cada bloque este incluido en las facultades.
