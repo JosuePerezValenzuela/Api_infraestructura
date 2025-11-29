@@ -112,6 +112,11 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
     if (command.tipo_ambiente_id !== undefined)
       push('tipo_ambiente_id', command.tipo_ambiente_id);
     if (command.bloque_id !== undefined) push('bloque_id', command.bloque_id);
+    if (command.hora_apertura !== undefined)
+      push('hora_apertura', command.hora_apertura);
+    if (command.hora_cierre !== undefined)
+      push('hora_cierre', command.hora_cierre);
+    if (command.periodo !== undefined) push('periodo', command.periodo);
 
     if (setClauses.length === 0) {
       return { id: command.id };
@@ -164,6 +169,9 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
         piso,
         capacidad,
         dimension,
+        hora_apertura,
+        hora_cierre,
+        periodo,
         clases,
         activo,
         creado_en,
