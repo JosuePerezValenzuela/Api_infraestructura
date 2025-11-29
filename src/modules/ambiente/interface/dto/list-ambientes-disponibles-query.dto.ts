@@ -159,7 +159,7 @@ export class ListAmbientesDisponiblesQueryDto {
 
   @ApiPropertyOptional({
     description: 'IDs de tipos de ambiente',
-    example: [1, 2, 3],
+    example: [1],
     type: [Number],
   })
   @Transform(transformToIdsArray)
@@ -188,7 +188,7 @@ export class ListAmbientesDisponiblesQueryDto {
 
   @ApiPropertyOptional({
     description: 'IDs de facultades',
-    example: [10],
+    example: [1],
     type: [Number],
   })
   @Transform(transformToIdsArray)
@@ -205,7 +205,7 @@ export class ListAmbientesDisponiblesQueryDto {
 
   @ApiPropertyOptional({
     description: 'IDs de bloques',
-    example: [100],
+    example: [1],
     type: [Number],
   })
   @Transform(transformToIdsArray)
@@ -219,7 +219,7 @@ export class ListAmbientesDisponiblesQueryDto {
 
   @ApiPropertyOptional({
     description: 'IDs de tipos de bloque',
-    example: [5],
+    example: [1],
     type: [Number],
   })
   @Transform(transformToIdsArray)
@@ -237,7 +237,7 @@ export class ListAmbientesDisponiblesQueryDto {
     description: 'Dia de la semana (0=domingo, 6=sabado)',
     minimum: 0,
     maximum: 6,
-    example: 1,
+    example: 0,
   })
   @Type(() => Number)
   @ValidateIf(
