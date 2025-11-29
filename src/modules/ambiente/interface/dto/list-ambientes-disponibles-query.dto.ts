@@ -310,14 +310,29 @@ export class ListAmbientesDisponiblesQueryDto {
 
   @ApiPropertyOptional({
     description: 'Campo para ordenar',
-    enum: ['nombre', 'codigo', 'piso'],
-    default: 'nombre',
+    enum: [
+      'nombre',
+      'codigo',
+      'piso',
+      'capacidad_examen_total',
+      'capacidad_total',
+    ],
+    default: 'capacidad_examen_total',
   })
   @IsOptional()
-  @IsIn(['nombre', 'codigo', 'piso'], {
-    message: 'orderBy solo puede ser nombre, codigo o piso',
-  })
-  orderBy?: 'nombre' | 'codigo' | 'piso';
+  @IsIn(
+    ['nombre', 'codigo', 'piso', 'capacidad_examen_total', 'capacidad_total'],
+    {
+      message:
+        'orderBy solo puede ser nombre, codigo, piso, capacidad_examen_total o capacidad_total',
+    },
+  )
+  orderBy?:
+    | 'nombre'
+    | 'codigo'
+    | 'piso'
+    | 'capacidad_examen_total'
+    | 'capacidad_total';
 
   @ApiPropertyOptional({
     description: 'Direccion de orden',
