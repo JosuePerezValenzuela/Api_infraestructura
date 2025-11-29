@@ -2,7 +2,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayNotEmpty,
-  Equals,
   IsArray,
   IsIn,
   IsInt,
@@ -143,18 +142,11 @@ export class ListAmbientesDisponiblesQueryDto {
   capacidad_examen_min?: number;
 
   @ApiPropertyOptional({
-    description:
-      'Debe ser true cuando se envia capacidad_examen_min para forzar mismo piso',
+    description: 'Admitir ambientes indivuduales o conjuntos',
     example: true,
   })
+  @IsOptional()
   @Transform(transformToBoolean)
-  @ValidateIf(
-    (o: ListAmbientesDisponiblesQueryDto) =>
-      o.capacidad_examen_min !== undefined,
-  )
-  @Equals(true, {
-    message: 'mismo_piso debe ser true cuando se envia capacidad_examen_min',
-  })
   mismo_piso?: boolean;
 
   @ApiPropertyOptional({
@@ -268,7 +260,7 @@ export class ListAmbientesDisponiblesQueryDto {
 
   @ApiPropertyOptional({
     description: 'Hora de fin en formato HH:mm',
-    example: '10:00',
+    example: '09:00',
   })
   @ValidateIf(
     (o: ListAmbientesDisponiblesQueryDto) =>

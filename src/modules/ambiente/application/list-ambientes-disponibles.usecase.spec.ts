@@ -73,15 +73,6 @@ describe('ListAmbientesDisponiblesUseCase', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('exige mismo_piso si se envia capacidad_examen_min', async () => {
-    const repo = new DisponiblesRepoStub(emptyResult);
-    const useCase = new ListAmbientesDisponiblesUseCase(repo as any);
-
-    await expect(
-      useCase.execute({ capacidad_examen_min: 50 }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
   it('valida arrays no vacios y enteros positivos', async () => {
     const repo = new DisponiblesRepoStub(emptyResult);
     const useCase = new ListAmbientesDisponiblesUseCase(repo as any);

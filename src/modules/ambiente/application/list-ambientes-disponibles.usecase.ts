@@ -63,9 +63,6 @@ export class ListAmbientesDisponiblesUseCase {
     }
 
     const mismo_piso = input.mismo_piso;
-    if (capacidad_examen_min !== undefined && mismo_piso !== true) {
-      error('mismo_piso', 'Debe ser true cuando se envia capacidad_examen_min');
-    }
 
     const horario = this.buildHorario(
       {

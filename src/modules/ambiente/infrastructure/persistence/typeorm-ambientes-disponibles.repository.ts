@@ -33,22 +33,6 @@ export class TypeormAmbientesDisponiblesRepository
     // Siempre filtramos ambientes activos para no mostrar registros deshabilitados.
     conditions.push('a.activo = TRUE');
 
-    // Filtro por capacidad total minima cuando se envia el valor.
-    if (query.capacidad_min !== undefined) {
-      // Agregamos el parametro a la lista para que se asigne un indice.
-      params.push(query.capacidad_min);
-      // Construimos la condicion usando el indice recien agregado.
-      conditions.push(`(a.capacidad->>'total')::int >= $${params.length}`);
-    }
-
-    // Filtro por capacidad de examen cuando no se requiere agrupar por piso.
-    if (query.capacidad_examen_min !== undefined && !query.mismo_piso) {
-      // Guardamos el valor minimo de examen como parametro.
-      params.push(query.capacidad_examen_min);
-      // Aplicamos el filtro directamente sobre cada ambiente.
-      conditions.push(`(a.capacidad->>'examen')::int >= $${params.length}`);
-    }
-
     // Filtro por tipos de ambiente cuando llega el arreglo.
     if (query.tipo_ambiente_ids && query.tipo_ambiente_ids.length > 0) {
       // Anadimos el arreglo completo como parametro tipo ANY de Postgres.
@@ -81,7 +65,7 @@ export class TypeormAmbientesDisponiblesRepository
       conditions.push(`b.tipo_bloque_id = ANY($${params.length})`);
     }
 
-    // Filtro por disponibilidad en horario especifico.
+    // Filtro por disponibilidad en horario especifico (si tu dominio arma query.horario).
     if (query.horario) {
       // Guardamos el dia solicitado como parametro.
       params.push(query.horario.dia);
@@ -91,18 +75,27 @@ export class TypeormAmbientesDisponiblesRepository
       params.push(query.horario.hora_fin);
       // Agregamos una condicion EXISTS que valida que no haya solapamiento en el horario.
       conditions.push(
-        `EXISTS (SELECT 1 FROM infraestructura.horarios h WHERE h.ambiente_id = a.id AND h.dia = $${params.length - 2} AND h.hora_inicio <= $${params.length - 1} AND h.hora_fin >= $${params.length})`,
+        `EXISTS (
+           SELECT 1
+           FROM infraestructura.horarios h
+           WHERE h.ambiente_id = a.id
+             AND h.dia = $${params.length - 2}
+             AND h.hora_inicio <= $${params.length - 1}
+             AND h.hora_fin >= $${params.length}
+         )`,
       );
     }
 
     // Unimos las condiciones con AND si hay alguna, de lo contrario no agregamos WHERE.
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
     // Determinamos la columna de orden segun la solicitud; si no viene usamos codigo para consistencia.
     const orderColumn =
       query.orderBy && ['nombre', 'codigo', 'piso'].includes(query.orderBy)
         ? `a.${query.orderBy}`
         : 'a.codigo';
+
     // Ajustamos la direccion de orden a mayusculas para el SQL.
     const orderDirection = (query.orderDir ?? 'asc').toUpperCase();
 
@@ -139,28 +132,20 @@ export class TypeormAmbientesDisponiblesRepository
 
     // Ejecutamos la consulta usando los parametros ya armados.
     const rows = await this.dataSource.query<DisponiblesRow[]>(dataSql, params);
-    // Agrupamos los ambientes por bloque y piso o como individuales segun mismo_piso.
-    const grouped = this.groupRows(rows, query.mismo_piso ?? false);
 
-    // Si se pidio capacidad de examen minima y se agrupa por piso, reducimos cada grupo al minimo de ambientes necesarios.
-    const normalizedGroups =
-      query.capacidad_examen_min !== undefined && (query.mismo_piso ?? false)
-        ? grouped.map((group) =>
-            this.pruneGroupByCapacidadExamen(
-              group,
-              query.capacidad_examen_min as number,
-            ),
-          )
-        : grouped;
+    // Agrupamos los ambientes considerando mismo_piso y (opcionalmente) las capacidades mínimas.
+    const grouped = this.groupRows(rows, query);
 
-    // Filtramos grupos que cumplan la capacidad minima cuando aplique.
-    const filteredGroups =
-      query.capacidad_examen_min !== undefined && (query.mismo_piso ?? false)
-        ? normalizedGroups.filter(
-            (group) =>
-              group.capacidad_examen_total >= query.capacidad_examen_min!,
-          )
-        : normalizedGroups;
+    // Filtramos grupos segun capacidades totales declaradas (aplica tanto para grupos como para individuales).
+    const filteredGroups = grouped.filter((group) => {
+      const okTotal =
+        query.capacidad_min === undefined ||
+        group.capacidad_total >= query.capacidad_min;
+      const okExamen =
+        query.capacidad_examen_min === undefined ||
+        group.capacidad_examen_total >= query.capacidad_examen_min;
+      return okTotal && okExamen;
+    });
 
     // Ordenamos los grupos segun la columna solicitada o por capacidad de examen total.
     const orderedGroups = this.sortGroups(
@@ -168,6 +153,7 @@ export class TypeormAmbientesDisponiblesRepository
       query.orderBy,
       query.orderDir,
     );
+
     // Calculamos el desplazamiento para la paginacion.
     const offset = (page - 1) * take;
     // Recortamos la lista segun page y take para entregar solo la pagina requerida.
@@ -193,26 +179,46 @@ export class TypeormAmbientesDisponiblesRepository
   }
 
   // Esta funcion agrupa las filas crudas en estructura por bloque y piso.
+  // Siempre genera grupos individuales y, si mismo_piso = true, también combinaciones
+  // de ambientes en el mismo bloque/piso.
   private groupRows(
     rows: DisponiblesRow[],
-    mismoPiso: boolean,
+    query: ListAmbientesDisponiblesQuery,
   ): ListAmbientesDisponiblesResult['items'] {
-    // Usamos un mapa para acumular los grupos y evitar recorridos extras.
-    const groups = new Map<
+    const mismoPiso = query.mismo_piso ?? false;
+
+    // Siempre tendremos grupos individuales
+    const singleGroups: ListAmbientesDisponiblesResult['items'] = [];
+
+    // Cuando mismoPiso = true, agrupamos por (campus, facultad, bloque, tipo_bloque, piso)
+    const pisosMap = new Map<
       string,
-      ListAmbientesDisponiblesResult['items'][0]
+      {
+        meta: {
+          campus_id: number;
+          campus_nombre: string;
+          facultad_id: number;
+          facultad_nombre: string;
+          bloque_id: number;
+          bloque_nombre: string;
+          tipo_bloque_id: number;
+          tipo_bloque_nombre: string;
+          piso: number;
+        };
+        ambientes: AmbienteDisponibleItem[];
+      }
     >();
 
-    // Recorremos cada fila devuelta por la base.
     for (const row of rows) {
       // Normalizamos la capacidad para trabajar con numeros.
       const capacidad = this.mapCapacidad(row.capacidad);
+
       // Creamos el item individual del ambiente.
       const ambiente: AmbienteDisponibleItem = {
         id: Number(row.id),
         codigo: row.codigo,
         nombre: row.nombre,
-        nombre_corto: row.nombre_corto,
+        nombre_corto: row.nombre_corto ?? null,
         piso: Number(row.piso),
         capacidad,
         clases: Boolean(row.clases),
@@ -221,41 +227,129 @@ export class TypeormAmbientesDisponiblesRepository
         tipo_ambiente_nombre: row.tipo_ambiente_nombre,
       };
 
-      // Definimos la clave de agrupacion: si mismoPiso es true, agrupamos por campus/facultad/bloque/tipo/piso.
-      // Si mismoPiso es false, cada ambiente es su propio grupo para evitar combinaciones.
-      const groupKey = mismoPiso
-        ? `${row.campus_id}-${row.facultad_id}-${row.bloque_id}-${row.tipo_bloque_id}-${row.piso}`
-        : `amb-${row.id}`;
+      const meta = {
+        campus_id: Number(row.campus_id),
+        campus_nombre: row.campus_nombre,
+        facultad_id: Number(row.facultad_id),
+        facultad_nombre: row.facultad_nombre,
+        bloque_id: Number(row.bloque_id),
+        bloque_nombre: row.bloque_nombre,
+        tipo_bloque_id: Number(row.tipo_bloque_id),
+        tipo_bloque_nombre: row.tipo_bloque_nombre,
+        piso: Number(row.piso),
+      };
 
-      // Si no existe el grupo aun, lo creamos con la informacion base.
-      if (!groups.has(groupKey)) {
-        groups.set(groupKey, {
-          campus_id: Number(row.campus_id),
-          campus_nombre: row.campus_nombre,
-          facultad_id: Number(row.facultad_id),
-          facultad_nombre: row.facultad_nombre,
-          bloque_id: Number(row.bloque_id),
-          bloque_nombre: row.bloque_nombre,
-          tipo_bloque_id: Number(row.tipo_bloque_id),
-          tipo_bloque_nombre: row.tipo_bloque_nombre,
-          piso: Number(row.piso),
-          capacidad_examen_total: 0,
-          capacidad_total: 0,
-          ambientes: [],
-        });
+      // Siempre creamos el grupo individual (un solo ambiente)
+      singleGroups.push({
+        ...meta,
+        capacidad_examen_total: capacidad.examen,
+        capacidad_total: capacidad.total,
+        ambientes: [ambiente],
+      });
+
+      // Si se solicitan combinaciones en el mismo piso, acumulamos por clave de piso
+      if (mismoPiso) {
+        const key = `${meta.campus_id}-${meta.facultad_id}-${meta.bloque_id}-${meta.tipo_bloque_id}-${meta.piso}`;
+        if (!pisosMap.has(key)) {
+          pisosMap.set(key, {
+            meta,
+            ambientes: [],
+          });
+        }
+        pisosMap.get(key)!.ambientes.push(ambiente);
       }
-
-      // Recuperamos el grupo para sumarle el ambiente actual.
-      const group = groups.get(groupKey)!;
-      // Sumamos las capacidades del ambiente al total del grupo.
-      group.capacidad_examen_total += capacidad.examen;
-      group.capacidad_total += capacidad.total;
-      // Agregamos el ambiente al arreglo del grupo.
-      group.ambientes.push(ambiente);
     }
 
-    // Devolvemos la lista de grupos en un arreglo para facilitar el orden y paginacion.
-    return Array.from(groups.values());
+    // Si no se pidieron combinaciones, solo retornamos los individuales
+    if (!mismoPiso) {
+      return singleGroups;
+    }
+
+    // Generamos combinaciones de ambientes por piso/bloque (tamaño >= 2),
+    // usando capacidad_min y capacidad_examen_min para podar.
+    const comboGroups: ListAmbientesDisponiblesResult['items'] = [];
+
+    const capacidadMin = query.capacidad_min ?? undefined;
+    const capacidadExamenMin = query.capacidad_examen_min ?? undefined;
+
+    for (const [, { meta, ambientes }] of pisosMap) {
+      const combos = this.generateAmbienteCombinations(
+        ambientes,
+        capacidadMin,
+        capacidadExamenMin,
+      );
+
+      for (const combo of combos) {
+        let total = 0;
+        let examenTotal = 0;
+        for (const amb of combo) {
+          total += amb.capacidad.total;
+          examenTotal += amb.capacidad.examen;
+        }
+
+        comboGroups.push({
+          ...meta,
+          capacidad_examen_total: examenTotal,
+          capacidad_total: total,
+          ambientes: combo,
+        });
+      }
+    }
+
+    // Devolvemos individuales + combinaciones; luego el filtro final y orden
+    // se hace en listDisponibles (como ya lo tienes implementado).
+    return [...singleGroups, ...comboGroups];
+  }
+
+  // Genera combinaciones de ambientes (subconjuntos de tamaño >= 2).
+  // Usa capacidad_min y capacidad_examen_min para podar ramas que nunca van a cumplir.
+  private generateAmbienteCombinations(
+    ambientes: AmbienteDisponibleItem[],
+    capacidadMin?: number,
+    capacidadExamenMin?: number,
+  ): AmbienteDisponibleItem[][] {
+    const results: AmbienteDisponibleItem[][] = [];
+    const n = ambientes.length;
+
+    const backtrack = (
+      index: number,
+      current: AmbienteDisponibleItem[],
+      totalActual: number,
+      examenActual: number,
+    ): void => {
+      if (index === n) {
+        // Solo nos interesan combinaciones de al menos 2 ambientes
+        if (current.length >= 2) {
+          // Si hay mínimos definidos, verificamos aquí
+          const okTotal =
+            capacidadMin === undefined || totalActual >= capacidadMin;
+          const okExamen =
+            capacidadExamenMin === undefined ||
+            examenActual >= capacidadExamenMin;
+
+          if (okTotal && okExamen) {
+            results.push([...current]);
+          }
+        }
+        return;
+      }
+
+      // Opción 1: no incluir el ambiente actual
+      backtrack(index + 1, current, totalActual, examenActual);
+
+      // Opción 2: incluir el ambiente actual
+      const amb = ambientes[index];
+      const nuevoTotal = totalActual + amb.capacidad.total;
+      const nuevoExamen = examenActual + amb.capacidad.examen;
+
+      current.push(amb);
+      backtrack(index + 1, current, nuevoTotal, nuevoExamen);
+      current.pop();
+    };
+
+    backtrack(0, [], 0, 0);
+
+    return results;
   }
 
   // Esta funcion ordena los grupos segun la configuracion enviada.
@@ -343,38 +437,6 @@ export class TypeormAmbientesDisponiblesRepository
 
     // En cualquier otro caso, respondemos un objeto vacio para evitar errores.
     return {};
-  }
-
-  // Esta funcion selecciona la menor cantidad de ambientes cuyo total de examen alcanza la meta.
-  private pruneGroupByCapacidadExamen(
-    group: ListAmbientesDisponiblesResult['items'][0],
-    minimo: number,
-  ): ListAmbientesDisponiblesResult['items'][0] {
-    // Ordenamos los ambientes del grupo por capacidad de examen descendente para cubrir el minimo con menos ambientes.
-    const sorted = [...group.ambientes].sort(
-      (a, b) => b.capacidad.examen - a.capacidad.examen,
-    );
-
-    const seleccionados: typeof group.ambientes = [];
-    let acumulado = 0;
-
-    for (const ambiente of sorted) {
-      seleccionados.push(ambiente);
-      acumulado += ambiente.capacidad.examen;
-      if (acumulado >= minimo) {
-        break;
-      }
-    }
-
-    return {
-      ...group,
-      ambientes: seleccionados,
-      capacidad_examen_total: acumulado,
-      capacidad_total: seleccionados.reduce(
-        (sum, amb) => sum + amb.capacidad.total,
-        0,
-      ),
-    };
   }
 }
 

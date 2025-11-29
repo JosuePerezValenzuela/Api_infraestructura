@@ -43,14 +43,6 @@ describe('ListAmbientesDisponiblesQueryDto', () => {
     expect(errors).toHaveLength(0);
   });
 
-  it('exige mismo_piso cuando se envia capacidad_examen_min', async () => {
-    // Enviamos capacidad_examen_min sin mismo_piso para disparar la regla.
-    const errors = await validateDto({ capacidad_examen_min: 10 });
-    // Buscamos que el error este asociado a la propiedad mismo_piso.
-    const properties = errors.map((error) => error.property);
-    expect(properties).toContain('mismo_piso');
-  });
-
   it('rechaza arrays vacios o con IDs no positivos', async () => {
     // Caso 1: array vacio debe fallar.
     const emptyErrors = await validateDto({ tipo_ambiente_ids: [] });
