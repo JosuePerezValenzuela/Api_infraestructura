@@ -136,8 +136,18 @@ export class ListAmbientesDisponiblesUseCase {
 
     const orderBy = input.orderBy ?? 'nombre';
     const orderDir = input.orderDir ?? 'asc';
-    if (!['nombre', 'codigo', 'piso'].includes(orderBy)) {
-      error('orderBy', 'Solo se permite nombre, codigo o piso');
+    const allowedOrderBy = [
+      'nombre',
+      'codigo',
+      'piso',
+      'capacidad_examen_total',
+      'capacidad_total',
+    ];
+    if (!allowedOrderBy.includes(orderBy)) {
+      error(
+        'orderBy',
+        'Solo se permite nombre, codigo, piso, capacidad_examen_total o capacidad_total',
+      );
     }
     if (!['asc', 'desc'].includes(orderDir)) {
       error('orderDir', 'Solo se permite asc o desc');
