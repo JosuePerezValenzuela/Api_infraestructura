@@ -158,22 +158,6 @@ export class ListAmbientesDisponiblesQueryDto {
   mismo_piso?: boolean;
 
   @ApiPropertyOptional({
-    description: 'IDs de tipos de ambiente',
-    example: [1],
-    type: [Number],
-  })
-  @Transform(transformToIdsArray)
-  @IsOptional()
-  @IsArray({ message: 'tipo_ambiente_ids debe ser un arreglo' })
-  @ArrayNotEmpty({ message: 'tipo_ambiente_ids no puede ser vacio' })
-  @IsInt({ each: true, message: 'tipo_ambiente_ids debe contener enteros' })
-  @Min(1, {
-    each: true,
-    message: 'tipo_ambiente_ids debe contener enteros positivos',
-  })
-  tipo_ambiente_ids?: number[];
-
-  @ApiPropertyOptional({
     description: 'IDs de campus permitidos',
     example: [1],
     type: [Number],
@@ -232,6 +216,22 @@ export class ListAmbientesDisponiblesQueryDto {
     message: 'tipo_bloque_ids debe contener enteros positivos',
   })
   tipo_bloque_ids?: number[];
+
+  @ApiPropertyOptional({
+    description: 'IDs de tipos de ambiente',
+    example: [1],
+    type: [Number],
+  })
+  @Transform(transformToIdsArray)
+  @IsOptional()
+  @IsArray({ message: 'tipo_ambiente_ids debe ser un arreglo' })
+  @ArrayNotEmpty({ message: 'tipo_ambiente_ids no puede ser vacio' })
+  @IsInt({ each: true, message: 'tipo_ambiente_ids debe contener enteros' })
+  @Min(1, {
+    each: true,
+    message: 'tipo_ambiente_ids debe contener enteros positivos',
+  })
+  tipo_ambiente_ids?: number[];
 
   @ApiPropertyOptional({
     description: 'Dia de la semana (0=domingo, 6=sabado)',
