@@ -139,6 +139,8 @@ export class AmbienteController {
             campus_id: 1,
             tipo_bloque_id: 1,
             tipo_ambiente_id: 3,
+            capacidad_total: 40,
+            capacidad_examen_total: 25,
           },
         ],
         meta: {
