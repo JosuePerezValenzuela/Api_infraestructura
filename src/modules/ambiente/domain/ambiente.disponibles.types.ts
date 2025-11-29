@@ -27,14 +27,6 @@ export interface AmbienteDisponibleItem {
   capacidad: { total: number; examen: number };
   clases: boolean;
   activo: boolean;
-  bloque_id: number;
-  bloque_nombre: string;
-  facultad_id: number;
-  facultad_nombre: string;
-  campus_id: number;
-  campus_nombre: string;
-  tipo_bloque_id: number;
-  tipo_bloque_nombre: string;
   tipo_ambiente_id: number;
   tipo_ambiente_nombre: string;
 }
