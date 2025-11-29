@@ -15,10 +15,16 @@ describe('ListAmbienteHorariosUseCase', () => {
     jest.clearAllMocks();
   });
 
-  it('devuelve los horarios de un ambiente existente', async () => {
+  it('devuelve horarios y metadatos de apertura/cierre/periodo para un ambiente existente', async () => {
     const ambienteRepo = createAmbienteRepo();
     const horarioRepo = createHorarioRepo();
-    ambienteRepo.findById.mockResolvedValueOnce({ id: 5, activo: true });
+    ambienteRepo.findById.mockResolvedValueOnce({
+      id: 5,
+      activo: true,
+      hora_apertura: '07:00',
+      hora_cierre: '21:00',
+      periodo: 90,
+    });
     const horarios: HorarioSlot[] = [
       { dia: 0, hora_inicio: '08:00', hora_fin: '10:00' },
       { dia: 2, hora_inicio: '14:00', hora_fin: '16:00' },
@@ -34,7 +40,12 @@ describe('ListAmbienteHorariosUseCase', () => {
 
     expect(ambienteRepo.findById).toHaveBeenCalledWith(5);
     expect(horarioRepo.listByAmbiente).toHaveBeenCalledWith(5);
-    expect(result).toEqual({ items: horarios });
+    expect(result).toEqual({
+      items: horarios,
+      hora_apertura: '07:00',
+      hora_cierre: '21:00',
+      periodo: 90,
+    });
   });
 
   it('lanza NOT_FOUND cuando el ambiente no existe', async () => {

@@ -187,6 +187,32 @@ describe('AmbienteController', () => {
     });
   });
 
+  describe('listHorarios', () => {
+    it('retorna metadatos y franjas del ambiente', async () => {
+      const dtoResult = {
+        items: [{ dia: 0, hora_inicio: '08:00', hora_fin: '10:00' }],
+        hora_apertura: '07:00',
+        hora_cierre: '21:00',
+        periodo: 90,
+      };
+      listHorariosUseCase.execute.mockResolvedValue(dtoResult);
+
+      const result = await controller.listHorarios(5);
+
+      expect(listHorariosUseCase.execute).toHaveBeenCalledWith({
+        ambiente_id: 5,
+      });
+      expect(result).toEqual(dtoResult);
+    });
+
+    it('propaga NotFoundException cuando el caso de uso lo indica', async () => {
+      listHorariosUseCase.execute.mockRejectedValue(new NotFoundException());
+      await expect(controller.listHorarios(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+
   describe('delete', () => {
     it('invoca al caso de uso y retorna 204', async () => {
       await controller.delete(5);
