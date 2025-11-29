@@ -27,7 +27,10 @@ describe('TypeormActivoRepository.findDetailsByNia', () => {
 
     // Assert: verificamos SQL, parámetros y mapping.
     const [sql, params] = dataSource.query.mock.calls[0];
-    const normalizedSql = (sql as string).replace(/\s+/g, ' ').trim().toLowerCase();
+    const normalizedSql = (sql as string)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
     expect(normalizedSql).toContain('from infraestructura.activos');
     expect(normalizedSql).toContain('left join infraestructura.ambientes');
     expect(params).toEqual(['NIA-003']);

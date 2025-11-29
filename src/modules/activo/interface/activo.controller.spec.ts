@@ -345,9 +345,9 @@ describe('ActivoController', () => {
         new NotFoundException('No existe'),
       );
 
-      await expect(controller.getByNia({ nia: 'NIA-404' })).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        controller.getByNia({ nia: 'NIA-404' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });

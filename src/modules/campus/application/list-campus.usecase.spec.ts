@@ -2,7 +2,10 @@
 // Cada prueba estÃ¡ comentada para que alguien sin experiencia entienda quÃ© se espera.
 
 import { ListCampusUseCase } from './list-campus.usecase';
-import { CampusRepositoryPort, ListOptions } from '../domain/campus.repository.port';
+import {
+  CampusRepositoryPort,
+  ListOptions,
+} from '../domain/campus.repository.port';
 
 // Creamos un tipo de repositorio falso para espiar las llamadas.
 type FakeCampusRepo = {
@@ -15,7 +18,9 @@ describe('ListCampusUseCase', () => {
     const repo: FakeCampusRepo = {
       list: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     };
-    const useCase = new ListCampusUseCase(repo as unknown as CampusRepositoryPort);
+    const useCase = new ListCampusUseCase(
+      repo as unknown as CampusRepositoryPort,
+    );
     return { useCase, repo };
   };
 
