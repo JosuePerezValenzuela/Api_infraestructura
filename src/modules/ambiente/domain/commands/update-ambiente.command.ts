@@ -19,4 +19,7 @@ export interface UpdateAmbienteCommand {
   activo?: boolean;
   tipo_ambiente_id?: number;
   bloque_id?: number;
+  hora_apertura?: string | null;
+  hora_cierre?: string | null;
+  periodo?: number | null;
 }
