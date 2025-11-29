@@ -99,7 +99,10 @@ export class TypeormAmbientesDisponiblesRepository
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     // Determinamos la columna de orden segun la solicitud; si no viene usamos codigo para consistencia.
-    const orderColumn = query.orderBy ? `a.${query.orderBy}` : 'a.codigo';
+    const orderColumn =
+      query.orderBy && ['nombre', 'codigo', 'piso'].includes(query.orderBy)
+        ? `a.${query.orderBy}`
+        : 'a.codigo';
     // Ajustamos la direccion de orden a mayusculas para el SQL.
     const orderDirection = (query.orderDir ?? 'asc').toUpperCase();
 
@@ -237,14 +240,16 @@ export class TypeormAmbientesDisponiblesRepository
           tipo_bloque_nombre: row.tipo_bloque_nombre,
           piso: Number(row.piso),
           capacidad_examen_total: 0,
+          capacidad_total: 0,
           ambientes: [],
         });
       }
 
       // Recuperamos el grupo para sumarle el ambiente actual.
       const group = groups.get(groupKey)!;
-      // Sumamos la capacidad de examen del ambiente al total del grupo.
+      // Sumamos las capacidades del ambiente al total del grupo.
       group.capacidad_examen_total += capacidad.examen;
+      group.capacidad_total += capacidad.total;
       // Agregamos el ambiente al arreglo del grupo.
       group.ambientes.push(ambiente);
     }
@@ -278,6 +283,16 @@ export class TypeormAmbientesDisponiblesRepository
       // Para piso comparamos el nivel directamente.
       if (orderBy === 'piso') {
         return (a.piso - b.piso) * direction;
+      }
+
+      if (orderBy === 'capacidad_examen_total') {
+        return (
+          (a.capacidad_examen_total - b.capacidad_examen_total) * direction
+        );
+      }
+
+      if (orderBy === 'capacidad_total') {
+        return (a.capacidad_total - b.capacidad_total) * direction;
       }
 
       // Para codigo o nombre comparamos el primer ambiente de cada grupo.
@@ -355,6 +370,10 @@ export class TypeormAmbientesDisponiblesRepository
       ...group,
       ambientes: seleccionados,
       capacidad_examen_total: acumulado,
+      capacidad_total: seleccionados.reduce(
+        (sum, amb) => sum + amb.capacidad.total,
+        0,
+      ),
     };
   }
 }

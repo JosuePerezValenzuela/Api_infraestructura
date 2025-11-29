@@ -125,6 +125,7 @@ describe('TypeormAmbientesDisponiblesRepository', () => {
         tipo_bloque_nombre: 'Tipo bloque',
         piso: 1,
         capacidad_examen_total: 25,
+        capacidad_total: 40,
         ambientes: [
           {
             id: 1,
@@ -175,5 +176,64 @@ describe('TypeormAmbientesDisponiblesRepository', () => {
     );
     expect(normalizedSql).toContain('ORDER BY a.nombre ASC');
     expect(dataParams).toEqual([]);
+  });
+  it('ordena grupos por capacidad_total cuando se solicita', async () => {
+    const dataSource = createFakeDataSource();
+    dataSource.query.mockResolvedValueOnce([
+      {
+        id: 1,
+        codigo: 'A1',
+        nombre: 'A1',
+        nombre_corto: 'A1',
+        piso: 0,
+        capacidad: { total: 10, examen: 5 },
+        clases: true,
+        activo: true,
+        bloque_id: 1,
+        bloque_nombre: 'B1',
+        facultad_id: 1,
+        facultad_nombre: 'F1',
+        campus_id: 1,
+        campus_nombre: 'C1',
+        tipo_bloque_id: 1,
+        tipo_bloque_nombre: 'TB1',
+        tipo_ambiente_id: 1,
+        tipo_ambiente_nombre: 'Aula',
+      },
+      {
+        id: 2,
+        codigo: 'A2',
+        nombre: 'A2',
+        nombre_corto: 'A2',
+        piso: 0,
+        capacidad: { total: 30, examen: 15 },
+        clases: true,
+        activo: true,
+        bloque_id: 2,
+        bloque_nombre: 'B2',
+        facultad_id: 1,
+        facultad_nombre: 'F1',
+        campus_id: 1,
+        campus_nombre: 'C1',
+        tipo_bloque_id: 1,
+        tipo_bloque_nombre: 'TB1',
+        tipo_ambiente_id: 1,
+        tipo_ambiente_nombre: 'Aula',
+      },
+    ]);
+
+    const repository = new TypeormAmbientesDisponiblesRepository(
+      dataSource as unknown as any,
+    );
+
+    const result = await repository.listDisponibles({
+      page: 1,
+      take: 10,
+      orderBy: 'capacidad_total',
+      orderDir: 'desc',
+    });
+
+    expect(result.items[0].capacidad_total).toBe(30);
+    expect(result.items[1].capacidad_total).toBe(10);
   });
 });
