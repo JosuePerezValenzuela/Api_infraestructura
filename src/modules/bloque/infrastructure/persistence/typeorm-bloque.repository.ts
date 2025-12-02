@@ -160,7 +160,9 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
         b.activo,
         b.creado_en,
         f.nombre AS facultad_nombre,
-        tb.nombre AS tipo_bloque_nombre
+        tb.nombre AS tipo_bloque_nombre,
+        (b.coordenadas)[1]:: float AS lat,
+        (b.coordenadas)[0]:: float AS lng
       FROM infraestructura.bloques b
       JOIN infraestructura.facultades f ON f.id = b.facultad_id
       JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
@@ -205,6 +207,8 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
         creado_en: Date | string;
         facultad_nombre: string;
         tipo_bloque_nombre: string;
+        lat: number | string | null;
+        lng: number | string | null;
       }>
     >(dataSql, dataParams);
 
@@ -225,6 +229,8 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
       creado_en: new Date(row.creado_en).toISOString(),
       facultad_nombre: row.facultad_nombre,
       tipo_bloque_nombre: row.tipo_bloque_nombre,
+      lat: Number(row.lat),
+      lng: Number(row.lng),
     }));
 
     const hasNextPage = options.page * options.take < total;

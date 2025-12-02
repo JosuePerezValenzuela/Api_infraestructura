@@ -30,6 +30,8 @@ export interface BloqueListItem {
   creado_en: string;
   facultad_nombre: string;
   tipo_bloque_nombre: string;
+  lat: number;
+  lng: number;
 }
 
 export interface ListBloquesResult {

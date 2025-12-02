@@ -59,6 +59,8 @@ export class BloqueController {
             nombre_corto: 'Central',
             pisos: 4,
             activo: true,
+            lat: -17.39,
+            lng: -66.15,
             creado_en: '2025-10-01T12:00:00.000Z',
             facultad_nombre: 'Facultad Central',
             tipo_bloque_nombre: 'Académico',

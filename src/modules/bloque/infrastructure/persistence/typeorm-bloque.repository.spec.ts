@@ -236,7 +236,9 @@ describe('TypeormBloqueRepository', () => {
             activo: true,
             creado_en: new Date('2025-10-01T12:00:00.000Z'),
             facultad_nombre: 'Facultad Central',
-            tipo_bloque_nombre: 'Académico',
+            tipo_bloque_nombre: 'Acad?mico',
+            lat: -17.39,
+            lng: -66.15,
           },
         ])
         .mockResolvedValueOnce([{ total: 15 }]);
@@ -268,7 +270,9 @@ describe('TypeormBloqueRepository', () => {
           activo: true,
           creado_en: '2025-10-01T12:00:00.000Z',
           facultad_nombre: 'Facultad Central',
-          tipo_bloque_nombre: 'Académico',
+          tipo_bloque_nombre: 'Acad?mico',
+          lat: -17.39,
+          lng: -66.15,
         },
       ]);
       expect(result.meta).toEqual({
