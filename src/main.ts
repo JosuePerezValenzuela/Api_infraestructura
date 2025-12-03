@@ -9,18 +9,26 @@ import { ValidationError } from 'class-validator';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const cfg = app.get(ConfigService);
+  const port = cfg.get<number>('PORT') ?? 3000;
+  const corsOrigins = cfg
+    .get<string>('CORS_ORIGINS')
+    ?.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean) ?? ['http://localhost:3000', 'http://localhost:3001'];
+  const prefix = cfg.get<string>('GLOBAL_PREFIX') ?? 'api';
+  const baseUrl = cfg.get<string>('API_BASE_URL') ?? `http://localhost:${port}`;
   //Seguridad HTTP
   app.use(helmet());
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'], // <- nombre correcto
     credentials: true,
   });
 
   //Prefijo global del .env
-  app.setGlobalPrefix(cfg.get<string>('GLOBAL_PREFIX')!);
+  app.setGlobalPrefix(prefix);
 
   //Validacion global (DTOs)
   app.useGlobalPipes(
@@ -74,8 +82,6 @@ async function bootstrap() {
     }),
   );
 
-  const prefix = cfg.get<string>('GLOBAL_PREFIX') ?? 'api';
-
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Infraestructura UMSS API')
     .setDescription(
@@ -91,9 +97,8 @@ async function bootstrap() {
       persistAuthorization: true,
     },
   });
-  const port = cfg.get<number>('PORT') ?? 3000;
   await app.listen(port);
-  console.log(`Documentacion en: http://localhost:${port}/${swaggerPath}`);
-  console.log(`Api en: http://localhost:${port}/${prefix}`);
+  console.log(`Documentacion en: ${baseUrl}${port}/${swaggerPath}`);
+  console.log(`Api en: ${baseUrl}${port}/${prefix}`);
 }
 bootstrap();
