@@ -9,6 +9,7 @@ import type {
   ReporteGeneradorPort,
   ArchivoReporte,
 } from '../domain/ports/reporte-generador.port';
+import type { InventarioReporteViewModel } from '../domain/models/inventario.view-model';
 import {
   GenerarReporteInventarioDto,
   ReporteFormato,
@@ -54,7 +55,9 @@ export class GenerarReporteInventarioService {
     });
   }
 
-  private obtener_view_model(dto: GenerarReporteInventarioDto) {
+  private obtener_view_model(
+    dto: GenerarReporteInventarioDto,
+  ): Promise<InventarioReporteViewModel | null> {
     if (dto.scope === ReporteScope.CAMPUS) {
       return this.inventario_repo.obtener_por_campus(dto.scopeId);
     }
