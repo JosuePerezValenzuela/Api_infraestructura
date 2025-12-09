@@ -1,0 +1,64 @@
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import * as request from 'supertest';
+import { AppModule } from '../src/app.module';
+import {
+  ReporteFormato,
+  ReporteScope,
+} from '../src/modules/reportes/interface/dto/generar-reporte-inventario.dto';
+import { PassThrough } from 'stream';
+
+describe('ReportesController (e2e)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('/reportes/inventario-ambientes (GET) debería devolver 200 y headers para xlsx', async () => {
+    // Nota: sin implementación real, esto fallará hasta que el controller/servicio respondan con stream.
+    const res = await request(app.getHttpServer())
+      .get('/reportes/inventario-ambientes')
+      .query({
+        scope: ReporteScope.CAMPUS,
+        scopeId: '1',
+        formato: ReporteFormato.XLSX,
+      })
+      .expect(200);
+
+    expect(res.header['content-type']).toContain(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    expect(res.header['content-disposition']).toContain(
+      'attachment; filename=',
+    );
+    expect(res.body).toBeDefined();
+  });
+
+  it('/reportes/inventario-ambientes (GET) debería devolver 400 con formato inválido', async () => {
+    await request(app.getHttpServer())
+      .get('/reportes/inventario-ambientes')
+      .query({
+        scope: ReporteScope.CAMPUS,
+        scopeId: '1',
+        formato: 'txt',
+      })
+      .expect(400);
+  });
+});
