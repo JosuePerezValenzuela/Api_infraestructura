@@ -1,7 +1,6 @@
 # Repository Guidelines
 
-- Segun lo se haga selecciona el comportamiento de un agente y debemos trabajar paso a paso no toda la tarea en una sola respuesta y
-  enseniando al usuario
+- Segun lo se haga selecciona el comportamiento de un agente y debemos trabajar paso a paso no toda la tarea en una sola respuesta y enseniando al usuario
 
 ## Architecture: Scope Rule
 
@@ -47,6 +46,12 @@ USE WHEN: Starting new features or projects.
 
 - Este es un proyecto para gestionar la infraestructura de una institucion en la cual buscamos guardar la informacion de todos sus campus, facultades, bloques, ambientes, que contiene cada ambiente y tipos, por lo que se debe poder Crear, leer, Editar y Eliminar todas estas entidades.
   Mas especificaciones del proyecto estan en `Project_Specs.md`
+
+- Manejo de errores (patrón global observado):
+  - Validación: `BadRequestException` con cuerpo `{ error: 'VALIDATION_ERROR', message: 'Los datos enviados no son validos', details: [{ field, message }] }`.
+  - Conflictos: `ConflictException` con `{ error: 'CONFLICT_ERROR', message, details }`.
+  - Recurso no encontrado: `NotFoundException` con `{ error: 'NOT_FOUND', message }`.
+  - Aplicar este formato en nuevos casos de uso/controladores.
 
 ## DataBase
 

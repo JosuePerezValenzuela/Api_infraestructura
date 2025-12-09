@@ -2066,3 +2066,31 @@ Respuestas:
 404 NOT_FOUND â€“ no existe el recurso
 
 { "error": "NOT_FOUND", "message": "No se encontrÃ³ el campus" }
+
+12. Reportes de Inventario (nuevo requerimiento)
+- Objetivo: generar reporte de inventario de ambientes por scope (campus | facultad | bloque) exportable a XLSX o PDF.
+- Entrada: scope (campus/facultad/bloque) + scopeId; formato (xlsx/pdf); locale opcional.
+- Salida: archivo con nombre `inventario_<scope>_<fecha>.<ext>` y headers `Content-Type`/`Content-Disposition`.
+- Contenido (según scope):
+  - Campus: hoja/sección resumen, hoja campus, hoja por facultad, hoja de bloques agrupados por facultad; incluye KPIs (facultades/bloques/ambientes activos/inactivos, tipos, capacidad total/examen, activos asociados) y tablas por nivel.
+  - Facultad: cabecera facultad, KPIs, tablas de bloques y ambientes.
+  - Bloque: cabecera bloque, KPIs, tabla de ambientes.
+- Estilo: paleta centrada en #003049, complementarios #669bbc, #f7f9fb, #d62828 (inactivos), #f6b140 (acentos); encabezados oscuros y filas alternas.
+- Generadores propuestos: exceljs (XLSX streaming) y pdfmake (PDF con pageBreak por nodo).
+
+12. Manejo de errores (formato aplicado en modulos existentes)
+- Validacion: BadRequestException con cuerpo { error: 'VALIDATION_ERROR', message: 'Los datos enviados no son validos', details: [{ field, message }] }.
+- Conflictos: ConflictException con { error: 'CONFLICT_ERROR', message: 'Los datos enviados no son validos', details: [{ field, message }] }.
+- No encontrado: NotFoundException con { error: 'NOT_FOUND', message: 'No se encontro el recurso solicitado' }.
+- Usar este esquema en nuevos casos de uso/controladores.
+
+13. Reportes de Inventario (nuevo requerimiento)
+- Objetivo: generar reporte de inventario de ambientes por scope (campus | facultad | bloque) exportable a XLSX o PDF.
+- Entrada: scope (campus/facultad/bloque) + scopeId; formato (xlsx/pdf); locale opcional.
+- Salida: archivo con nombre `inventario_<scope>_<fecha>.<ext>` y headers `Content-Type`/`Content-Disposition`.
+- Contenido (segun scope):
+  - Campus: hoja/seccion resumen, hoja campus, hoja por facultad, hoja de bloques agrupados por facultad; incluye KPIs (facultades/bloques/ambientes activos/inactivos, tipos, capacidad total/examen, activos asociados) y tablas por nivel.
+  - Facultad: cabecera facultad, KPIs, tablas de bloques y ambientes.
+  - Bloque: cabecera bloque, KPIs, tabla de ambientes.
+- Estilo: paleta centrada en #003049, complementarios #669bbc, #f7f9fb, #d62828 (inactivos), #f6b140 (acentos); encabezados oscuros y filas alternas.
+- Generadores propuestos: exceljs (XLSX streaming) y pdfmake (PDF con pageBreak por nodo).
