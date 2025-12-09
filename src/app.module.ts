@@ -11,6 +11,7 @@ import { BloqueModule } from './modules/bloque/bloque.module';
 import { TipoAmbienteModule } from './modules/tipo-ambiente/tipo-ambiente.module';
 import { AmbienteModule } from './modules/ambiente/ambiente.module';
 import { ActivoModule } from './modules/activo/activo.module';
+import { ReportesModule } from './modules/reportes/reportes.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ActivoModule } from './modules/activo/activo.module';
     BloqueModule,
     AmbienteModule,
     ActivoModule,
+    ReportesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
