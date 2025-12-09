@@ -1,15 +1,29 @@
-Pruebas
-Puerto / command (Puerto contien los metodos necesarios para la logica, Command es un typo que define que necesita algun metodo del puerto)
-Use case (Ejecuta lo del repository y que devuelve) -> implementa la interfaz
-Repository (Implementa la logica) -> Implementa la interfaz
-interfaz HTTP (DTO, Define que acepta la API) -> Que es lo que me mandara el usuario
-Controller (Expone la ruta y delega el trabajo al use case) -> Define la ruta de la api
-Module (Module, cablea)
+Orden profesional sugerido (TDD + Hexagonal, con archivos)
 
-puerto / command (Port, defien que necesita el use case) -> Que es lo que necesito para realizar la logica solo la interfaz
-interfaz HTTP (DTO, Define que acepta la API) -> Que es lo que me mandara el usuario
-Controller (Controller, Expone la ruta y delega al use case) -> Se define la ruta
-use case (Use Case, Ejecuta lo del repository y que devuelve) -> Aplico reglas de negocio
-repository (Repository, implementa el metodo para la edicion) -> implementa la interfaz
-Module (Module, cablea)
-tuki
+1) Pruebas primero (specs que fallan)
+   - Unit DTO: `src/modules/<feature>/interface/dto/*.dto.spec.ts`
+   - Unit use case: `src/modules/<feature>/application/*.spec.ts`
+   - Unit puertos/adaptadores: `src/modules/<feature>/domain/ports/*.spec.ts`, `infrastructure/**/*.spec.ts`
+   - E2E: `test/<feature>.e2e-spec.ts`
+
+2) Contratos (domain + interface)
+   - Puertos/interfaces: `src/modules/<feature>/domain/ports/*.ts`
+   - View-model/comandos: `src/modules/<feature>/domain/models/*.ts`
+   - DTOs: `src/modules/<feature>/interface/dto/*.dto.ts`
+
+3) Caso de uso (application)
+   - Implementar lógica en `src/modules/<feature>/application/*.ts`: orquestar puertos, reglas de negocio, errores (VALIDATION_ERROR, NOT_FOUND, CONFLICT, etc).
+
+4) Adaptadores/infraestructura
+   - Repositorio: `src/modules/<feature>/infrastructure/repositories/*.ts` (SQL crudo/ORM).
+   - Generadores/puertos de salida: `src/modules/<feature>/infrastructure/*/*.ts` (xlsx/pdf, etc).
+
+5) Controller (interface)
+   - Ruta HTTP y delegación al use case: `src/modules/<feature>/interface/*.controller.ts`
+   - Configurar headers/respuesta según contrato.
+
+6) Módulo
+   - Cablear providers/bindings: `src/modules/<feature>/<feature>.module.ts` (providers, useClass/useValue tokens).
+
+7) Ejecutar pruebas y ajustar
+   - Correr unit + e2e, refinar hasta verde.
