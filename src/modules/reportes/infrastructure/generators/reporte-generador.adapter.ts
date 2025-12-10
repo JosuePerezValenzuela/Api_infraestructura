@@ -8,11 +8,7 @@ import { PassThrough } from 'stream';
 import PdfPrinter from 'pdfmake';
 import * as path from 'path';
 import * as fs from 'fs';
-import type {
-  Content,
-  StyleDictionary,
-  TDocumentDefinitions,
-} from 'pdfmake/interfaces';
+import type { StyleDictionary, TDocumentDefinitions } from 'pdfmake/interfaces';
 import {
   ArchivoReporte,
   ReporteGeneradorPort,
@@ -25,6 +21,12 @@ import type {
   InventarioReporteViewModel,
   KpiResumen,
 } from '../../domain/models/inventario.view-model';
+import { KpiChartFactory } from '../kpi-chart.factory';
+
+// Tipo auxiliar para el contenido de pdfmake sin usar Content directamente
+type PdfContent = TDocumentDefinitions['content'] extends (infer U)[]
+  ? U
+  : TDocumentDefinitions['content'];
 
 const MIME_XLSX =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -37,6 +39,9 @@ const LIGHT_BG = '#f7f9fb';
 
 @Injectable()
 export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
+  constructor(private readonly kpiCharts: KpiChartFactory) {}
+
+  // ---------------- XLSX ----------------
   async generar_xlsx(
     view_model: InventarioReporteViewModel,
   ): Promise<ArchivoReporte> {
@@ -54,10 +59,11 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     return { stream, filename, mime_type: MIME_XLSX };
   }
 
+  // ---------------- PDF ----------------
   async generar_pdf(
     view_model: InventarioReporteViewModel,
   ): Promise<ArchivoReporte> {
-    const docDefinition = this.buildPdfDefinition(view_model);
+    const docDefinition = await this.buildPdfDefinition(view_model);
     const stream = await this.createPdfStream(docDefinition);
     const filename = this.build_filename(view_model.scope, 'pdf');
     return { stream, filename, mime_type: MIME_PDF };
@@ -320,25 +326,30 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   }
 
   // ---------------- PDF helpers ----------------
-  private buildPdfDefinition(
+  private async buildPdfDefinition(
     view: InventarioReporteViewModel,
-  ): TDocumentDefinitions {
-    const content: Content[] = [];
+  ): Promise<TDocumentDefinitions> {
+    const content: PdfContent[] = [];
 
     if (view.campus) {
-      // Campus: primera página
-      content.push(...this.sectionCampus(view.campus, false));
+      // 1) Página del CAMPUS
+      const campusCharts = await this.buildKpiChartsRow(view.campus.kpis);
+      content.push(...this.sectionCampus(view.campus, false, campusCharts));
 
-      // Cada facultad: siempre nueva página
-      view.campus.facultades.forEach((fac) => {
-        content.push(...this.sectionFacultad(fac, true));
-      });
+      // 2) Una página nueva por FACULTAD (cada una con sus bloques dentro)
+      for (const fac of view.campus.facultades) {
+        const facCharts = await this.buildKpiChartsRow(fac.kpis);
+        content.push(...this.sectionFacultad(fac, true, facCharts));
+      }
     } else if (view.facultad) {
-      // Si solo hay facultad (scope=facultad), va en la primera página
-      content.push(...this.sectionFacultad(view.facultad, false));
+      // Scope = facultad: primera página la facultad,
+      // y dentro de sectionFacultad ya se agregan sus bloques (cada uno en página nueva)
+      const facCharts = await this.buildKpiChartsRow(view.facultad.kpis);
+      content.push(...this.sectionFacultad(view.facultad, false, facCharts));
     } else if (view.bloque) {
-      // Si solo hay bloque (scope=bloque), va en la primera página
-      content.push(...this.sectionBloque(view.bloque, false));
+      // Scope = bloque: solo el bloque
+      const bloqueCharts = await this.buildKpiChartsRow(view.bloque.kpis);
+      content.push(...this.sectionBloque(view.bloque, false, bloqueCharts));
     }
 
     const styles: StyleDictionary = {
@@ -365,14 +376,22 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     };
   }
 
-  private sectionCampus(campus: CampusView, pageBreak = false): Content[] {
-    const blocks: Content[] = [];
+  private sectionCampus(
+    campus: CampusView,
+    pageBreak = false,
+    chartsRow?: PdfContent | null,
+  ): PdfContent[] {
+    const blocks: PdfContent[] = [];
 
     blocks.push({
       text: `Campus: ${campus.nombre}`,
       style: 'header',
       pageBreak: pageBreak ? 'before' : undefined,
     });
+
+    if (chartsRow) {
+      blocks.push(chartsRow);
+    }
 
     blocks.push(...this.kpiTable(campus.kpis));
 
@@ -405,19 +424,25 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     return blocks;
   }
 
-  private sectionFacultad(fac: FacultadView, pageBreak: boolean): Content[] {
-    const blocks: Content[] = [];
+  private sectionFacultad(
+    fac: FacultadView,
+    pageBreak: boolean,
+    chartsRow?: PdfContent | null,
+  ): PdfContent[] {
+    const blocks: PdfContent[] = [];
 
-    // Nodo facultad: nueva página según parámetro
     blocks.push({
       text: `Facultad: ${fac.nombre}`,
       style: 'header',
       pageBreak: pageBreak ? 'before' : undefined,
     });
 
+    if (chartsRow) {
+      blocks.push(chartsRow);
+    }
+
     blocks.push(...this.kpiTable(fac.kpis));
 
-    // Tabla de bloques de esa facultad
     blocks.push(
       this.simpleTable(
         'Bloques',
@@ -444,7 +469,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       ),
     );
 
-    // Cada bloque: SIEMPRE en página nueva (nuevo nodo)
+    // Cada bloque en página nueva (nodo)
     fac.bloques.forEach((b) => {
       blocks.push(...this.sectionBloque(b, true));
     });
@@ -452,14 +477,22 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     return blocks;
   }
 
-  private sectionBloque(bloque: BloqueView, pageBreak: boolean): Content[] {
-    const blocks: Content[] = [];
+  private sectionBloque(
+    bloque: BloqueView,
+    pageBreak: boolean,
+    chartsRow?: PdfContent | null,
+  ): PdfContent[] {
+    const blocks: PdfContent[] = [];
 
     blocks.push({
       text: `Bloque: ${bloque.nombre}`,
       style: 'subheader',
       pageBreak: pageBreak ? 'before' : undefined,
     });
+
+    if (chartsRow) {
+      blocks.push(chartsRow);
+    }
 
     blocks.push(...this.kpiTable(bloque.kpis, true));
 
@@ -477,7 +510,6 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
           a.estado,
           a.activos_count,
         ]),
-
         [
           'Código',
           'Nombre',
@@ -495,7 +527,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     return blocks;
   }
 
-  private kpiTable(kpis: KpiResumen, compact = false): Content[] {
+  private kpiTable(kpis: KpiResumen, compact = false): PdfContent[] {
     const data: (string | number)[][] = [];
 
     if (kpis.total_facultades !== undefined) {
@@ -549,7 +581,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     _title: string,
     rows: (string | number)[][],
     headers: string[],
-  ): Content {
+  ): PdfContent {
     return {
       margin: [0, 6, 0, 6],
       table: {
@@ -603,15 +635,13 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       },
     });
 
-    // IMPORTANTE: resolvemos el stream inmediatamente,
-    // no esperamos al evento "finish"
+    // Resolvemos el stream inmediatamente; Express hará stream.pipe(res)
     return await new Promise<PassThrough>((resolve) => {
       const pdfDoc = printer.createPdfKitDocument(docDefinition);
       const stream = new PassThrough();
 
       pdfDoc.on('error', (err) => {
         console.error('[PDF] Error en pdfDoc:', err);
-        // Propagamos el error al stream; Express cortará la respuesta
         const error =
           err instanceof Error ? err : new Error(String(err ?? 'Error PDF'));
         stream.destroy(error);
@@ -621,12 +651,89 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
         console.error('[PDF] Error en stream:', err);
       });
 
-      // Pipea la salida del PDF al stream que devolveremos al controlador
       pdfDoc.pipe(stream);
       pdfDoc.end();
 
-      // Aquí ya resolvemos: el controlador podrá hacer stream.pipe(res)
       resolve(stream);
     });
+  }
+
+  private async buildKpiChartsRow(
+    kpis: KpiResumen,
+  ): Promise<PdfContent | null> {
+    const charts: PdfContent[] = [];
+
+    // Facultades
+    if (
+      kpis.facultades_activas !== undefined ||
+      kpis.facultades_inactivas !== undefined
+    ) {
+      const buffer = await this.kpiCharts.buildEstadoDonut({
+        title: 'Facultades',
+        activos: kpis.facultades_activas ?? 0,
+        inactivos: kpis.facultades_inactivas ?? 0,
+      });
+
+      if (buffer) {
+        const chartImage: PdfContent = {
+          // pdfmake acepta Buffer en runtime, pero los tipos esperan string
+          image: buffer as unknown as string,
+          width: 160,
+          margin: [0, 0, 10, 0],
+        };
+        charts.push(chartImage);
+      }
+    }
+
+    // Bloques
+    if (
+      kpis.bloques_activos !== undefined ||
+      kpis.bloques_inactivos !== undefined
+    ) {
+      const buffer = await this.kpiCharts.buildEstadoDonut({
+        title: 'Bloques',
+        activos: kpis.bloques_activos ?? 0,
+        inactivos: kpis.bloques_inactivos ?? 0,
+      });
+
+      if (buffer) {
+        const chartImage: PdfContent = {
+          image: buffer as unknown as string,
+          width: 160,
+          margin: [0, 0, 10, 0],
+        };
+        charts.push(chartImage);
+      }
+    }
+
+    // Ambientes
+    if (
+      kpis.ambientes_activos !== undefined ||
+      kpis.ambientes_inactivos !== undefined
+    ) {
+      const buffer = await this.kpiCharts.buildEstadoDonut({
+        title: 'Ambientes',
+        activos: kpis.ambientes_activos ?? 0,
+        inactivos: kpis.ambientes_inactivos ?? 0,
+      });
+
+      if (buffer) {
+        const chartImage: PdfContent = {
+          image: buffer as unknown as string,
+          width: 160,
+          margin: [0, 0, 10, 0],
+        };
+        charts.push(chartImage);
+      }
+    }
+
+    if (!charts.length) {
+      return null;
+    }
+
+    return {
+      margin: [0, 4, 0, 8],
+      columns: charts,
+    };
   }
 }
