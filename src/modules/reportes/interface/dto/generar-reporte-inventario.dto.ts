@@ -1,5 +1,6 @@
 /* eslint-disable indent */
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export enum ReporteScope {
   CAMPUS = 'campus',
@@ -16,9 +17,11 @@ export class GenerarReporteInventarioDto {
   @IsEnum(ReporteScope)
   scope: ReporteScope;
 
-  @IsString()
-  @IsNotEmpty()
-  scopeId: string;
+  // IDs en BD son integer → lo tratamos como number
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  scopeId: number;
 
   @IsEnum(ReporteFormato)
   formato: ReporteFormato;
