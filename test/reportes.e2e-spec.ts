@@ -1,12 +1,11 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import {
   ReporteFormato,
   ReporteScope,
 } from '../src/modules/reportes/interface/dto/generar-reporte-inventario.dto';
-import { PassThrough } from 'stream';
 
 describe('ReportesController (e2e)', () => {
   let app: INestApplication;
@@ -31,8 +30,8 @@ describe('ReportesController (e2e)', () => {
     await app.close();
   });
 
-  it('/reportes/inventario-ambientes (GET) debería devolver 200 y headers para xlsx', async () => {
-    // Nota: sin implementación real, esto fallará hasta que el controller/servicio respondan con stream.
+  it('/reportes/inventario-ambientes (GET) deberia devolver 200 y headers para xlsx', async () => {
+    // Nota: este test depende de que exista el scopeId en la base; si no hay datos seed, ajusta o mockea.
     const res = await request(app.getHttpServer())
       .get('/reportes/inventario-ambientes')
       .query({
@@ -51,7 +50,7 @@ describe('ReportesController (e2e)', () => {
     expect(res.body).toBeDefined();
   });
 
-  it('/reportes/inventario-ambientes (GET) debería devolver 400 con formato inválido', async () => {
+  it('/reportes/inventario-ambientes (GET) deberia devolver 400 con formato invalido', async () => {
     await request(app.getHttpServer())
       .get('/reportes/inventario-ambientes')
       .query({

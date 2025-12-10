@@ -8,21 +8,14 @@ import {
 } from './dto/generar-reporte-inventario.dto';
 import { PassThrough } from 'stream';
 
-// Creamos un stub de Response de Express para verificar headers y piping del stream.
-const makeMockResponse = () => {
-  const res: Partial<Response> = {
-    set: jest.fn().mockReturnThis(),
-  };
-  // Simulamos un método para pipear el stream; capturamos el stream recibido.
-  const writable = new PassThrough();
-  (res as any).pipeTarget = writable;
-  res as any as Response;
-  (res as any).send = jest.fn();
-  (res as any).end = jest.fn();
-  (res as any).status = jest.fn().mockReturnThis();
-  (res as any).setHeader = jest.fn().mockReturnThis();
-  (res as any).attachment = jest.fn().mockReturnThis();
-  return res as Response;
+// Stub de Response que implementa writable stream para permitir pipe().
+const makeMockResponse = (): Response & PassThrough => {
+  const stream = new PassThrough() as Response & PassThrough;
+  stream.setHeader = jest.fn().mockReturnValue(stream);
+  (stream as any).status = jest.fn().mockReturnValue(stream);
+  (stream as any).send = jest.fn().mockReturnValue(stream);
+  (stream as any).end = jest.fn().mockReturnValue(stream);
+  return stream;
 };
 
 describe('ReportesController', () => {
