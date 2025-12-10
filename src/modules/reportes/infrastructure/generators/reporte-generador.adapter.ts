@@ -1,8 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment,
+                  @typescript-eslint/no-unsafe-call,
+                  @typescript-eslint/no-unsafe-member-access,
+                  @typescript-eslint/no-unsafe-argument */
 import { Injectable } from '@nestjs/common';
 import Excel from 'exceljs';
 import { PassThrough } from 'stream';
 import PdfPrinter from 'pdfmake';
-import vfsFonts from 'pdfmake/build/vfs_fonts';
+import * as path from 'path';
+import * as fs from 'fs';
 import type {
   Content,
   StyleDictionary,
@@ -12,7 +17,7 @@ import {
   ArchivoReporte,
   ReporteGeneradorPort,
 } from '../../domain/ports/reporte-generador.port';
-import {
+import type {
   AmbienteView,
   BloqueView,
   CampusView,
@@ -131,7 +136,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   private renderCampusSheet(sheet: Excel.Worksheet, campus: CampusView) {
     sheet.columns = [
       { header: 'Campo', key: 'campo', width: 25 },
-      { header: 'Valor', key: 'valor', width: 50 },
+      { header: 'Valor', key: 'valor', width: 60 },
     ];
     sheet.addRow({ campo: 'Nombre', valor: campus.nombre }).commit();
     sheet.addRow({ campo: 'Código', valor: campus.codigo }).commit();
@@ -144,7 +149,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   private renderFacultadSheet(sheet: Excel.Worksheet, fac: FacultadView) {
     sheet.columns = [
       { header: 'Campo', key: 'campo', width: 25 },
-      { header: 'Valor', key: 'valor', width: 50 },
+      { header: 'Valor', key: 'valor', width: 60 },
     ];
     sheet.addRow({ campo: 'Nombre', valor: fac.nombre }).commit();
     sheet.addRow({ campo: 'Código', valor: fac.codigo }).commit();
@@ -156,7 +161,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   private renderBloqueSheet(sheet: Excel.Worksheet, bloque: BloqueView) {
     sheet.columns = [
       { header: 'Campo', key: 'campo', width: 25 },
-      { header: 'Valor', key: 'valor', width: 50 },
+      { header: 'Valor', key: 'valor', width: 60 },
     ];
     sheet.addRow({ campo: 'Nombre', valor: bloque.nombre }).commit();
     sheet.addRow({ campo: 'Código', valor: bloque.codigo }).commit();
@@ -210,17 +215,22 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     sheet
       .addRow({
         campo: 'Código',
-        valor: 'Nombre / Piso / Tipo / Capacidad / Estado / #Activos',
+        valor:
+          'Nombre / Piso / Tipo / Capacidad T/Ex / Dimensiones / Clases / Estado / #Activos',
       })
       .commit();
+
     ambientes.forEach((a) => {
-      const valor = `${a.nombre} / ${a.piso} / ${a.tipo_ambiente} / ${a.capacidad.total}/${a.capacidad.examen} / ${a.estado} / ${a.activos_count}`;
+      const dimensiones = a.dimensiones ?? '';
+      const clasesLabel = a.clases ? 'Sí' : 'No';
+      const valor = `${a.nombre} / ${a.piso} / ${a.tipo_ambiente} / ${a.capacidad.total}/${a.capacidad.examen} / ${dimensiones} / ${clasesLabel} / ${a.estado} / ${a.activos_count}`;
       sheet.addRow({ campo: a.codigo, valor }).commit();
     });
   }
 
   private pushKpis(sheet: Excel.Worksheet, kpis: KpiResumen) {
     const rows: SheetRow[] = [];
+
     if (kpis.total_facultades !== undefined) {
       rows.push({
         indicador: 'Total facultades',
@@ -316,17 +326,19 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     const content: Content[] = [];
 
     if (view.campus) {
-      content.push(...this.sectionCampus(view.campus));
-      view.campus.facultades.forEach((fac, idx) => {
-        if (idx > 0) {
-          content.push({ text: '', pageBreak: 'before' });
-        }
-        content.push(...this.sectionFacultad(fac, false));
+      // Campus: primera página
+      content.push(...this.sectionCampus(view.campus, false));
+
+      // Cada facultad: siempre nueva página
+      view.campus.facultades.forEach((fac) => {
+        content.push(...this.sectionFacultad(fac, true));
       });
     } else if (view.facultad) {
-      content.push(...this.sectionFacultad(view.facultad, true));
+      // Si solo hay facultad (scope=facultad), va en la primera página
+      content.push(...this.sectionFacultad(view.facultad, false));
     } else if (view.bloque) {
-      content.push(...this.sectionBloque(view.bloque, true));
+      // Si solo hay bloque (scope=bloque), va en la primera página
+      content.push(...this.sectionBloque(view.bloque, false));
     }
 
     const styles: StyleDictionary = {
@@ -353,44 +365,70 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     };
   }
 
-  private sectionCampus(campus: CampusView): Content[] {
+  private sectionCampus(campus: CampusView, pageBreak = false): Content[] {
     const blocks: Content[] = [];
-    blocks.push({ text: `Campus: ${campus.nombre}`, style: 'header' });
+
+    blocks.push({
+      text: `Campus: ${campus.nombre}`,
+      style: 'header',
+      pageBreak: pageBreak ? 'before' : undefined,
+    });
+
     blocks.push(...this.kpiTable(campus.kpis));
+
     blocks.push(
       this.simpleTable(
         'Facultades',
-        campus.facultades.map<Content[]>((f) => [
+        campus.facultades.map<(string | number)[]>((f) => [
           f.codigo,
           f.nombre,
           f.estado,
           f.kpis.total_bloques ?? 0,
           f.kpis.total_ambientes ?? 0,
+          f.kpis.capacidad?.total ?? 0,
+          f.kpis.capacidad?.examen ?? 0,
+          f.kpis.activos_asociados ?? 0,
         ]),
-        ['Código', 'Nombre', 'Estado', '#Bloques', '#Ambientes'],
+        [
+          'Código',
+          'Nombre',
+          'Estado',
+          '#Bloques',
+          '#Ambientes',
+          'Cap. Total',
+          'Cap. Examen',
+          '#Activos',
+        ],
       ),
     );
+
     return blocks;
   }
 
   private sectionFacultad(fac: FacultadView, pageBreak: boolean): Content[] {
     const blocks: Content[] = [];
+
+    // Nodo facultad: nueva página según parámetro
     blocks.push({
       text: `Facultad: ${fac.nombre}`,
       style: 'header',
       pageBreak: pageBreak ? 'before' : undefined,
     });
+
     blocks.push(...this.kpiTable(fac.kpis));
+
+    // Tabla de bloques de esa facultad
     blocks.push(
       this.simpleTable(
         'Bloques',
-        fac.bloques.map<Content[]>((b) => [
+        fac.bloques.map<(string | number)[]>((b) => [
           b.codigo,
           b.nombre,
           b.tipo_bloque,
           b.estado,
           b.kpis.total_ambientes ?? 0,
           b.kpis.capacidad?.total ?? 0,
+          b.kpis.capacidad?.examen ?? 0,
           b.kpis.activos_asociados ?? 0,
         ]),
         [
@@ -400,52 +438,66 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
           'Estado',
           '#Ambientes',
           'Cap. Total',
+          'Cap. Examen',
           '#Activos',
         ],
       ),
     );
+
+    // Cada bloque: SIEMPRE en página nueva (nuevo nodo)
     fac.bloques.forEach((b) => {
-      blocks.push(...this.sectionBloque(b, false));
+      blocks.push(...this.sectionBloque(b, true));
     });
+
     return blocks;
   }
 
   private sectionBloque(bloque: BloqueView, pageBreak: boolean): Content[] {
     const blocks: Content[] = [];
+
     blocks.push({
       text: `Bloque: ${bloque.nombre}`,
       style: 'subheader',
       pageBreak: pageBreak ? 'before' : undefined,
     });
+
     blocks.push(...this.kpiTable(bloque.kpis, true));
+
     blocks.push(
       this.simpleTable(
         'Ambientes',
-        bloque.ambientes.map<Content[]>((a) => [
+        bloque.ambientes.map<(string | number)[]>((a) => [
           a.codigo,
           a.nombre,
           a.piso,
           a.tipo_ambiente,
           `${a.capacidad.total}/${a.capacidad.examen}`,
+          a.dimensiones ?? '',
+          a.clases ? 'Sí' : 'No',
           a.estado,
           a.activos_count,
         ]),
+
         [
           'Código',
           'Nombre',
           'Piso',
           'Tipo',
           'Capacidad T/Ex',
+          'Dimensiones',
+          'Clases',
           'Estado',
           '#Activos',
         ],
       ),
     );
+
     return blocks;
   }
 
   private kpiTable(kpis: KpiResumen, compact = false): Content[] {
     const data: (string | number)[][] = [];
+
     if (kpis.total_facultades !== undefined) {
       data.push(['Total facultades', kpis.total_facultades]);
       data.push(['Facultades activas', kpis.facultades_activas ?? 0]);
@@ -456,10 +508,16 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       data.push(['Bloques activos', kpis.bloques_activos ?? 0]);
       data.push(['Bloques inactivos', kpis.bloques_inactivos ?? 0]);
     }
+    if (kpis.total_tipos_bloque !== undefined) {
+      data.push(['Total tipos de bloque', kpis.total_tipos_bloque]);
+    }
     if (kpis.total_ambientes !== undefined) {
       data.push(['Total ambientes', kpis.total_ambientes]);
       data.push(['Ambientes activos', kpis.ambientes_activos ?? 0]);
       data.push(['Ambientes inactivos', kpis.ambientes_inactivos ?? 0]);
+    }
+    if (kpis.total_tipos_ambiente !== undefined) {
+      data.push(['Total tipos de ambiente', kpis.total_tipos_ambiente]);
     }
     if (kpis.capacidad) {
       data.push(['Capacidad total (asientos)', kpis.capacidad.total]);
@@ -468,10 +526,13 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     if (kpis.activos_asociados !== undefined) {
       data.push(['Activos asociados', kpis.activos_asociados]);
     }
+
     if (!data.length) {
       return [];
     }
+
     const widths = compact ? ['*', '*'] : ['auto', '*'];
+
     return [
       {
         table: {
@@ -508,26 +569,64 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   private async createPdfStream(
     docDefinition: TDocumentDefinitions,
   ): Promise<PassThrough> {
-    const fonts = (
-      vfsFonts as unknown as { pdfMake: { vfs: Record<string, string> } }
-    ).pdfMake.vfs;
+    const fontsPath =
+      process.env.PDF_FONTS_DIR ??
+      path.join(process.cwd(), 'src', 'assets', 'fonts');
+
+    console.log('[PDF] Usando fontsPath:', fontsPath);
+
+    const requiredFonts = [
+      'Roboto-Regular.ttf',
+      'Roboto-Medium.ttf',
+      'Roboto-Italic.ttf',
+      'Roboto-MediumItalic.ttf',
+    ];
+
+    for (const font of requiredFonts) {
+      const fullPath = path.join(fontsPath, font);
+      if (!fs.existsSync(fullPath)) {
+        console.error(
+          `Fuente de PDF no encontrada: ${fullPath}. Revisa la ruta o la variable PDF_FONTS_DIR.`,
+        );
+        throw new Error(
+          'No se encontraron las fuentes requeridas para generar el PDF',
+        );
+      }
+    }
+
     const printer = new PdfPrinter({
       Roboto: {
-        normal: Buffer.from(fonts['Roboto-Regular.ttf'], 'base64'),
-        bold: Buffer.from(fonts['Roboto-Medium.ttf'], 'base64'),
-        italics: Buffer.from(fonts['Roboto-Italic.ttf'], 'base64'),
-        bolditalics: Buffer.from(fonts['Roboto-MediumItalic.ttf'], 'base64'),
+        normal: path.join(fontsPath, 'Roboto-Regular.ttf'),
+        bold: path.join(fontsPath, 'Roboto-Medium.ttf'),
+        italics: path.join(fontsPath, 'Roboto-Italic.ttf'),
+        bolditalics: path.join(fontsPath, 'Roboto-MediumItalic.ttf'),
       },
     });
 
-    return await new Promise<PassThrough>((resolve, reject) => {
+    // IMPORTANTE: resolvemos el stream inmediatamente,
+    // no esperamos al evento "finish"
+    return await new Promise<PassThrough>((resolve) => {
       const pdfDoc = printer.createPdfKitDocument(docDefinition);
       const stream = new PassThrough();
-      pdfDoc.on('error', reject);
-      stream.on('error', reject);
-      stream.on('finish', () => resolve(stream));
+
+      pdfDoc.on('error', (err) => {
+        console.error('[PDF] Error en pdfDoc:', err);
+        // Propagamos el error al stream; Express cortará la respuesta
+        const error =
+          err instanceof Error ? err : new Error(String(err ?? 'Error PDF'));
+        stream.destroy(error);
+      });
+
+      stream.on('error', (err) => {
+        console.error('[PDF] Error en stream:', err);
+      });
+
+      // Pipea la salida del PDF al stream que devolveremos al controlador
       pdfDoc.pipe(stream);
       pdfDoc.end();
+
+      // Aquí ya resolvemos: el controlador podrá hacer stream.pipe(res)
+      resolve(stream);
     });
   }
 }

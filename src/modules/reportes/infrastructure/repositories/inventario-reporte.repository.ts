@@ -1,7 +1,7 @@
 /* eslint-disable indent */
 import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import {
+import type {
   AmbienteView,
   BloqueView,
   CampusView,
@@ -9,7 +9,8 @@ import {
   InventarioReporteViewModel,
   KpiResumen,
 } from '../../domain/models/inventario.view-model';
-import { InventarioReporteRepository } from '../../domain/ports/inventario-reporte.repository';
+import type { InventarioReporteRepository } from '../../domain/ports/inventario-reporte.repository';
+import { ReporteScope } from '../../interface/dto/generar-reporte-inventario.dto';
 
 type CampusRow = {
   id: number;
@@ -37,13 +38,20 @@ type BloqueRow = {
   tipo_bloque: string;
 };
 
+type DimensionJson = {
+  largo?: number;
+  ancho?: number;
+  alto?: number;
+  unid_med?: string;
+};
+
 type AmbienteRow = {
   id: number;
   codigo: string;
   nombre: string;
   piso: number;
   capacidad: { total?: number; examen?: number } | null;
-  dimension?: Record<string, unknown> | null;
+  dimension?: DimensionJson | null;
   clases: boolean;
   activo: boolean;
   bloque_id: number;
@@ -63,7 +71,7 @@ export class InventarioReporteRepositoryAdapter
   constructor(@Inject(DataSource) private readonly dataSource: DataSource) {}
 
   async obtener_por_campus(
-    campus_id: string,
+    campus_id: number,
   ): Promise<InventarioReporteViewModel | null> {
     const campusHeader = await this.findCampusHeader(campus_id);
     if (!campusHeader) {
@@ -87,7 +95,7 @@ export class InventarioReporteRepositoryAdapter
         const ambientesBloque = ambientesByBloque[b.id] ?? [];
         const kpisBloque = this.buildAmbientesKpis(ambientesBloque);
         return {
-          id: String(b.id),
+          id: b.id,
           codigo: b.codigo,
           nombre: b.nombre,
           tipo_bloque: b.tipo_bloque,
@@ -100,7 +108,7 @@ export class InventarioReporteRepositoryAdapter
 
       const kpisFac = this.buildBloquesKpis(bloquesView);
       return {
-        id: String(f.id),
+        id: f.id,
         codigo: f.codigo,
         nombre: f.nombre,
         estado: f.activo ? 'activo' : 'inactivo',
@@ -112,7 +120,7 @@ export class InventarioReporteRepositoryAdapter
     const kpisCampus = this.buildFacultadesKpis(facultadesView);
 
     const campusView: CampusView = {
-      id: String(campusHeader.id),
+      id: campusHeader.id,
       codigo: campusHeader.codigo,
       nombre: campusHeader.nombre,
       direccion: campusHeader.direccion,
@@ -121,11 +129,11 @@ export class InventarioReporteRepositoryAdapter
       facultades: facultadesView,
     };
 
-    return { scope: 'campus', campus: campusView };
+    return { scope: ReporteScope.CAMPUS, campus: campusView };
   }
 
   async obtener_por_facultad(
-    facultad_id: string,
+    facultad_id: number,
   ): Promise<InventarioReporteViewModel | null> {
     const facultadHeader = await this.findFacultadHeader(facultad_id);
     if (!facultadHeader) {
@@ -142,7 +150,7 @@ export class InventarioReporteRepositoryAdapter
       const ambientesBloque = ambientesByBloque[b.id] ?? [];
       const kpisBloque = this.buildAmbientesKpis(ambientesBloque);
       return {
-        id: String(b.id),
+        id: b.id,
         codigo: b.codigo,
         nombre: b.nombre,
         tipo_bloque: b.tipo_bloque,
@@ -156,7 +164,7 @@ export class InventarioReporteRepositoryAdapter
     const kpisFac = this.buildBloquesKpis(bloquesView);
 
     const facultadView: FacultadView = {
-      id: String(facultadHeader.id),
+      id: facultadHeader.id,
       codigo: facultadHeader.codigo,
       nombre: facultadHeader.nombre,
       estado: facultadHeader.activo ? 'activo' : 'inactivo',
@@ -164,11 +172,11 @@ export class InventarioReporteRepositoryAdapter
       bloques: bloquesView,
     };
 
-    return { scope: 'facultad', facultad: facultadView };
+    return { scope: ReporteScope.FACULTAD, facultad: facultadView };
   }
 
   async obtener_por_bloque(
-    bloque_id: string,
+    bloque_id: number,
   ): Promise<InventarioReporteViewModel | null> {
     const bloqueHeader = await this.findBloqueHeader(bloque_id);
     if (!bloqueHeader) {
@@ -179,7 +187,7 @@ export class InventarioReporteRepositoryAdapter
     const kpisBloque = this.buildAmbientesKpis(ambientes);
 
     const bloqueView: BloqueView = {
-      id: String(bloqueHeader.id),
+      id: bloqueHeader.id,
       codigo: bloqueHeader.codigo,
       nombre: bloqueHeader.nombre,
       tipo_bloque: bloqueHeader.tipo_bloque,
@@ -189,14 +197,14 @@ export class InventarioReporteRepositoryAdapter
       ambientes: ambientes.map((a) => this.mapAmbiente(a)),
     };
 
-    return { scope: 'bloque', bloque: bloqueView };
+    return { scope: ReporteScope.BLOQUE, bloque: bloqueView };
   }
 
   // -------------------------
   // Helpers de consulta
   // -------------------------
   private async findCampusHeader(
-    campus_id: string,
+    campus_id: number,
   ): Promise<CampusRow | undefined> {
     const result: unknown[] = await this.dataSource.query(
       `
@@ -212,7 +220,7 @@ export class InventarioReporteRepositoryAdapter
   }
 
   private async findFacultadHeader(
-    facultad_id: string,
+    facultad_id: number,
   ): Promise<FacultadRow | undefined> {
     const result: unknown[] = await this.dataSource.query(
       `
@@ -228,7 +236,7 @@ export class InventarioReporteRepositoryAdapter
   }
 
   private async findBloqueHeader(
-    bloque_id: string,
+    bloque_id: number,
   ): Promise<BloqueRow | undefined> {
     const result: unknown[] = await this.dataSource.query(
       `
@@ -325,18 +333,31 @@ export class InventarioReporteRepositoryAdapter
   // -------------------------
   private mapAmbiente(a: AmbienteRow): AmbienteView {
     const capacidad = a.capacidad || { total: 0, examen: 0 };
+
+    // dimension viene como jsonb: { largo, ancho, alto, unid_med }
+    let dimensiones: string | undefined;
+    if (a.dimension) {
+      const { largo, ancho, alto, unid_med } = a.dimension;
+      const hasAny =
+        (largo ?? 0) !== 0 || (ancho ?? 0) !== 0 || (alto ?? 0) !== 0;
+      if (hasAny) {
+        const base = `${largo ?? 0}x${ancho ?? 0}x${alto ?? 0}`;
+        dimensiones = unid_med ? `${base} ${unid_med}` : base;
+      }
+    }
+
     return {
-      id: String(a.id),
+      id: a.id,
       codigo: a.codigo,
       nombre: a.nombre,
-      piso: String(a.piso),
+      piso: a.piso,
       tipo_ambiente: a.tipo_ambiente,
       capacidad: {
         total: capacidad.total ?? 0,
         examen: capacidad.examen ?? 0,
       },
-      dimensiones: a.dimension ? JSON.stringify(a.dimension) : undefined,
-      clases: a.clases ? 'true' : 'false',
+      dimensiones,
+      clases: a.clases,
       estado: a.activo ? 'activo' : 'inactivo',
       activos_count: Number(a.activos_count ?? 0),
     };

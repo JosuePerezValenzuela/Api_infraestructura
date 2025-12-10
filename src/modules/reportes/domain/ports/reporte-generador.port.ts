@@ -1,5 +1,5 @@
-import { Readable } from 'stream';
-import { InventarioReporteViewModel } from '../models/inventario.view-model';
+import type { Readable } from 'stream';
+import type { InventarioReporteViewModel } from '../models/inventario.view-model';
 
 export interface ArchivoReporte {
   stream: Readable;

@@ -24,20 +24,21 @@ export interface KpiResumen {
 }
 
 export interface AmbienteView {
-  id: string;
+  id: number; // antes string
   codigo: string;
   nombre: string;
-  piso: string;
+  piso: number; // antes string, en BD es smallint
   tipo_ambiente: string;
   capacidad: CapacidadResumen;
-  dimensiones?: string;
-  clases?: string;
+  // aquí puedes decidir si quieres algo estructurado o solo texto
+  dimensiones?: string; // p.ej. "10 x 8 x 3 m"
+  clases?: boolean; // en BD es boolean; si prefieres texto "Sí/No", déjalo como string
   estado: EstadoEntidad;
   activos_count: number;
 }
 
 export interface BloqueView {
-  id: string;
+  id: number; // antes string
   codigo: string;
   nombre: string;
   tipo_bloque: string;
@@ -48,7 +49,7 @@ export interface BloqueView {
 }
 
 export interface FacultadView {
-  id: string;
+  id: number; // antes string
   codigo: string;
   nombre: string;
   estado: EstadoEntidad;
@@ -57,7 +58,7 @@ export interface FacultadView {
 }
 
 export interface CampusView {
-  id: string;
+  id: number; // antes string
   codigo: string;
   nombre: string;
   direccion: string;
