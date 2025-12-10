@@ -1,3 +1,6 @@
+ignoredBuiltDependencies:
+  - canvas
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@scarf/scarf'
