@@ -3,7 +3,7 @@ import Excel from 'exceljs';
 import { PassThrough } from 'stream';
 import PdfPrinter from 'pdfmake';
 import * as path from 'path';
-import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+import type { TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import type { ReporteAmbienteGeneradorPort } from '../../domain/ports/ambiente-reporte-generador.port';
 import type { AmbienteDetalleViewModel } from '../../domain/ports/ambiente-reporte.repository';
 import type { ArchivoReporte } from '../../domain/ports/reporte-generador.port';
@@ -11,6 +11,11 @@ import type { ArchivoReporte } from '../../domain/ports/reporte-generador.port';
 const MIME_XLSX =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const MIME_PDF = 'application/pdf';
+
+// Paleta simple para darle un aspecto más cuidado al PDF.
+const PRIMARY = '#003049';
+const LIGHT_BG = '#f4f6fb';
+const ACCENT = '#d1e7ff';
 
 @Injectable()
 export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGeneradorPort {
@@ -71,10 +76,12 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
         subject: 'Detalle de ambiente con horarios y activos',
       },
       pageMargins: [40, 60, 40, 40],
+      defaultStyle: { fontSize: 10, color: '#1f2933' },
       content: [
         {
           text: `Reporte del ambiente: ${view.ambiente.nombre} (${view.ambiente.codigo})`,
           style: 'title',
+          margin: [0, 0, 0, 6],
         },
         {
           text: `Generado: ${generatedAt.toISOString()}`,
@@ -89,11 +96,17 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
         activosTable,
       ],
       styles: {
-        title: { fontSize: 16, bold: true, color: '#003049' },
-        h2: { fontSize: 12, bold: true, color: '#003049' },
+        title: { fontSize: 16, bold: true, color: PRIMARY },
+        h2: { fontSize: 12, bold: true, color: PRIMARY },
         caption: { fontSize: 9, color: '#555' },
-        tableHeader: { bold: true, fillColor: '#f0f4f8' },
+        tableHeader: { bold: true, fillColor: LIGHT_BG },
         cellCentered: { alignment: 'center' },
+        chip: {
+          color: '#0f5132',
+          fillColor: '#d1e7dd',
+          bold: true,
+          alignment: 'center',
+        },
       },
     };
   }
@@ -146,10 +159,6 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
       ],
       ['Piso', view.ambiente.piso],
       ['Clases', view.ambiente.clases ? 'Si' : 'No'],
-      [
-        'Horario base',
-        `${view.ambiente.hora_apertura ?? '-'} - ${view.ambiente.hora_cierre ?? '-'}`,
-      ],
       ['Periodo (min)', view.ambiente.periodo ?? '-'],
     ];
 
@@ -169,26 +178,29 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
   private buildPdfAvailabilityTable(
     matriz: AmbienteDetalleViewModel['disponibilidadMatriz'],
   ) {
-    const header = [
-      { text: 'Horas', style: 'tableHeader' },
-      { text: 'Lunes', style: 'tableHeader' },
-      { text: 'Martes', style: 'tableHeader' },
-      { text: 'Miercoles', style: 'tableHeader' },
-      { text: 'Jueves', style: 'tableHeader' },
-      { text: 'Viernes', style: 'tableHeader' },
-      { text: 'Sabado', style: 'tableHeader' },
-      { text: 'Domingo', style: 'tableHeader' },
+    const header: TableCell[] = [
+      { text: 'Horas', style: 'tableHeader', alignment: 'center' },
+      { text: 'Lunes', style: 'tableHeader', alignment: 'center' },
+      { text: 'Martes', style: 'tableHeader', alignment: 'center' },
+      { text: 'Miercoles', style: 'tableHeader', alignment: 'center' },
+      { text: 'Jueves', style: 'tableHeader', alignment: 'center' },
+      { text: 'Viernes', style: 'tableHeader', alignment: 'center' },
+      { text: 'Sabado', style: 'tableHeader', alignment: 'center' },
+      { text: 'Domingo', style: 'tableHeader', alignment: 'center' },
     ];
 
-    const body = matriz.map((fila) => [
-      { text: fila.hora, style: 'cellCentered' },
-      { text: fila.lunes ? 'X' : '', style: 'cellCentered' },
-      { text: fila.martes ? 'X' : '', style: 'cellCentered' },
-      { text: fila.miercoles ? 'X' : '', style: 'cellCentered' },
-      { text: fila.jueves ? 'X' : '', style: 'cellCentered' },
-      { text: fila.viernes ? 'X' : '', style: 'cellCentered' },
-      { text: fila.sabado ? 'X' : '', style: 'cellCentered' },
-      { text: fila.domingo ? 'X' : '', style: 'cellCentered' },
+    const body: TableCell[][] = matriz.map((fila) => [
+      { text: fila.hora, style: 'cellCentered' } as TableCell,
+      { text: ' ', fillColor: fila.lunes ? ACCENT : undefined } as TableCell,
+      { text: ' ', fillColor: fila.martes ? ACCENT : undefined } as TableCell,
+      {
+        text: ' ',
+        fillColor: fila.miercoles ? ACCENT : undefined,
+      } as TableCell,
+      { text: ' ', fillColor: fila.jueves ? ACCENT : undefined } as TableCell,
+      { text: ' ', fillColor: fila.viernes ? ACCENT : undefined } as TableCell,
+      { text: ' ', fillColor: fila.sabado ? ACCENT : undefined } as TableCell,
+      { text: ' ', fillColor: fila.domingo ? ACCENT : undefined } as TableCell,
     ]);
 
     return {
@@ -196,7 +208,14 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
         widths: [50, 50, 50, 60, 50, 50, 50, 60],
         body: [header, ...body],
       },
-      layout: 'lightHorizontalLines',
+      layout: {
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0.5,
+        hLineColor: () => '#d7dde5',
+        vLineColor: () => '#d7dde5',
+        paddingTop: () => 4,
+        paddingBottom: () => 4,
+      },
     };
   }
 
