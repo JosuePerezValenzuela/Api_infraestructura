@@ -2,10 +2,15 @@ import { Test } from '@nestjs/testing';
 import { Response } from 'express';
 import { ReportesController } from './reportes.controller';
 import { GenerarReporteInventarioService } from '../application/generar-reporte-inventario.service';
+import { GenerarReporteAmbienteService } from '../application/generar-reporte-ambiente.service';
 import {
   ReporteFormato,
   ReporteScope,
 } from './dto/generar-reporte-inventario.dto';
+import {
+  GenerarReporteAmbienteDto,
+  ReporteAmbienteFormato,
+} from './dto/generar-reporte-ambiente.dto';
 import { PassThrough } from 'stream';
 
 // Stub de Response que implementa writable stream para permitir pipe().
@@ -21,9 +26,13 @@ const makeMockResponse = (): Response & PassThrough => {
 describe('ReportesController', () => {
   let controller: ReportesController;
   let service: jest.Mocked<GenerarReporteInventarioService>;
+  let ambienteService: jest.Mocked<GenerarReporteAmbienteService>;
 
   beforeEach(async () => {
     const serviceMock: jest.Mocked<GenerarReporteInventarioService> = {
+      ejecutar: jest.fn(),
+    } as any;
+    const ambienteServiceMock: jest.Mocked<GenerarReporteAmbienteService> = {
       ejecutar: jest.fn(),
     } as any;
 
@@ -31,11 +40,16 @@ describe('ReportesController', () => {
       controllers: [ReportesController],
       providers: [
         { provide: GenerarReporteInventarioService, useValue: serviceMock },
+        {
+          provide: GenerarReporteAmbienteService,
+          useValue: ambienteServiceMock,
+        },
       ],
     }).compile();
 
     controller = moduleRef.get(ReportesController);
     service = moduleRef.get(GenerarReporteInventarioService);
+    ambienteService = moduleRef.get(GenerarReporteAmbienteService);
   });
 
   it('debe delegar al service y configurar headers para descarga XLSX', async () => {
@@ -53,7 +67,7 @@ describe('ReportesController', () => {
     await controller.generarReporte(
       {
         scope: ReporteScope.CAMPUS,
-        scopeId: 'campus-1',
+        scopeId: 1,
         formato: ReporteFormato.XLSX,
       },
       res,
@@ -61,7 +75,7 @@ describe('ReportesController', () => {
 
     expect(service.ejecutar).toHaveBeenCalledWith({
       scope: ReporteScope.CAMPUS,
-      scopeId: 'campus-1',
+      scopeId: 1,
       formato: ReporteFormato.XLSX,
     });
     expect(res.setHeader).toHaveBeenCalledWith(
@@ -87,7 +101,7 @@ describe('ReportesController', () => {
     await controller.generarReporte(
       {
         scope: ReporteScope.FACULTAD,
-        scopeId: 'fac-1',
+        scopeId: 1,
         formato: ReporteFormato.PDF,
       },
       res,
@@ -95,7 +109,7 @@ describe('ReportesController', () => {
 
     expect(service.ejecutar).toHaveBeenCalledWith({
       scope: ReporteScope.FACULTAD,
-      scopeId: 'fac-1',
+      scopeId: 1,
       formato: ReporteFormato.PDF,
     });
     expect(res.setHeader).toHaveBeenCalledWith(
@@ -105,6 +119,38 @@ describe('ReportesController', () => {
     expect(res.setHeader).toHaveBeenCalledWith(
       'Content-Disposition',
       'attachment; filename="inventario_facultad_20241209.pdf"',
+    );
+  });
+
+  it('debe delegar al service de ambiente y configurar headers para descarga PDF', async () => {
+    const fileStream = new PassThrough();
+    fileStream.end('pdf-ambiente');
+    ambienteService.ejecutar.mockResolvedValue({
+      stream: fileStream,
+      filename: 'ambiente-FCyT-001.pdf',
+      mime_type: 'application/pdf',
+    });
+    const res = makeMockResponse();
+
+    await controller.generarReporteAmbiente(
+      {
+        codigo: 'FCyT-001',
+        formato: ReporteAmbienteFormato.PDF,
+      } as GenerarReporteAmbienteDto,
+      res,
+    );
+
+    expect(ambienteService.ejecutar).toHaveBeenCalledWith({
+      codigo: 'FCyT-001',
+      formato: ReporteAmbienteFormato.PDF,
+    });
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'application/pdf',
+    );
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      'attachment; filename="ambiente-FCyT-001.pdf"',
     );
   });
 });
