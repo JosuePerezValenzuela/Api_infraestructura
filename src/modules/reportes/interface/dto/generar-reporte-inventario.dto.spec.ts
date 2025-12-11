@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import {
@@ -11,7 +12,7 @@ describe('GenerarReporteInventarioDto', () => {
     // Creamos un objeto plano con datos correctos para todos los campos requeridos.
     const payload = {
       scope: ReporteScope.CAMPUS,
-      scopeId: 'uuid-cualquiera',
+      scopeId: 1,
       formato: ReporteFormato.XLSX,
       locale: 'es-BO',
     };
