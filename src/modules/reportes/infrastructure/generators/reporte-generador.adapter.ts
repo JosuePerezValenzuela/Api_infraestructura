@@ -373,7 +373,9 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       content,
       styles,
       // Usamos Helvetica como fuente por defecto (no depende de archivos externos)
-      defaultStyle: { font: 'Helvetica' },
+      defaultStyle: { font: 'Helvetica', fontSize: 10 },
+      // Márgenes de página (izq, arriba, der, abajo)
+      pageMargins: [40, 60, 40, 40],
     };
   }
 
@@ -419,6 +421,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
           'Cap. Examen',
           '#Activos',
         ],
+        ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
       ),
     );
 
@@ -467,6 +470,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
           'Cap. Examen',
           '#Activos',
         ],
+        ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
       ),
     );
 
@@ -522,6 +526,8 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
           'Estado',
           '#Activos',
         ],
+        // Anchos algo más estrechos (suman ~450pt)
+        [45, 105, 20, 45, 55, 70, 30, 40, 40],
       ),
     );
 
@@ -625,23 +631,26 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     _title: string,
     rows: (string | number)[][],
     headers: string[],
+    widths?: Array<string | number>,
   ): PdfContent {
     return {
       margin: [0, 6, 0, 6],
       table: {
         headerRows: 1,
-        widths: Array(headers.length).fill('auto'),
+        widths: widths ?? Array(headers.length).fill('auto'),
         body: [
           headers.map<TableCell>((h) => ({
             text: h,
             color: 'white',
             bold: true,
             alignment: 'center',
+            fontSize: 9, // <-- encabezado un poco más chico
           })),
           ...rows.map<TableCell[]>((r) =>
-            r.map<TableCell>((cell) => ({
+            r.map<TableCell>((cell, idx) => ({
               text: String(cell ?? ''),
-              alignment: 'center',
+              alignment: idx === 1 || idx === 5 ? 'left' : 'center', // Nombre/Dimensiones a la izquierda
+              fontSize: 9, // <-- cuerpo más chico
             })),
           ),
         ],
@@ -651,6 +660,8 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
           rowIndex === 0 ? PRIMARY : rowIndex % 2 === 0 ? LIGHT_BG : null,
         hLineColor: () => '#cccccc',
         vLineColor: () => '#cccccc',
+        paddingLeft: () => 2, // <-- menos padding horizontal
+        paddingRight: () => 2, // <-- menos padding horizontal
       },
     };
   }
