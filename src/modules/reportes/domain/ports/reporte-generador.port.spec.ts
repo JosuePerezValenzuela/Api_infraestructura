@@ -16,7 +16,7 @@ describe('ReporteGeneradorPort (contrato)', () => {
     const viewModel: InventarioReporteViewModel = {
       scope: 'campus',
       campus: {
-        id: 'campus-1',
+        id: 1,
         codigo: 'C1',
         nombre: 'Campus 1',
         direccion: 'Dir 1',
