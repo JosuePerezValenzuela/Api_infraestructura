@@ -8,7 +8,11 @@ import { PassThrough } from 'stream';
 import PdfPrinter from 'pdfmake';
 import * as path from 'path';
 import * as fs from 'fs';
-import type { StyleDictionary, TDocumentDefinitions } from 'pdfmake/interfaces';
+import type {
+  StyleDictionary,
+  TableCell,
+  TDocumentDefinitions,
+} from 'pdfmake/interfaces';
 import {
   ArchivoReporte,
   ReporteGeneradorPort,
@@ -36,6 +40,7 @@ type SheetRow = Record<string, string | number | undefined>;
 
 const PRIMARY = '#003049';
 const LIGHT_BG = '#f7f9fb';
+const ACCENT = '#669bbc';
 
 @Injectable()
 export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
@@ -527,54 +532,99 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     return blocks;
   }
 
-  private kpiTable(kpis: KpiResumen, compact = false): PdfContent[] {
-    const data: (string | number)[][] = [];
+  private kpiTable(kpis: KpiResumen, _compact = false): PdfContent[] {
+    const cards: { label: string; value: number }[] = [];
 
-    if (kpis.total_facultades !== undefined) {
-      data.push(['Total facultades', kpis.total_facultades]);
-      data.push(['Facultades activas', kpis.facultades_activas ?? 0]);
-      data.push(['Facultades inactivas', kpis.facultades_inactivas ?? 0]);
-    }
-    if (kpis.total_bloques !== undefined) {
-      data.push(['Total bloques', kpis.total_bloques]);
-      data.push(['Bloques activos', kpis.bloques_activos ?? 0]);
-      data.push(['Bloques inactivos', kpis.bloques_inactivos ?? 0]);
-    }
-    if (kpis.total_tipos_bloque !== undefined) {
-      data.push(['Total tipos de bloque', kpis.total_tipos_bloque]);
-    }
-    if (kpis.total_ambientes !== undefined) {
-      data.push(['Total ambientes', kpis.total_ambientes]);
-      data.push(['Ambientes activos', kpis.ambientes_activos ?? 0]);
-      data.push(['Ambientes inactivos', kpis.ambientes_inactivos ?? 0]);
-    }
-    if (kpis.total_tipos_ambiente !== undefined) {
-      data.push(['Total tipos de ambiente', kpis.total_tipos_ambiente]);
-    }
+    const push = (label: string, value?: number) => {
+      if (value === undefined) return;
+      cards.push({ label, value });
+    };
+
+    // Solo agregamos las métricas que apliquen al nodo actual (se omiten si vienen indefinidas).
+    push('Total facultades', kpis.total_facultades);
+    push('Facultades activas', kpis.facultades_activas);
+    push('Facultades inactivas', kpis.facultades_inactivas);
+
+    push('Total bloques', kpis.total_bloques);
+    push('Bloques activos', kpis.bloques_activos);
+    push('Bloques inactivos', kpis.bloques_inactivos);
+    push('Total tipos de bloque', kpis.total_tipos_bloque);
+
+    push('Total ambientes', kpis.total_ambientes);
+    push('Ambientes activos', kpis.ambientes_activos);
+    push('Ambientes inactivos', kpis.ambientes_inactivos);
+    push('Total tipos de ambiente', kpis.total_tipos_ambiente);
+
     if (kpis.capacidad) {
-      data.push(['Capacidad total (asientos)', kpis.capacidad.total]);
-      data.push(['Capacidad examen (asientos)', kpis.capacidad.examen]);
+      push('Capacidad total', kpis.capacidad.total);
+      push('Capacidad examen', kpis.capacidad.examen);
     }
-    if (kpis.activos_asociados !== undefined) {
-      data.push(['Activos asociados', kpis.activos_asociados]);
-    }
+    push('Activos asociados', kpis.activos_asociados);
 
-    if (!data.length) {
+    if (!cards.length) {
       return [];
     }
 
-    const widths = compact ? ['*', '*'] : ['auto', '*'];
+    // Layout: filas predefinidas por orden solicitado.
+    const makeCard = (label: string, value?: number) => {
+      if (value === undefined) return null;
+      return {
+        margin: [0, 4, 8, 4],
+        stack: [
+          { text: label, fontSize: 9, color: '#4b5563', alignment: 'center' },
+          {
+            text: String(value),
+            fontSize: 14,
+            bold: true,
+            color: PRIMARY,
+            alignment: 'center',
+            margin: [0, 4, 0, 0],
+          },
+        ],
+        fillColor: LIGHT_BG,
+        border: [true, true, true, true],
+        borderColor: [ACCENT, ACCENT, ACCENT, ACCENT],
+        borderWidth: 0.5,
+      };
+    };
 
-    return [
-      {
-        table: {
-          widths,
-          body: [['Indicador', 'Valor'], ...data],
-        },
-        layout: 'lightHorizontalLines',
-        style: 'kpiLabel',
-      },
-    ];
+    const rows: PdfContent[] = [];
+    const pushRow = (items: (ReturnType<typeof makeCard> | null)[]) => {
+      const cols = items.filter((c): c is NonNullable<typeof c> => !!c);
+      if (!cols.length) return;
+      rows.push({
+        columns: cols as unknown as PdfContent[],
+        columnGap: 8,
+        margin: [0, 4, 0, 4],
+      } as PdfContent);
+    };
+
+    pushRow([
+      makeCard('Total facultades', kpis.total_facultades),
+      makeCard('Facultades activas', kpis.facultades_activas),
+      makeCard('Facultades inactivas', kpis.facultades_inactivas),
+    ]);
+    pushRow([
+      makeCard('Total bloques', kpis.total_bloques),
+      makeCard('Bloques activos', kpis.bloques_activos),
+      makeCard('Bloques inactivos', kpis.bloques_inactivos),
+    ]);
+    pushRow([
+      makeCard('Total ambientes', kpis.total_ambientes),
+      makeCard('Ambientes activos', kpis.ambientes_activos),
+      makeCard('Ambientes inactivos', kpis.ambientes_inactivos),
+    ]);
+    pushRow([
+      makeCard('Total tipos de bloque', kpis.total_tipos_bloque),
+      makeCard('Total tipos de ambiente', kpis.total_tipos_ambiente),
+    ]);
+    pushRow([
+      makeCard('Capacidad total', kpis.capacidad?.total),
+      makeCard('Capacidad examen', kpis.capacidad?.examen),
+      makeCard('Activos asociados', kpis.activos_asociados),
+    ]);
+
+    return rows;
   }
 
   private simpleTable(
@@ -587,7 +637,20 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       table: {
         headerRows: 1,
         widths: Array(headers.length).fill('auto'),
-        body: [headers, ...rows],
+        body: [
+          headers.map<TableCell>((h) => ({
+            text: h,
+            color: 'white',
+            bold: true,
+            alignment: 'center',
+          })),
+          ...rows.map<TableCell[]>((r) =>
+            r.map<TableCell>((cell) => ({
+              text: String(cell ?? ''),
+              alignment: 'center',
+            })),
+          ),
+        ],
       },
       layout: {
         fillColor: (rowIndex: number) =>
