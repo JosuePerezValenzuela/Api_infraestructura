@@ -611,7 +611,7 @@ INSERT INTO infraestructura.ambientes (nombre, nombre_corto, codigo, piso, capac
   UPDATE infraestructura.ambientes
   SET hora_apertura = COALESCE(hora_apertura, '06:45'),
       hora_cierre   = COALESCE(hora_cierre, '21:45'),
-      periodo       = COALESCE(periodo, 15)
+      periodo       = COALESCE(periodo, 45)
   WHERE hora_apertura IS NULL
      OR hora_cierre IS NULL
      OR periodo IS NULL;
