@@ -6,8 +6,6 @@ import { Injectable } from '@nestjs/common';
 import Excel from 'exceljs';
 import { PassThrough } from 'stream';
 import PdfPrinter from 'pdfmake';
-import * as path from 'path';
-import * as fs from 'fs';
 import type {
   StyleDictionary,
   TableCell,
@@ -347,12 +345,9 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
         content.push(...this.sectionFacultad(fac, true, facCharts));
       }
     } else if (view.facultad) {
-      // Scope = facultad: primera página la facultad,
-      // y dentro de sectionFacultad ya se agregan sus bloques (cada uno en página nueva)
       const facCharts = await this.buildKpiChartsRow(view.facultad.kpis);
       content.push(...this.sectionFacultad(view.facultad, false, facCharts));
     } else if (view.bloque) {
-      // Scope = bloque: solo el bloque
       const bloqueCharts = await this.buildKpiChartsRow(view.bloque.kpis);
       content.push(...this.sectionBloque(view.bloque, false, bloqueCharts));
     }
@@ -376,8 +371,9 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
 
     return {
       content,
-      defaultStyle: { font: 'Roboto' },
       styles,
+      // Usamos Helvetica como fuente por defecto (no depende de archivos externos)
+      defaultStyle: { font: 'Helvetica' },
     };
   }
 
@@ -474,7 +470,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       ),
     );
 
-    // Cada bloque en página nueva (nodo)
+    // Cada bloque en página nueva
     fac.bloques.forEach((b) => {
       blocks.push(...this.sectionBloque(b, true));
     });
@@ -540,7 +536,6 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       cards.push({ label, value });
     };
 
-    // Solo agregamos las métricas que apliquen al nodo actual (se omiten si vienen indefinidas).
     push('Total facultades', kpis.total_facultades);
     push('Facultades activas', kpis.facultades_activas);
     push('Facultades inactivas', kpis.facultades_inactivas);
@@ -565,7 +560,6 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       return [];
     }
 
-    // Layout: filas predefinidas por orden solicitado.
     const makeCard = (label: string, value?: number) => {
       if (value === undefined) return null;
       return {
@@ -664,41 +658,16 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   private async createPdfStream(
     docDefinition: TDocumentDefinitions,
   ): Promise<PassThrough> {
-    const fontsPath =
-      process.env.PDF_FONTS_DIR ??
-      path.join(process.cwd(), 'src', 'assets', 'fonts');
-
-    console.log('[PDF] Usando fontsPath:', fontsPath);
-
-    const requiredFonts = [
-      'Roboto-Regular.ttf',
-      'Roboto-Medium.ttf',
-      'Roboto-Italic.ttf',
-      'Roboto-MediumItalic.ttf',
-    ];
-
-    for (const font of requiredFonts) {
-      const fullPath = path.join(fontsPath, font);
-      if (!fs.existsSync(fullPath)) {
-        console.error(
-          `Fuente de PDF no encontrada: ${fullPath}. Revisa la ruta o la variable PDF_FONTS_DIR.`,
-        );
-        throw new Error(
-          'No se encontraron las fuentes requeridas para generar el PDF',
-        );
-      }
-    }
-
+    // Usamos solo fuentes estándar de PDF, sin archivos externos
     const printer = new PdfPrinter({
-      Roboto: {
-        normal: path.join(fontsPath, 'Roboto-Regular.ttf'),
-        bold: path.join(fontsPath, 'Roboto-Medium.ttf'),
-        italics: path.join(fontsPath, 'Roboto-Italic.ttf'),
-        bolditalics: path.join(fontsPath, 'Roboto-MediumItalic.ttf'),
+      Helvetica: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique',
       },
     });
 
-    // Resolvemos el stream inmediatamente; Express hará stream.pipe(res)
     return await new Promise<PassThrough>((resolve) => {
       const pdfDoc = printer.createPdfKitDocument(docDefinition);
       const stream = new PassThrough();

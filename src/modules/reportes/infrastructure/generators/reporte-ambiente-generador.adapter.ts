@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import Excel from 'exceljs';
 import { PassThrough } from 'stream';
 import PdfPrinter from 'pdfmake';
-import * as path from 'path';
 import type { TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import type { ReporteAmbienteGeneradorPort } from '../../domain/ports/ambiente-reporte-generador.port';
 import type { AmbienteDetalleViewModel } from '../../domain/ports/ambiente-reporte.repository';
@@ -26,7 +25,7 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
     // Definimos el documento PDF con encabezado, fichas y tablas.
     const docDefinition: TDocumentDefinitions =
       this.buildPdfDefinition(view_model);
-    // Creamos el stream PDF usando pdfmake con las fuentes Roboto incluidas en el proyecto.
+    // Creamos el stream PDF usando pdfmake (Helvetica, sin fuentes externas).
     const stream = await this.createPdfStream(docDefinition);
     // Construimos el nombre de archivo segun el codigo del ambiente y la fecha actual.
     const filename = this.buildFilename(view_model.ambiente.codigo, 'pdf');
@@ -76,7 +75,11 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
         subject: 'Detalle de ambiente con horarios y activos',
       },
       pageMargins: [40, 60, 40, 40],
-      defaultStyle: { fontSize: 10, color: '#1f2933' },
+      defaultStyle: {
+        font: 'Helvetica',
+        fontSize: 10,
+        color: '#1f2933',
+      },
       content: [
         {
           text: `Reporte del ambiente: ${view.ambiente.nombre} (${view.ambiente.codigo})`,
@@ -111,32 +114,38 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
     };
   }
 
-  // Crea el stream PDF a partir de la definicion usando las fuentes Roboto.
-  private createPdfStream(def: TDocumentDefinitions): Promise<PassThrough> {
-    return new Promise((resolve, reject) => {
-      // Definimos las rutas de las fuentes Roboto disponibles en src/assets/fonts.
-      const fontsPath = path.join(process.cwd(), 'src', 'assets', 'fonts');
-      const printer = new PdfPrinter({
-        Roboto: {
-          normal: path.join(fontsPath, 'Roboto-Regular.ttf'),
-          bold: path.join(fontsPath, 'Roboto-Medium.ttf'),
-          italics: path.join(fontsPath, 'Roboto-Italic.ttf'),
-          bolditalics: path.join(fontsPath, 'Roboto-MediumItalic.ttf'),
-        },
+  // Crea el stream PDF a partir de la definicion usando solo fuentes estándar (Helvetica).
+  private async createPdfStream(
+    def: TDocumentDefinitions,
+  ): Promise<PassThrough> {
+    const printer = new PdfPrinter({
+      Helvetica: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique',
+      },
+    });
+
+    return await new Promise<PassThrough>((resolve) => {
+      const pdfDoc = printer.createPdfKitDocument(def);
+      const stream = new PassThrough();
+
+      pdfDoc.on('error', (err) => {
+        console.error('[PDF Ambiente] Error en pdfDoc:', err);
+        const error =
+          err instanceof Error ? err : new Error(String(err ?? 'Error PDF'));
+        stream.destroy(error);
       });
 
-      // Creamos el documento PDF y acumulamos los fragmentos en memoria.
-      const pdfDoc = printer.createPdfKitDocument(def);
-      const chunks: Buffer[] = [];
-      pdfDoc.on('data', (chunk) => chunks.push(chunk as Buffer));
-      pdfDoc.on('end', () => {
-        // Cuando termina, empaquetamos los fragmentos en un stream legible.
-        const stream = new PassThrough();
-        stream.end(Buffer.concat(chunks));
-        resolve(stream);
+      stream.on('error', (err) => {
+        console.error('[PDF Ambiente] Error en stream:', err);
       });
-      pdfDoc.on('error', reject);
+
+      pdfDoc.pipe(stream);
       pdfDoc.end();
+
+      resolve(stream);
     });
   }
 
@@ -280,7 +289,9 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
       ['Clases', view.ambiente.clases ? 'Si' : 'No'],
       [
         'Horario base',
-        `${view.ambiente.hora_apertura ?? '-'} - ${view.ambiente.hora_cierre ?? '-'}`,
+        `${view.ambiente.hora_apertura ?? '-'} - ${
+          view.ambiente.hora_cierre ?? '-'
+        }`,
       ],
       ['Periodo (min)', view.ambiente.periodo ?? '-'],
     ];
