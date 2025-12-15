@@ -43,7 +43,10 @@ export class DashboardCampusController {
     name: 'includeInactive',
     required: false,
     description: 'Indica si se incluyen registros inactivos (true por defecto)',
+    type: Boolean,
+    enum: ['true', 'false'],
     example: true,
+    schema: { default: true },
   })
   @ApiOkResponse({
     description: 'Estructura placeholder del dashboard global',
@@ -105,7 +108,10 @@ export class DashboardCampusController {
     name: 'includeInactive',
     required: false,
     description: 'Indica si se incluyen registros inactivos (true por defecto)',
+    type: Boolean,
+    enum: ['true', 'false'],
     example: true,
+    schema: { default: true },
   })
   @ApiOkResponse({
     description: 'Estructura placeholder del dashboard de detalle',
