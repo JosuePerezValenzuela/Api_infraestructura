@@ -12,6 +12,7 @@ import { TipoAmbienteModule } from './modules/tipo-ambiente/tipo-ambiente.module
 import { AmbienteModule } from './modules/ambiente/ambiente.module';
 import { ActivoModule } from './modules/activo/activo.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
+import { DashboardCampusModule } from './modules/dashboard-campus/dashboard-campus.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
     AmbienteModule,
     ActivoModule,
     ReportesModule,
+    DashboardCampusModule,
   ],
   controllers: [AppController],
   providers: [AppService],
