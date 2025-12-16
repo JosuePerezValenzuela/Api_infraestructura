@@ -305,10 +305,6 @@ export class DashboardCampusController {
     if (rawIncludeInactive === undefined || rawIncludeInactive === null) {
       return true;
     }
-    // Si ya viene como booleano, lo devolvemos directo.
-    if (typeof rawIncludeInactive === 'boolean') {
-      return rawIncludeInactive;
-    }
     // Si viene como texto, lo normalizamos a minusculas para comparar valores conocidos.
     if (typeof rawIncludeInactive === 'string') {
       const normalized = rawIncludeInactive.toLowerCase();
