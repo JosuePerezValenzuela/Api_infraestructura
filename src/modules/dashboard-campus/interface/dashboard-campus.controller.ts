@@ -49,7 +49,7 @@ export class DashboardCampusController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Estructura placeholder del dashboard global',
+    description: 'Dashboard global con KPIs, charts y tabla resumen',
     schema: {
       example: {
         schemaVersion: 1,
@@ -59,9 +59,80 @@ export class DashboardCampusController {
         },
         layout: { mode: 'global' },
         data: {
-          kpis: {},
-          charts: {},
-          table: { rows: [] },
+          kpis: {
+            campus: { activos: 1, inactivos: 0 },
+            facultades: { activos: 3, inactivos: 0 },
+            bloques: { activos: 12, inactivos: 0 },
+            ambientes: { activos: 40, inactivos: 2 },
+            capacidad: { total: 1200, examen: 800 },
+            activos: { total: 435, asignados: 400, noAsignadosGlobal: 35 },
+          },
+          charts: {
+            rankingAmbientesPorCampus: [
+              {
+                campusId: 1,
+                campusNombre: 'Campus A',
+                ambientes: 40,
+                pctGlobal: 55.5,
+              },
+            ],
+            capacidadTotalPorCampus: [
+              {
+                campusId: 1,
+                campusNombre: 'Campus A',
+                capacidadTotal: 1200,
+                pctGlobal: 50,
+              },
+            ],
+            capacidadExamenPorCampus: [
+              {
+                campusId: 1,
+                campusNombre: 'Campus A',
+                capacidadExamen: 800,
+                pctGlobal: 45,
+              },
+            ],
+            activosPorCampus: [
+              {
+                campusId: 1,
+                campusNombre: 'Campus A',
+                asignados: 400,
+                noAsignados: 0,
+                pctGlobal: 92,
+              },
+              {
+                campusId: null,
+                campusNombre: 'Sin asignar',
+                asignados: 0,
+                noAsignados: 35,
+                pctGlobal: 8,
+              },
+            ],
+            ambientesActivosInactivosPorCampus: [
+              {
+                campusId: 1,
+                campusNombre: 'Campus A',
+                activos: 39,
+                inactivos: 1,
+              },
+            ],
+          },
+          table: {
+            campusResumen: [
+              {
+                campusId: 1,
+                campusNombre: 'Campus A',
+                facultades: 3,
+                bloques: 12,
+                tiposBloque: 4,
+                ambientes: 40,
+                tiposAmbiente: 6,
+                capacidadTotal: 1200,
+                capacidadExamen: 800,
+                activosAsignados: 400,
+              },
+            ],
+          },
         },
       },
     },
@@ -114,7 +185,8 @@ export class DashboardCampusController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Estructura placeholder del dashboard de detalle',
+    description:
+      'Dashboard detalle de un campus con KPIs, charts y tabla de facultades',
     schema: {
       example: {
         schemaVersion: 1,
@@ -122,11 +194,39 @@ export class DashboardCampusController {
           campusId: 10,
           includeInactive: true,
         },
-        layout: { mode: 'detail' },
+        layout: { mode: 'global' },
         data: {
-          kpis: {},
-          charts: {},
-          tables: { facultades: { rows: [] } },
+          campus: { id: 10, nombre: 'Campus A', activo: true },
+          kpis: {
+            facultades: { activos: 3, inactivos: 0 },
+            bloques: { activos: 12, inactivos: 0 },
+            ambientes: { activos: 40, inactivos: 2 },
+            capacidad: { total: 1200, examen: 800 },
+            activos: { asignados: 400, noAsignadosGlobal: 35 },
+          },
+          charts: {
+            tiposBloque: [
+              { tipoBloqueId: 1, tipoBloqueNombre: 'Academico', cantidad: 8 },
+            ],
+            tiposAmbiente: [
+              { tipoAmbienteId: 3, tipoAmbienteNombre: 'Aula', cantidad: 25 },
+            ],
+          },
+          tables: {
+            facultadesResumen: [
+              {
+                facultadId: 10,
+                facultadNombre: 'FCE',
+                bloques: 5,
+                tiposBloque: 2,
+                ambientes: 20,
+                tiposAmbiente: 4,
+                capacidadTotal: 600,
+                capacidadExamen: 420,
+                activosAsignados: 200,
+              },
+            ],
+          },
         },
       },
     },
