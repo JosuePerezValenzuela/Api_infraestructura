@@ -1,18 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   DashboardFacultadDetailFilters,
   DashboardFacultadDetailResult,
 } from '../domain/dashboard-facultad.types';
+import { DashboardFacultadRepositoryPort } from '../domain/dashboard-facultad.repository.port';
 
 @Injectable()
 export class GetFacultadDashboardDetailUseCase {
-  // Este metodo se definio para que el controlador pueda delegar la ejecucion del caso de uso detalle.
+  // Inyectamos el puerto de repositorio para consultar detalle sin acoplar el caso de uso a TypeORM.
+  constructor(
+    private readonly dashboardRepo: DashboardFacultadRepositoryPort,
+  ) {}
+
+  // Este metodo obtiene el dashboard detalle y valida existencia de la facultad solicitada.
   async execute(
     filters: DashboardFacultadDetailFilters,
   ): Promise<DashboardFacultadDetailResult> {
-    // En esta etapa inicial devolvemos un error porque aun no se implemento el repositorio real.
-    throw new Error(
-      `Not implemented yet. Received filters: ${JSON.stringify(filters)}`,
-    );
+    // Consultamos el repositorio; null significa que la facultad no existe o fue filtrada.
+    const detail = await this.dashboardRepo.getDetailDashboard(filters);
+    if (!detail) {
+      throw new NotFoundException({
+        error: 'NOT_FOUND',
+        message: 'Facultad no encontrada',
+      });
+    }
+    return detail;
   }
 }
