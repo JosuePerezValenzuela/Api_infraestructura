@@ -13,6 +13,7 @@ import { AmbienteModule } from './modules/ambiente/ambiente.module';
 import { ActivoModule } from './modules/activo/activo.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { DashboardCampusModule } from './modules/dashboard-campus/dashboard-campus.module';
+import { DashboardFacultadModule } from './modules/dashboard-facultad/dashboard-facultad.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { DashboardCampusModule } from './modules/dashboard-campus/dashboard-camp
     ActivoModule,
     ReportesModule,
     DashboardCampusModule,
+    DashboardFacultadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
