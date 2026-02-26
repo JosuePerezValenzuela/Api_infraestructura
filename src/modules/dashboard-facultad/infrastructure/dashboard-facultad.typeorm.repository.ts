@@ -46,6 +46,9 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         ? `AND f.id = ANY($${campusFilter ? 2 : 1})`
         : '';
     const activeFilter = includeInactive ? '' : 'AND f.activo = TRUE';
+    const activeHierarchyFilter = includeInactive
+      ? ''
+      : 'AND (b.id IS NULL OR b.activo = TRUE) AND (a.id IS NULL OR a.activo = TRUE)';
     const activeBlockAndFacultyFilter = includeInactive
       ? ''
       : 'AND b.activo = TRUE AND f.activo = TRUE';
@@ -88,6 +91,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       ${campusFilter}
       ${facultadFilter}
       ${activeFilter}
+      ${activeHierarchyFilter}
       GROUP BY f.id, f.nombre, f.nombre_corto, f.activo, c.id, c.nombre
       ORDER BY f.nombre ASC
     `,
@@ -817,6 +821,9 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
     const { facultadId, includeInactive, slotMinutes, dias } = filters;
     const diasFiltro = dias && dias.length > 0 ? dias : [0, 1, 2, 3, 4, 5, 6];
     const activeFilter = includeInactive ? '' : 'AND f.activo = TRUE';
+    const activeHierarchyFilter = includeInactive
+      ? ''
+      : 'AND (b.id IS NULL OR b.activo = TRUE) AND (a.id IS NULL OR a.activo = TRUE)';
     const activeBloqueFilter = includeInactive ? '' : 'AND b.activo = TRUE';
     const activeAmbienteFilter = includeInactive ? '' : 'AND a.activo = TRUE';
     const activeBloqueAmbienteFilter = includeInactive
@@ -881,6 +888,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id
       LEFT JOIN infraestructura.activos act ON act.ambiente_id = a.id
       WHERE f.id = $1
+      ${activeHierarchyFilter}
     `,
       [facultadId],
     );
