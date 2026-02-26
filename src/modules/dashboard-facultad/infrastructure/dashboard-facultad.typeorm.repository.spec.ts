@@ -52,12 +52,109 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
     ];
     // Simulamos activos no asignados globales.
     const unassignedRows = [{ no_asignados: 7 }];
+    const tiposBloqueRows = [
+      { tipo_bloque_id: 1, tipo_bloque_nombre: 'Academico', cantidad: 4 },
+    ];
+    const tiposAmbienteRows = [
+      { tipo_ambiente_id: 5, tipo_ambiente_nombre: 'Aula', cantidad: 10 },
+    ];
+    const capacidadPorBloqueRows = [
+      {
+        bloque_id: 101,
+        bloque_nombre: 'Bloque A',
+        capacidad_total: 250,
+        capacidad_examen: 150,
+      },
+    ];
+    const activosPorBloqueRows = [
+      { bloque_id: 101, bloque_nombre: 'Bloque A', activos_asignados: 60 },
+    ];
+    const ambientesEstadoRows = [
+      { bloque_id: 101, bloque_nombre: 'Bloque A', activos: 7, inactivos: 1 },
+    ];
+    const heatmapRows = [
+      {
+        dia: 1,
+        franja: '08:00-08:45',
+        slots_ocupados: 10,
+        slots_totales: 16,
+        pct_ocupacion: 62.5,
+      },
+    ];
+    const ocupacionPorBloqueRows = [
+      {
+        bloque_id: 101,
+        bloque_nombre: 'Bloque A',
+        slots_ocupados: 40,
+        slots_totales: 64,
+        pct_ocupacion: 62.5,
+      },
+    ];
+    const topSobrecargadosRows = [
+      {
+        ambiente_id: 500,
+        ambiente_nombre: 'Lab Redes',
+        pct_ocupacion: 95,
+        slots_ocupados: 19,
+        slots_totales: 20,
+      },
+    ];
+    const topSubutilizadosRows = [
+      {
+        ambiente_id: 501,
+        ambiente_nombre: 'Aula 3',
+        pct_ocupacion: 8,
+        slots_ocupados: 2,
+        slots_totales: 25,
+      },
+    ];
+    const resumenBloquesRows = [
+      {
+        bloque_id: 101,
+        bloque_nombre: 'Bloque A',
+        tipo_bloque_nombre: 'Academico',
+        pisos: 4,
+        activo: true,
+        ambientes: 9,
+        tipos_ambiente: 3,
+        capacidad_total: 250,
+        capacidad_examen: 150,
+        activos_asignados: 60,
+      },
+    ];
+    const ambientesUtilizacionRows = [
+      {
+        ambiente_id: 500,
+        ambiente_nombre: 'Lab Redes',
+        bloque_nombre: 'Bloque A',
+        slots_ocupados: 19,
+        slots_totales: 20,
+        pct_ocupacion: 95,
+      },
+    ];
 
     const dataSource = makeMockDataSource();
     // Query 1: agregados globales por facultad.
     (dataSource.query as jest.Mock).mockResolvedValueOnce(aggregatedRows);
     // Query 2: activos no asignados.
     (dataSource.query as jest.Mock).mockResolvedValueOnce(unassignedRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(tiposBloqueRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(tiposAmbienteRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(
+      capacidadPorBloqueRows,
+    );
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(activosPorBloqueRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(ambientesEstadoRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(heatmapRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(
+      ocupacionPorBloqueRows,
+    );
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(topSobrecargadosRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(topSubutilizadosRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(resumenBloquesRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce(
+      ambientesUtilizacionRows,
+    );
 
     const repo = new DashboardFacultadTypeormRepository(
       dataSource as unknown as DataSource,
@@ -86,23 +183,26 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
       asignados: 70,
       noAsignadosGlobal: 7,
     });
-    // Validamos que exista la estructura de charts y tables V2.
-    expect(result.data.charts).toMatchObject({
-      tiposBloque: expect.any(Array),
-      tiposAmbiente: expect.any(Array),
-      capacidadPorBloque: expect.any(Array),
-      activosPorBloque: expect.any(Array),
-      ambientesActivosInactivosPorBloque: expect.any(Array),
-      ocupacionHeatmapSemanal: expect.any(Array),
-      ocupacionPorBloque: expect.any(Array),
-      topAmbientesUtilizacion: {
-        sobrecargados: expect.any(Array),
-        subutilizados: expect.any(Array),
-      },
+    expect(result.data.charts.tiposBloque[0]).toEqual({
+      tipoBloqueId: 1,
+      tipoBloqueNombre: 'Academico',
+      cantidad: 4,
     });
-    expect(result.data.tables).toMatchObject({
-      resumenBloques: expect.any(Array),
-      ambientesUtilizacion: expect.any(Array),
+    expect(result.data.charts.ocupacionHeatmapSemanal[0]).toEqual({
+      dia: 1,
+      franja: '08:00-08:45',
+      slotsOcupados: 10,
+      slotsTotales: 16,
+      pctOcupacion: 62.5,
+    });
+    expect(result.data.tables.resumenBloques[0]).toMatchObject({
+      bloqueId: 101,
+      bloqueNombre: 'Bloque A',
+    });
+    expect(result.data.tables.ambientesUtilizacion[0]).toMatchObject({
+      ambienteId: 500,
+      ambienteNombre: 'Lab Redes',
+      pctOcupacion: 95,
     });
   });
 });
