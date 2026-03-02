@@ -442,6 +442,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
     const topSobrecargadosRows: Array<{
       ambiente_id: number;
       ambiente_nombre: string;
+      bloque_nombre: string;
       pct_ocupacion: number;
       slots_ocupados: number;
       slots_totales: number;
@@ -452,6 +453,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         SELECT
           a.id AS ambiente_id,
           a.nombre AS ambiente_nombre,
+          b.nombre AS bloque_nombre,
           a.hora_apertura,
           a.hora_cierre
         FROM infraestructura.ambientes a
@@ -476,6 +478,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         SELECT
           sa.ambiente_id,
           sa.ambiente_nombre,
+          sa.bloque_nombre,
           d.dia,
           gs AS slot_start,
           gs + make_interval(mins => $${slotMinutesParamIndex}) AS slot_end
@@ -502,6 +505,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       SELECT
         sm.ambiente_id,
         sm.ambiente_nombre,
+        sm.bloque_nombre,
         COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
         COUNT(*)::int AS slots_totales,
         CASE
@@ -509,7 +513,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
           ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
         END AS pct_ocupacion
       FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre
+      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
       ORDER BY pct_ocupacion DESC, slots_ocupados DESC
       LIMIT 5
     `,
@@ -520,6 +524,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
     const topSubutilizadosRows: Array<{
       ambiente_id: number;
       ambiente_nombre: string;
+      bloque_nombre: string;
       pct_ocupacion: number;
       slots_ocupados: number;
       slots_totales: number;
@@ -530,6 +535,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         SELECT
           a.id AS ambiente_id,
           a.nombre AS ambiente_nombre,
+          b.nombre AS bloque_nombre,
           a.hora_apertura,
           a.hora_cierre
         FROM infraestructura.ambientes a
@@ -554,6 +560,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         SELECT
           sa.ambiente_id,
           sa.ambiente_nombre,
+          sa.bloque_nombre,
           d.dia,
           gs AS slot_start,
           gs + make_interval(mins => $${slotMinutesParamIndex}) AS slot_end
@@ -580,6 +587,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       SELECT
         sm.ambiente_id,
         sm.ambiente_nombre,
+        sm.bloque_nombre,
         COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
         COUNT(*)::int AS slots_totales,
         CASE
@@ -587,7 +595,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
           ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
         END AS pct_ocupacion
       FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre
+      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
       ORDER BY pct_ocupacion ASC, slots_ocupados ASC
       LIMIT 5
     `,
@@ -598,6 +606,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
     const resumenBloquesRows: Array<{
       bloque_id: number;
       bloque_nombre: string;
+      facultad_nombre: string;
       tipo_bloque_nombre: string;
       pisos: number;
       activo: boolean;
@@ -612,6 +621,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       SELECT
         b.id AS bloque_id,
         b.nombre AS bloque_nombre,
+        f.nombre AS facultad_nombre,
         tb.nombre AS tipo_bloque_nombre,
         b.pisos,
         b.activo,
@@ -628,7 +638,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       WHERE 1=1
       ${campusFilter}
       ${facultadFilter}
-      GROUP BY b.id, b.nombre, tb.nombre, b.pisos, b.activo
+      GROUP BY b.id, b.nombre, f.nombre, tb.nombre, b.pisos, b.activo
       ORDER BY b.nombre ASC
     `,
         params,
@@ -775,6 +785,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
             sobrecargados: topSobrecargadosRows.map((row) => ({
               ambienteId: Number(row.ambiente_id),
               ambienteNombre: row.ambiente_nombre,
+              bloqueNombre: row.bloque_nombre,
               pctOcupacion: Number(row.pct_ocupacion ?? 0),
               slotsOcupados: Number(row.slots_ocupados ?? 0),
               slotsTotales: Number(row.slots_totales ?? 0),
@@ -782,6 +793,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
             subutilizados: topSubutilizadosRows.map((row) => ({
               ambienteId: Number(row.ambiente_id),
               ambienteNombre: row.ambiente_nombre,
+              bloqueNombre: row.bloque_nombre,
               pctOcupacion: Number(row.pct_ocupacion ?? 0),
               slotsOcupados: Number(row.slots_ocupados ?? 0),
               slotsTotales: Number(row.slots_totales ?? 0),
@@ -792,6 +804,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
           resumenBloques: resumenBloquesRows.map((row) => ({
             bloqueId: Number(row.bloque_id),
             bloqueNombre: row.bloque_nombre,
+            facultadNombre: row.facultad_nombre,
             tipoBloqueNombre: row.tipo_bloque_nombre,
             pisos: Number(row.pisos ?? 0),
             activo: Boolean(row.activo),
@@ -1158,6 +1171,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
     const topSobrecargadosRows: Array<{
       ambiente_id: number;
       ambiente_nombre: string;
+      bloque_nombre: string;
       pct_ocupacion: number;
       slots_ocupados: number;
       slots_totales: number;
@@ -1167,6 +1181,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         SELECT
           a.id AS ambiente_id,
           a.nombre AS ambiente_nombre,
+          b.nombre AS bloque_nombre,
           a.hora_apertura,
           a.hora_cierre
         FROM infraestructura.ambientes a
@@ -1184,6 +1199,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         SELECT
           sa.ambiente_id,
           sa.ambiente_nombre,
+          sa.bloque_nombre,
           d.dia,
           gs AS slot_start,
           gs + make_interval(mins => $${slotMinutesDetailParamIndex}) AS slot_end
@@ -1210,6 +1226,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       SELECT
         sm.ambiente_id,
         sm.ambiente_nombre,
+        sm.bloque_nombre,
         COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
         COUNT(*)::int AS slots_totales,
         CASE
@@ -1217,7 +1234,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
           ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
         END AS pct_ocupacion
       FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre
+      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
       ORDER BY pct_ocupacion DESC, slots_ocupados DESC
       LIMIT 5
     `,
@@ -1228,6 +1245,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
     const topSubutilizadosRows: Array<{
       ambiente_id: number;
       ambiente_nombre: string;
+      bloque_nombre: string;
       pct_ocupacion: number;
       slots_ocupados: number;
       slots_totales: number;
@@ -1237,6 +1255,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         SELECT
           a.id AS ambiente_id,
           a.nombre AS ambiente_nombre,
+          b.nombre AS bloque_nombre,
           a.hora_apertura,
           a.hora_cierre
         FROM infraestructura.ambientes a
@@ -1254,6 +1273,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         SELECT
           sa.ambiente_id,
           sa.ambiente_nombre,
+          sa.bloque_nombre,
           d.dia,
           gs AS slot_start,
           gs + make_interval(mins => $${slotMinutesDetailParamIndex}) AS slot_end
@@ -1280,6 +1300,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       SELECT
         sm.ambiente_id,
         sm.ambiente_nombre,
+        sm.bloque_nombre,
         COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
         COUNT(*)::int AS slots_totales,
         CASE
@@ -1287,7 +1308,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
           ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
         END AS pct_ocupacion
       FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre
+      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
       ORDER BY pct_ocupacion ASC, slots_ocupados ASC
       LIMIT 5
     `,
@@ -1298,6 +1319,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
     const resumenBloquesRows: Array<{
       bloque_id: number;
       bloque_nombre: string;
+      facultad_nombre: string;
       tipo_bloque_nombre: string;
       pisos: number;
       activo: boolean;
@@ -1311,6 +1333,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       SELECT
         b.id AS bloque_id,
         b.nombre AS bloque_nombre,
+        f.nombre AS facultad_nombre,
         tb.nombre AS tipo_bloque_nombre,
         b.pisos,
         b.activo,
@@ -1320,11 +1343,12 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         COALESCE(SUM((a.capacidad->>'examen')::int), 0) AS capacidad_examen,
         COUNT(act.id) FILTER (WHERE act.id IS NOT NULL) AS activos_asignados
       FROM infraestructura.bloques b
+      INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
       INNER JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
       LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id
       LEFT JOIN infraestructura.activos act ON act.ambiente_id = a.id
       WHERE b.facultad_id = $1
-      GROUP BY b.id, b.nombre, tb.nombre, b.pisos, b.activo
+      GROUP BY b.id, b.nombre, f.nombre, tb.nombre, b.pisos, b.activo
       ORDER BY b.nombre ASC
     `,
       [facultadId],
@@ -1497,6 +1521,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
             sobrecargados: topSobrecargadosRows.map((row) => ({
               ambienteId: Number(row.ambiente_id),
               ambienteNombre: row.ambiente_nombre,
+              bloqueNombre: row.bloque_nombre,
               pctOcupacion: Number(row.pct_ocupacion ?? 0),
               slotsOcupados: Number(row.slots_ocupados ?? 0),
               slotsTotales: Number(row.slots_totales ?? 0),
@@ -1504,6 +1529,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
             subutilizados: topSubutilizadosRows.map((row) => ({
               ambienteId: Number(row.ambiente_id),
               ambienteNombre: row.ambiente_nombre,
+              bloqueNombre: row.bloque_nombre,
               pctOcupacion: Number(row.pct_ocupacion ?? 0),
               slotsOcupados: Number(row.slots_ocupados ?? 0),
               slotsTotales: Number(row.slots_totales ?? 0),
@@ -1514,6 +1540,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
           resumenBloques: resumenBloquesRows.map((row) => ({
             bloqueId: Number(row.bloque_id),
             bloqueNombre: row.bloque_nombre,
+            facultadNombre: row.facultad_nombre,
             tipoBloqueNombre: row.tipo_bloque_nombre,
             pisos: Number(row.pisos ?? 0),
             activo: Boolean(row.activo),

@@ -75,6 +75,7 @@ export type DashboardFacultadOcupacionPorBloqueChart = {
 export type DashboardFacultadUtilizacionAmbienteItem = {
   ambienteId: number;
   ambienteNombre: string;
+  bloqueNombre: string;
   pctOcupacion: number;
   slotsOcupados: number;
   slotsTotales: number;
@@ -88,6 +89,7 @@ export type DashboardFacultadTopAmbientesUtilizacionChart = {
 export type DashboardFacultadResumenBloquesRow = {
   bloqueId: number;
   bloqueNombre: string;
+  facultadNombre: string;
   tipoBloqueNombre: string;
   pisos: number;
   activo: boolean;

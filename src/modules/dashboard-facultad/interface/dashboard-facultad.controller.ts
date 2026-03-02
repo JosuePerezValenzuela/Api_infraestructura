@@ -66,6 +66,126 @@ export class DashboardFacultadController {
   })
   @ApiOkResponse({
     description: 'Dashboard global de facultades con KPIs, charts y tablas',
+    schema: {
+      example: {
+        schemaVersion: 2,
+        filtersApplied: {
+          campusIds: [1],
+          facultadIds: [10, 11],
+          includeInactive: true,
+          slotMinutes: 45,
+          dias: [1, 2, 3, 4, 5],
+        },
+        layout: { mode: 'global' },
+        data: {
+          kpis: {
+            facultades: { activos: 1, inactivos: 1 },
+            bloques: { activos: 3, inactivos: 2 },
+            ambientes: { activos: 7, inactivos: 5 },
+            capacidad: { total: 420, examen: 260 },
+            activos: { asignados: 70, noAsignadosGlobal: 7 },
+          },
+          charts: {
+            tiposBloque: [
+              { tipoBloqueId: 1, tipoBloqueNombre: 'Academico', cantidad: 4 },
+            ],
+            tiposAmbiente: [
+              { tipoAmbienteId: 5, tipoAmbienteNombre: 'Aula', cantidad: 10 },
+            ],
+            capacidadPorBloque: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                capacidadTotal: 250,
+                capacidadExamen: 150,
+              },
+            ],
+            activosPorBloque: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                activosAsignados: 60,
+              },
+            ],
+            ambientesActivosInactivosPorBloque: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                activos: 7,
+                inactivos: 1,
+              },
+            ],
+            ocupacionHeatmapSemanal: [
+              {
+                dia: 1,
+                franja: '08:00-08:45',
+                slotsOcupados: 10,
+                slotsTotales: 16,
+                pctOcupacion: 62.5,
+              },
+            ],
+            ocupacionPorBloque: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                slotsOcupados: 40,
+                slotsTotales: 64,
+                pctOcupacion: 62.5,
+              },
+            ],
+            topAmbientesUtilizacion: {
+              sobrecargados: [
+                {
+                  ambienteId: 500,
+                  ambienteNombre: 'Lab Redes',
+                  bloqueNombre: 'Bloque A',
+                  pctOcupacion: 95,
+                  slotsOcupados: 19,
+                  slotsTotales: 20,
+                },
+              ],
+              subutilizados: [
+                {
+                  ambienteId: 501,
+                  ambienteNombre: 'Aula 3',
+                  bloqueNombre: 'Bloque A',
+                  pctOcupacion: 8,
+                  slotsOcupados: 2,
+                  slotsTotales: 25,
+                },
+              ],
+            },
+          },
+          tables: {
+            resumenBloques: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                facultadNombre: 'Facultad de Ingenieria',
+                tipoBloqueNombre: 'Academico',
+                pisos: 4,
+                activo: true,
+                ambientes: 9,
+                tiposAmbiente: 3,
+                capacidadTotal: 250,
+                capacidadExamen: 150,
+                activosAsignados: 60,
+              },
+            ],
+            ambientesUtilizacion: [
+              {
+                ambienteId: 500,
+                ambienteNombre: 'Lab Redes',
+                bloqueNombre: 'Bloque A',
+                slotsOcupados: 19,
+                slotsTotales: 20,
+                pctOcupacion: 95,
+              },
+            ],
+          },
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({
     description: 'Datos invalidos',
@@ -117,6 +237,133 @@ export class DashboardFacultadController {
   })
   @ApiOkResponse({
     description: 'Dashboard detalle de una facultad con KPIs, charts y tablas',
+    schema: {
+      example: {
+        schemaVersion: 2,
+        filtersApplied: {
+          facultadId: 22,
+          includeInactive: true,
+          slotMinutes: 45,
+          dias: [1, 2, 3, 4, 5],
+        },
+        layout: { mode: 'detail' },
+        data: {
+          facultad: {
+            id: 22,
+            nombre: 'Facultad de Ingenieria',
+            nombreCorto: 'FI',
+            activo: true,
+            campusId: 1,
+            campusNombre: 'Campus Central',
+          },
+          kpis: {
+            facultades: { activos: 1, inactivos: 0 },
+            bloques: { activos: 3, inactivos: 1 },
+            ambientes: { activos: 16, inactivos: 4 },
+            capacidad: { total: 800, examen: 520 },
+            activos: { asignados: 120, noAsignadosGlobal: 11 },
+          },
+          charts: {
+            tiposBloque: [
+              { tipoBloqueId: 1, tipoBloqueNombre: 'Academico', cantidad: 3 },
+            ],
+            tiposAmbiente: [
+              { tipoAmbienteId: 5, tipoAmbienteNombre: 'Aula', cantidad: 14 },
+            ],
+            capacidadPorBloque: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                capacidadTotal: 300,
+                capacidadExamen: 180,
+              },
+            ],
+            activosPorBloque: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                activosAsignados: 60,
+              },
+            ],
+            ambientesActivosInactivosPorBloque: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                activos: 8,
+                inactivos: 1,
+              },
+            ],
+            ocupacionHeatmapSemanal: [
+              {
+                dia: 1,
+                franja: '08:00-08:45',
+                slotsOcupados: 10,
+                slotsTotales: 16,
+                pctOcupacion: 62.5,
+              },
+            ],
+            ocupacionPorBloque: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                slotsOcupados: 40,
+                slotsTotales: 64,
+                pctOcupacion: 62.5,
+              },
+            ],
+            topAmbientesUtilizacion: {
+              sobrecargados: [
+                {
+                  ambienteId: 500,
+                  ambienteNombre: 'Lab Redes',
+                  bloqueNombre: 'Bloque A',
+                  pctOcupacion: 95,
+                  slotsOcupados: 19,
+                  slotsTotales: 20,
+                },
+              ],
+              subutilizados: [
+                {
+                  ambienteId: 501,
+                  ambienteNombre: 'Aula 3',
+                  bloqueNombre: 'Bloque A',
+                  pctOcupacion: 8,
+                  slotsOcupados: 2,
+                  slotsTotales: 25,
+                },
+              ],
+            },
+          },
+          tables: {
+            resumenBloques: [
+              {
+                bloqueId: 101,
+                bloqueNombre: 'Bloque A',
+                facultadNombre: 'Facultad de Ingenieria',
+                tipoBloqueNombre: 'Academico',
+                pisos: 4,
+                activo: true,
+                ambientes: 9,
+                tiposAmbiente: 3,
+                capacidadTotal: 300,
+                capacidadExamen: 180,
+                activosAsignados: 60,
+              },
+            ],
+            ambientesUtilizacion: [
+              {
+                ambienteId: 500,
+                ambienteNombre: 'Lab Redes',
+                bloqueNombre: 'Bloque A',
+                slotsOcupados: 19,
+                slotsTotales: 20,
+                pctOcupacion: 95,
+              },
+            ],
+          },
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({
     description: 'Datos invalidos',
