@@ -14,6 +14,7 @@ import { ActivoModule } from './modules/activo/activo.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { DashboardCampusModule } from './modules/dashboard-campus/dashboard-campus.module';
 import { DashboardFacultadModule } from './modules/dashboard-facultad/dashboard-facultad.module';
+import { DashboardBloqueModule } from './modules/dashboard-bloque/dashboard-bloque.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { DashboardFacultadModule } from './modules/dashboard-facultad/dashboard-
     ReportesModule,
     DashboardCampusModule,
     DashboardFacultadModule,
+    DashboardBloqueModule,
   ],
   controllers: [AppController],
   providers: [AppService],
