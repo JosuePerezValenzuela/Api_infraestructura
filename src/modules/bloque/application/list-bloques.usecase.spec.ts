@@ -101,9 +101,9 @@ describe('ListBloquesUseCase', () => {
     );
   });
 
-  it('lanza BadRequestException cuando el limite supera 50', async () => {
+  it('lanza BadRequestException cuando el limite supera 1000', async () => {
     const { useCase } = buildSystem();
-    await expect(useCase.execute({ limit: 60 })).rejects.toBeInstanceOf(
+    await expect(useCase.execute({ limit: 1001 })).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });

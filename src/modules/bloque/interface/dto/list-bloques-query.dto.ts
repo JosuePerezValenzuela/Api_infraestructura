@@ -49,15 +49,15 @@ export class ListBloquesQueryDto {
   @Min(1, { message: 'La pagina debe ser un numero mayor o igual a 1' })
   page?: number;
 
-  @ApiPropertyOptional({ example: 6, minimum: 1, maximum: 50 })
+  @ApiPropertyOptional({ example: 6, minimum: 1, maximum: 1000 })
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'El limite debe ser un numero' })
   @Min(1, {
-    message: 'El limite debe ser un numero entre 1 y 50 registros por pagina',
+    message: 'El limite debe ser un numero entre 1 y 1000 registros por pagina',
   })
-  @Max(50, {
-    message: 'El limite debe ser un numero entre 1 y 50 registros por pagina',
+  @Max(1000, {
+    message: 'El limite debe ser un numero entre 1 y 1000 registros por pagina',
   })
   limit?: number;
 

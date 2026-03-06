@@ -33,10 +33,10 @@ describe('ListBloquesQueryDto', () => {
     expect(errors).toContain('La pagina debe ser un numero mayor o igual a 1');
   });
 
-  it('limita el parametro limit a un rango entre 1 y 50', async () => {
-    const errors = await validateInput({ limit: 51 });
+  it('limita el parametro limit a un rango entre 1 y 1000', async () => {
+    const errors = await validateInput({ limit: 1001 });
     expect(errors).toContain(
-      'El limite debe ser un numero entre 1 y 50 registros por pagina',
+      'El limite debe ser un numero entre 1 y 1000 registros por pagina',
     );
   });
 

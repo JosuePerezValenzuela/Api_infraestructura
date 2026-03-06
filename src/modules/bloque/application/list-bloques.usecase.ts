@@ -64,10 +64,10 @@ export class ListBloquesUseCase {
       );
     }
 
-    if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
       validationError(
         'limit',
-        'El limite debe ser un numero entre 1 y 50 registros por pagina',
+        'El limite debe ser un numero entre 1 y 1000 registros por pagina',
       );
     }
 

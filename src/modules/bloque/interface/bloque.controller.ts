@@ -86,7 +86,7 @@ export class BloqueController {
           {
             field: 'limit',
             message:
-              'El limite debe ser un numero entre 1 y 50 registros por pagina',
+              'El limite debe ser un numero entre 1 y 1000 registros por pagina',
           },
         ],
       },
