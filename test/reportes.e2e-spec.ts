@@ -35,7 +35,7 @@ describe('ReportesController (e2e)', () => {
     const res = await request(app.getHttpServer())
       .get('/reportes/inventario-ambientes')
       .query({
-        scope: ReporteScope.CAMPUS,
+        scope: ReporteScope.FACULTAD,
         scopeId: '1',
         formato: ReporteFormato.XLSX,
       })
