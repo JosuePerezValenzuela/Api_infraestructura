@@ -54,7 +54,7 @@ export class ReplaceHorariosUseCase {
 
     const periodo = this.validatePeriodo(input.periodo);
     const validatedHorarios = input.horarios.map((h) =>
-      this.validateHorario(h),
+      this.validateHorario(h, periodo),
     );
 
     await this.dataSource.query(
@@ -94,7 +94,10 @@ export class ReplaceHorariosUseCase {
     return value;
   }
 
-  private validateHorario(horario: HorarioInput): HorarioInput {
+  private validateHorario(
+    horario: HorarioInput,
+    periodo: number,
+  ): HorarioInput {
     if (!Number.isInteger(horario.dia) || horario.dia < 0 || horario.dia > 6) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
@@ -147,12 +150,34 @@ export class ReplaceHorariosUseCase {
       });
     }
 
+    if (!this.isMultipleOfPeriod(horario.apertura, periodo)) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'apertura',
+            message: `apertura debe ser múltiplo del periodo (${periodo} min)`,
+          },
+        ],
+      });
+    }
+
     return horario;
   }
 
   private isValidTime(value: string): boolean {
     const regex = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
     return typeof value === 'string' && regex.test(value);
+  }
+
+  private isMultipleOfPeriod(time: string, periodo: number): boolean {
+    const toMinutes = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const minutes = toMinutes(time);
+    return minutes % periodo === 0;
   }
 
   private isStartBeforeEnd(hora_inicio: string, hora_fin: string): boolean {
