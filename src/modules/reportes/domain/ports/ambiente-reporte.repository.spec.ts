@@ -5,11 +5,8 @@ import {
 
 describe('AmbienteReporteRepository (contract)', () => {
   class FakeRepo extends AmbienteReporteRepository {
-    // Implementacion fake solo para este contrato.
-    async obtenerPorCodigo(
-      codigo: string,
-    ): Promise<AmbienteDetalleViewModel | null> {
-      if (codigo !== 'FCyT-001') return null;
+    async obtenerPorId(id: number): Promise<AmbienteDetalleViewModel | null> {
+      if (id !== 1) return null;
       return {
         ambiente: {
           id: 1,
@@ -21,9 +18,6 @@ describe('AmbienteReporteRepository (contract)', () => {
           activo: true,
           capacidad: { total: 40, examen: 30 },
           dimension: { largo: 5, ancho: 6, alto: 3, unid_med: 'metros' },
-          hora_apertura: '06:45',
-          hora_cierre: '21:45',
-          periodo: 15,
           creado_en: '2024-01-01T00:00:00Z',
           actualizado_en: '2024-01-02T00:00:00Z',
         },
@@ -50,21 +44,19 @@ describe('AmbienteReporteRepository (contract)', () => {
 
   it('retorna null cuando el ambiente no existe', async () => {
     const repo = new FakeRepo();
-    const result = await repo.obtenerPorCodigo('NO-EXISTE');
+    const result = await repo.obtenerPorId(999);
     expect(result).toBeNull();
   });
 
   it('retorna un view-model con las secciones necesarias', async () => {
     const repo = new FakeRepo();
-    const result = await repo.obtenerPorCodigo('FCyT-001');
+    const result = await repo.obtenerPorId(1);
     expect(result).not.toBeNull();
-    // Validamos que las secciones principales esten presentes.
     expect(result?.ambiente.codigo).toBe('FCyT-001');
     expect(result?.bloque.tipo_bloque.nombre).toBe('Aulas');
     expect(result?.facultad.nombre).toBe('Facultad X');
     expect(result?.campus.nombre).toBe('Campus Central');
     expect(result?.tipo_ambiente.nombre).toBe('Aula');
-    // Validamos que existan horarios y activos
     expect(result?.horarios.length).toBeGreaterThan(0);
     expect(result?.activos.length).toBeGreaterThan(0);
   });

@@ -39,7 +39,5 @@ export interface AmbienteDetalleViewModel {
 }
 
 export abstract class AmbienteReporteRepository {
-  abstract obtenerPorCodigo(
-    codigo: string,
-  ): Promise<AmbienteDetalleViewModel | null>;
+  abstract obtenerPorId(id: number): Promise<AmbienteDetalleViewModel | null>;
 }

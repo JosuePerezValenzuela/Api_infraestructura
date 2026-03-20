@@ -46,8 +46,7 @@ describe('AmbienteReporteRepositoryAdapter', () => {
     const dataSource = { query: jest.fn().mockResolvedValueOnce([]) };
     const repo = new AmbienteReporteRepositoryAdapter(dataSource as any);
 
-    const result = await repo.obtenerPorCodigo('NO-EXISTE');
-
+    const result = await repo.obtenerPorId(999);
     expect(result).toBeNull();
     expect(dataSource.query).toHaveBeenCalledTimes(1);
   });
@@ -56,18 +55,18 @@ describe('AmbienteReporteRepositoryAdapter', () => {
     const dataSource = {
       query: jest
         .fn()
-        .mockResolvedValueOnce([makeHeaderRow()]) // header
-        .mockResolvedValueOnce(horariosRows) // horarios
-        .mockResolvedValueOnce(activosRows), // activos
+        .mockResolvedValueOnce([makeHeaderRow()])
+        .mockResolvedValueOnce(horariosRows)
+        .mockResolvedValueOnce(activosRows),
     };
     const repo = new AmbienteReporteRepositoryAdapter(dataSource as any);
 
-    const result = await repo.obtenerPorCodigo('FCyT-001');
+    const result = await repo.obtenerPorId(1);
 
     expect(dataSource.query).toHaveBeenNthCalledWith(
       1,
       expect.stringContaining('FROM infraestructura.ambientes'),
-      ['FCyT-001'],
+      [1],
     );
     expect(dataSource.query).toHaveBeenNthCalledWith(
       2,

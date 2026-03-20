@@ -22,11 +22,10 @@ export class GenerarReporteAmbienteService {
 
   // Metodo principal que orquesta el flujo: obtiene datos, arma matriz y delega al generador.
   async ejecutar(params: {
-    codigo: string;
+    id: number;
     formato: ReporteAmbienteFormato;
   }): Promise<ArchivoReporte> {
-    // Obtenemos el detalle del ambiente por su codigo; si no existe devolvera null.
-    const viewModel = await this.repo.obtenerPorCodigo(params.codigo); // llamamos al puerto del repositorio con el codigo recibido
+    const viewModel = await this.repo.obtenerPorId(params.id);
 
     // Si no hay datos, devolvemos un 404 coherente con el contrato global de errores.
     if (!viewModel) {

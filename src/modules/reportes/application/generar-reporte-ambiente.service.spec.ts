@@ -54,16 +54,14 @@ describe('GenerarReporteAmbienteService', () => {
   let generador: jest.Mocked<ReporteAmbienteGeneradorPort>;
 
   beforeEach(async () => {
-    // Preparamos mocks del repositorio y generador para controlar sus respuestas.
     const repoMock: jest.Mocked<AmbienteReporteRepository> = {
-      obtenerPorCodigo: jest.fn(),
+      obtenerPorId: jest.fn(),
     };
     const generadorMock: jest.Mocked<ReporteAmbienteGeneradorPort> = {
       generar_pdf: jest.fn(),
       generar_excel: jest.fn(),
     };
 
-    // Construimos un módulo de pruebas de Nest para inyectar los mocks en el servicio.
     const moduleRef = await Test.createTestingModule({
       providers: [
         GenerarReporteAmbienteService,
@@ -72,41 +70,36 @@ describe('GenerarReporteAmbienteService', () => {
       ],
     }).compile();
 
-    // Resolvemos instancias del servicio y los mocks desde el módulo de pruebas.
-    service = moduleRef.get(GenerarReporteAmbienteService);
+    service = moduleRef.get<GenerarReporteAmbienteService>(
+      GenerarReporteAmbienteService,
+    );
     repo = moduleRef.get('AmbienteReporteRepository');
     generador = moduleRef.get('ReporteAmbienteGeneradorPort');
   });
 
   it('genera PDF y calcula la matriz de disponibilidad', async () => {
-    // Configuramos el repo para devolver un view-model con horarios de lunes y martes.
-    repo.obtenerPorCodigo.mockResolvedValue(makeViewModel());
-    // Configuramos el generador para simular un archivo PDF de salida.
+    repo.obtenerPorId.mockResolvedValue(makeViewModel());
     generador.generar_pdf.mockResolvedValue({
       stream: makeStream(),
       filename: 'reporte.pdf',
       mime_type: 'application/pdf',
     });
 
-    // Ejecutamos el caso de uso con formato PDF y un codigo valido.
     await service.ejecutar({
-      codigo: 'FCyT-001',
+      id: 1,
       formato: ReporteAmbienteFormato.PDF,
     });
 
-    // Verificamos que se consulto el repositorio con el codigo correcto.
-    expect(repo.obtenerPorCodigo).toHaveBeenCalledWith('FCyT-001');
-    // Verificamos que el generador PDF fue invocado una vez.
+    expect(repo.obtenerPorId).toHaveBeenCalledWith(1);
     expect(generador.generar_pdf).toHaveBeenCalledTimes(1);
-    // Inspeccionamos el view-model con el que se llamo al generador para confirmar la matriz.
     const vm = generador.generar_pdf.mock.calls[0][0];
-    expect(vm.disponibilidadMatriz).toHaveLength(3); // 08:00, 08:45, 09:30 con periodo 45
+    expect(vm.disponibilidadMatriz).toHaveLength(3);
     expect(vm.disponibilidadMatriz[0].lunes).toBe(true);
     expect(vm.disponibilidadMatriz[1].martes).toBe(true);
   });
 
   it('genera Excel cuando se solicita formato excel', async () => {
-    repo.obtenerPorCodigo.mockResolvedValue(makeViewModel());
+    repo.obtenerPorId.mockResolvedValue(makeViewModel());
     generador.generar_excel.mockResolvedValue({
       stream: makeStream(),
       filename: 'reporte.xlsx',
@@ -115,7 +108,7 @@ describe('GenerarReporteAmbienteService', () => {
     });
 
     await service.ejecutar({
-      codigo: 'FCyT-001',
+      id: 1,
       formato: ReporteAmbienteFormato.EXCEL,
     });
 
@@ -123,13 +116,11 @@ describe('GenerarReporteAmbienteService', () => {
   });
 
   it('lanza NotFoundException si el ambiente no existe', async () => {
-    // El repo simula que no encontro el ambiente solicitado.
-    repo.obtenerPorCodigo.mockResolvedValue(null);
+    repo.obtenerPorId.mockResolvedValue(null);
 
-    // Ejecutamos y esperamos que el servicio lance NotFoundException.
     await expect(
       service.ejecutar({
-        codigo: 'NO-EXISTE',
+        id: 999,
         formato: ReporteAmbienteFormato.PDF,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
