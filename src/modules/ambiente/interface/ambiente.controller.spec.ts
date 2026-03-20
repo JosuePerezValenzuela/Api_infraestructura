@@ -38,7 +38,7 @@ type UpdateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
 type ReplaceUseCaseMock = {
-  execute: jest.Mock<Promise<{ ambiente_id: number; total: number }>, [any]>;
+  execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
 type ListHorariosUseCaseMock = {
   execute: jest.Mock<Promise<any>, [any]>;
@@ -335,16 +335,12 @@ describe('AmbienteController', () => {
     });
   });
   describe('replaceHorariosHandler', () => {
-    it('llama al caso de uso para reemplazar franjas', async () => {
-      replaceUseCase.execute.mockResolvedValue({ ambiente_id: 9, total: 2 });
+    it('llama al caso de uso para actualizar hora_apertura, hora_cierre y periodo', async () => {
+      replaceUseCase.execute.mockResolvedValue({ id: 9 });
       const dto: ReplaceHorariosDto = {
         hora_apertura: '07:00',
         hora_cierre: '21:00',
         periodo: 90,
-        franjas: [
-          { dia: 0, hora_inicio: '08:00', hora_fin: '10:00' },
-          { dia: 1, hora_inicio: '11:00', hora_fin: '12:00' },
-        ],
       };
 
       const result = await controller.replaceHorariosHandler(9, dto);
@@ -355,26 +351,36 @@ describe('AmbienteController', () => {
           hora_apertura: '07:00',
           hora_cierre: '21:00',
           periodo: 90,
-          franjas: [
-            { dia: 0, hora_inicio: '08:00', hora_fin: '10:00' },
-            { dia: 1, hora_inicio: '11:00', hora_fin: '12:00' },
-          ],
         }),
       );
-      expect(result).toEqual({ ambiente_id: 9, total: 2 });
+      expect(result).toEqual({ id: 9 });
+    });
+
+    it('actualiza solo los campos enviados', async () => {
+      replaceUseCase.execute.mockResolvedValue({ id: 5 });
+      const dto: ReplaceHorariosDto = {
+        hora_apertura: '08:00',
+      };
+
+      await controller.replaceHorariosHandler(5, dto);
+
+      expect(replaceUseCase.execute).toHaveBeenCalledWith({
+        ambiente_id: 5,
+        hora_apertura: '08:00',
+      });
     });
 
     it('propaga excepciones lanzadas por el caso de uso', async () => {
       replaceUseCase.execute.mockRejectedValue(
-        new ConflictException('solapamiento'),
+        new BadRequestException('horario inválido'),
       );
       const dto: ReplaceHorariosDto = {
-        franjas: [{ dia: 0, hora_inicio: '08:00', hora_fin: '09:00' }],
+        hora_apertura: '25:00',
       };
 
       await expect(
         controller.replaceHorariosHandler(1, dto),
-      ).rejects.toBeInstanceOf(ConflictException);
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });
