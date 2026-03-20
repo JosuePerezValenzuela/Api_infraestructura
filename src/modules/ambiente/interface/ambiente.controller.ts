@@ -199,10 +199,6 @@ export class AmbienteController {
         hora_apertura: '07:00',
         hora_cierre: '21:00',
         periodo: 90,
-        items: [
-          { dia: 0, hora_inicio: '08:00', hora_fin: '10:00' },
-          { dia: 2, hora_inicio: '14:00', hora_fin: '16:00' },
-        ],
       },
     },
   })

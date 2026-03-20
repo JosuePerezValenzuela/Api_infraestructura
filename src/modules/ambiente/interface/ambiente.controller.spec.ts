@@ -188,9 +188,8 @@ describe('AmbienteController', () => {
   });
 
   describe('listHorarios', () => {
-    it('retorna metadatos y franjas del ambiente', async () => {
+    it('retorna hora_apertura, hora_cierre y periodo del ambiente', async () => {
       const dtoResult = {
-        items: [{ dia: 0, hora_inicio: '08:00', hora_fin: '10:00' }],
         hora_apertura: '07:00',
         hora_cierre: '21:00',
         periodo: 90,

@@ -1,10 +1,5 @@
 ﻿import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
-  HorarioRepositoryPort,
-  HorarioRepositoryPort as HorarioRepoToken,
-  HorarioSlot,
-} from '../domain/horario.repository.port';
-import {
   AmbienteRepositoryPort,
   AmbienteRepositoryPort as AmbienteRepoToken,
 } from '../domain/ambiente.repository.port';
@@ -12,14 +7,11 @@ import {
 @Injectable()
 export class ListAmbienteHorariosUseCase {
   constructor(
-    @Inject(HorarioRepoToken)
-    private readonly horarioRepo: HorarioRepositoryPort,
     @Inject(AmbienteRepoToken)
     private readonly ambienteRepo: AmbienteRepositoryPort,
   ) {}
 
   async execute(input: { ambiente_id: number }): Promise<{
-    items: HorarioSlot[];
     hora_apertura: string | null;
     hora_cierre: string | null;
     periodo: number | null;
@@ -32,9 +24,7 @@ export class ListAmbienteHorariosUseCase {
       });
     }
 
-    const items = await this.horarioRepo.listByAmbiente(input.ambiente_id);
     return {
-      items,
       hora_apertura: ambiente.hora_apertura ?? null,
       hora_cierre: ambiente.hora_cierre ?? null,
       periodo: ambiente.periodo ?? null,
