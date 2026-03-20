@@ -19,10 +19,8 @@ import { DashboardFacultadQueryMapper } from './mappers/dashboard-facultad-query
 @ApiTags('dashboards-facultades')
 @Controller('dashboards/facultades')
 export class DashboardFacultadController {
-  // Creamos una instancia del mapper para centralizar parseo y validacion de query params.
   private readonly queryMapper = new DashboardFacultadQueryMapper();
 
-  // Inyectamos los casos de uso para mantener el controlador enfocado en HTTP y delegacion.
   constructor(
     private readonly getGlobalDashboardUseCase: GetFacultadDashboardGlobalUseCase,
     private readonly getDetailDashboardUseCase: GetFacultadDashboardDetailUseCase,
@@ -50,20 +48,6 @@ export class DashboardFacultadController {
     example: true,
     schema: { default: true },
   })
-  @ApiQuery({
-    name: 'slotMinutes',
-    required: false,
-    description: 'Tamano de slot para ocupacion (15,30,45,60). Default 45',
-    example: 45,
-    schema: { default: 45 },
-  })
-  @ApiQuery({
-    name: 'dias',
-    required: false,
-    description:
-      'Dias separados por coma (0=domingo ... 6=sabado). Default 0,1,2,3,4,5,6',
-    example: '1,2,3,4,5',
-  })
   @ApiOkResponse({
     description: 'Dashboard global de facultades con KPIs, charts y tablas',
     schema: {
@@ -73,8 +57,6 @@ export class DashboardFacultadController {
           campusIds: [1],
           facultadIds: [10, 11],
           includeInactive: true,
-          slotMinutes: 45,
-          dias: [1, 2, 3, 4, 5],
         },
         layout: { mode: 'global' },
         data: {
@@ -115,46 +97,6 @@ export class DashboardFacultadController {
                 inactivos: 1,
               },
             ],
-            ocupacionHeatmapSemanal: [
-              {
-                dia: 1,
-                franja: '08:00-08:45',
-                slotsOcupados: 10,
-                slotsTotales: 16,
-                pctOcupacion: 62.5,
-              },
-            ],
-            ocupacionPorBloque: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                slotsOcupados: 40,
-                slotsTotales: 64,
-                pctOcupacion: 62.5,
-              },
-            ],
-            topAmbientesUtilizacion: {
-              sobrecargados: [
-                {
-                  ambienteId: 500,
-                  ambienteNombre: 'Lab Redes',
-                  bloqueNombre: 'Bloque A',
-                  pctOcupacion: 95,
-                  slotsOcupados: 19,
-                  slotsTotales: 20,
-                },
-              ],
-              subutilizados: [
-                {
-                  ambienteId: 501,
-                  ambienteNombre: 'Aula 3',
-                  bloqueNombre: 'Bloque A',
-                  pctOcupacion: 8,
-                  slotsOcupados: 2,
-                  slotsTotales: 25,
-                },
-              ],
-            },
           },
           tables: {
             resumenBloques: [
@@ -172,16 +114,6 @@ export class DashboardFacultadController {
                 activosAsignados: 60,
               },
             ],
-            ambientesUtilizacion: [
-              {
-                ambienteId: 500,
-                ambienteNombre: 'Lab Redes',
-                bloqueNombre: 'Bloque A',
-                slotsOcupados: 19,
-                slotsTotales: 20,
-                pctOcupacion: 95,
-              },
-            ],
           },
         },
       },
@@ -193,16 +125,14 @@ export class DashboardFacultadController {
       example: {
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
-        details: [{ field: 'slotMinutes', message: 'Mensaje de validacion' }],
+        details: [{ field: 'facultadIds', message: 'Mensaje de validacion' }],
       },
     },
   })
   async getGlobalDashboard(
     @Query() query: DashboardFacultadGlobalQueryDto,
   ): Promise<DashboardFacultadGlobalResult> {
-    // Convertimos los query params HTTP a filtros de dominio tipados y validados.
     const filters = this.queryMapper.toGlobalFilters(query);
-    // Delegamos al caso de uso global para obtener la respuesta del dashboard.
     return this.getGlobalDashboardUseCase.execute(filters);
   }
 
@@ -221,20 +151,6 @@ export class DashboardFacultadController {
     example: true,
     schema: { default: true },
   })
-  @ApiQuery({
-    name: 'slotMinutes',
-    required: false,
-    description: 'Tamano de slot para ocupacion (15,30,45,60). Default 45',
-    example: 45,
-    schema: { default: 45 },
-  })
-  @ApiQuery({
-    name: 'dias',
-    required: false,
-    description:
-      'Dias separados por coma (0=domingo ... 6=sabado). Default 0,1,2,3,4,5,6',
-    example: '1,2,3,4,5',
-  })
   @ApiOkResponse({
     description: 'Dashboard detalle de una facultad con KPIs, charts y tablas',
     schema: {
@@ -243,8 +159,6 @@ export class DashboardFacultadController {
         filtersApplied: {
           facultadId: 22,
           includeInactive: true,
-          slotMinutes: 45,
-          dias: [1, 2, 3, 4, 5],
         },
         layout: { mode: 'detail' },
         data: {
@@ -293,46 +207,6 @@ export class DashboardFacultadController {
                 inactivos: 1,
               },
             ],
-            ocupacionHeatmapSemanal: [
-              {
-                dia: 1,
-                franja: '08:00-08:45',
-                slotsOcupados: 10,
-                slotsTotales: 16,
-                pctOcupacion: 62.5,
-              },
-            ],
-            ocupacionPorBloque: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                slotsOcupados: 40,
-                slotsTotales: 64,
-                pctOcupacion: 62.5,
-              },
-            ],
-            topAmbientesUtilizacion: {
-              sobrecargados: [
-                {
-                  ambienteId: 500,
-                  ambienteNombre: 'Lab Redes',
-                  bloqueNombre: 'Bloque A',
-                  pctOcupacion: 95,
-                  slotsOcupados: 19,
-                  slotsTotales: 20,
-                },
-              ],
-              subutilizados: [
-                {
-                  ambienteId: 501,
-                  ambienteNombre: 'Aula 3',
-                  bloqueNombre: 'Bloque A',
-                  pctOcupacion: 8,
-                  slotsOcupados: 2,
-                  slotsTotales: 25,
-                },
-              ],
-            },
           },
           tables: {
             resumenBloques: [
@@ -348,16 +222,6 @@ export class DashboardFacultadController {
                 capacidadTotal: 300,
                 capacidadExamen: 180,
                 activosAsignados: 60,
-              },
-            ],
-            ambientesUtilizacion: [
-              {
-                ambienteId: 500,
-                ambienteNombre: 'Lab Redes',
-                bloqueNombre: 'Bloque A',
-                slotsOcupados: 19,
-                slotsTotales: 20,
-                pctOcupacion: 95,
               },
             ],
           },
@@ -379,9 +243,7 @@ export class DashboardFacultadController {
     @Param('facultadId') facultadIdRaw: string,
     @Query() query: DashboardFacultadDetailQueryDto,
   ): Promise<DashboardFacultadDetailResult> {
-    // Convertimos param + query a filtros de dominio para el caso de uso detalle.
     const filters = this.queryMapper.toDetailFilters(facultadIdRaw, query);
-    // Delegamos al caso de uso detalle.
     return this.getDetailDashboardUseCase.execute(filters);
   }
 }

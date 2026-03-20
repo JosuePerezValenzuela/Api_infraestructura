@@ -1,10 +1,8 @@
 // En este archivo probamos el repositorio TypeORM del dashboard de facultad usando un DataSource simulado.
-// Primero fijamos comportamiento esperado (RED) para estructura V2 y reglas base de detalle/global.
 
 import type { DataSource } from 'typeorm';
 import { DashboardFacultadTypeormRepository } from './dashboard-facultad.typeorm.repository';
 
-// Creamos un helper que devuelve un DataSource falso con query espiado por Jest.
 const makeMockDataSource = () => {
   return {
     query: jest.fn(),
@@ -13,7 +11,6 @@ const makeMockDataSource = () => {
 
 describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
   it('mapea agregaciones por facultad y construye respuesta V2 con KPIs/charts/tables', async () => {
-    // Simulamos filas agregadas por facultad devueltas por SQL.
     const aggregatedRows = [
       {
         facultad_id: 10,
@@ -50,7 +47,6 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
         activos_asignados: 20,
       },
     ];
-    // Simulamos activos no asignados globales.
     const unassignedRows = [{ no_asignados: 7 }];
     const tiposBloqueRows = [
       { tipo_bloque_id: 1, tipo_bloque_nombre: 'Academico', cantidad: 4 },
@@ -72,42 +68,6 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
     const ambientesEstadoRows = [
       { bloque_id: 101, bloque_nombre: 'Bloque A', activos: 7, inactivos: 1 },
     ];
-    const heatmapRows = [
-      {
-        dia: 1,
-        franja: '08:00-08:45',
-        slots_ocupados: 10,
-        slots_totales: 16,
-        pct_ocupacion: 62.5,
-      },
-    ];
-    const ocupacionPorBloqueRows = [
-      {
-        bloque_id: 101,
-        bloque_nombre: 'Bloque A',
-        slots_ocupados: 40,
-        slots_totales: 64,
-        pct_ocupacion: 62.5,
-      },
-    ];
-    const topSobrecargadosRows = [
-      {
-        ambiente_id: 500,
-        ambiente_nombre: 'Lab Redes',
-        pct_ocupacion: 95,
-        slots_ocupados: 19,
-        slots_totales: 20,
-      },
-    ];
-    const topSubutilizadosRows = [
-      {
-        ambiente_id: 501,
-        ambiente_nombre: 'Aula 3',
-        pct_ocupacion: 8,
-        slots_ocupados: 2,
-        slots_totales: 25,
-      },
-    ];
     const resumenBloquesRows = [
       {
         bloque_id: 101,
@@ -122,21 +82,9 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
         activos_asignados: 60,
       },
     ];
-    const ambientesUtilizacionRows = [
-      {
-        ambiente_id: 500,
-        ambiente_nombre: 'Lab Redes',
-        bloque_nombre: 'Bloque A',
-        slots_ocupados: 19,
-        slots_totales: 20,
-        pct_ocupacion: 95,
-      },
-    ];
 
     const dataSource = makeMockDataSource();
-    // Query 1: agregados globales por facultad.
     (dataSource.query as jest.Mock).mockResolvedValueOnce(aggregatedRows);
-    // Query 2: activos no asignados.
     (dataSource.query as jest.Mock).mockResolvedValueOnce(unassignedRows);
     (dataSource.query as jest.Mock).mockResolvedValueOnce(tiposBloqueRows);
     (dataSource.query as jest.Mock).mockResolvedValueOnce(tiposAmbienteRows);
@@ -145,16 +93,7 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
     );
     (dataSource.query as jest.Mock).mockResolvedValueOnce(activosPorBloqueRows);
     (dataSource.query as jest.Mock).mockResolvedValueOnce(ambientesEstadoRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(heatmapRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(
-      ocupacionPorBloqueRows,
-    );
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(topSobrecargadosRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(topSubutilizadosRows);
     (dataSource.query as jest.Mock).mockResolvedValueOnce(resumenBloquesRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(
-      ambientesUtilizacionRows,
-    );
 
     const repo = new DashboardFacultadTypeormRepository(
       dataSource as unknown as DataSource,
@@ -164,17 +103,13 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
       campusIds: [1],
       facultadIds: [10, 11],
       includeInactive: true,
-      slotMinutes: 45,
-      dias: [1, 2, 3, 4, 5],
     };
 
     const result = await repo.getGlobalDashboard(filters);
 
-    // Validamos shape base del contrato V2.
     expect(result.schemaVersion).toBe(2);
     expect(result.layout).toEqual({ mode: 'global' });
     expect(result.filtersApplied).toEqual(filters);
-    // Validamos KPI agregados principales.
     expect(result.data.kpis.facultades).toEqual({ activos: 1, inactivos: 1 });
     expect(result.data.kpis.bloques).toEqual({ activos: 3, inactivos: 2 });
     expect(result.data.kpis.ambientes).toEqual({ activos: 7, inactivos: 5 });
@@ -188,21 +123,9 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
       tipoBloqueNombre: 'Academico',
       cantidad: 4,
     });
-    expect(result.data.charts.ocupacionHeatmapSemanal[0]).toEqual({
-      dia: 1,
-      franja: '08:00-08:45',
-      slotsOcupados: 10,
-      slotsTotales: 16,
-      pctOcupacion: 62.5,
-    });
     expect(result.data.tables.resumenBloques[0]).toMatchObject({
       bloqueId: 101,
       bloqueNombre: 'Bloque A',
-    });
-    expect(result.data.tables.ambientesUtilizacion[0]).toMatchObject({
-      ambienteId: 500,
-      ambienteNombre: 'Lab Redes',
-      pctOcupacion: 95,
     });
   });
 });
@@ -210,7 +133,6 @@ describe('DashboardFacultadTypeormRepository.getGlobalDashboard', () => {
 describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
   it('retorna null cuando la facultad no existe segun filtros', async () => {
     const dataSource = makeMockDataSource();
-    // Primera query busca facultad base; devolvemos vacio.
     (dataSource.query as jest.Mock).mockResolvedValueOnce([]);
 
     const repo = new DashboardFacultadTypeormRepository(
@@ -220,8 +142,6 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
     const result = await repo.getDetailDashboard({
       facultadId: 999,
       includeInactive: false,
-      slotMinutes: 45,
-      dias: [1, 2, 3, 4, 5],
     });
 
     expect(result).toBeNull();
@@ -229,7 +149,6 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
 
   it('mapea el detalle de facultad a la estructura V2 con contexto/kpis/charts/tables', async () => {
     const dataSource = makeMockDataSource();
-    // 1) Facultad base
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       {
         id: 22,
@@ -240,7 +159,6 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
         campus_nombre: 'Campus Central',
       },
     ]);
-    // 2) Resumen KPI
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       {
         bloques_total: 4,
@@ -254,15 +172,12 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
         activos_asignados: 120,
       },
     ]);
-    // 3) tiposBloque
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       { tipo_bloque_id: 1, tipo_bloque_nombre: 'Academico', cantidad: 3 },
     ]);
-    // 4) tiposAmbiente
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       { tipo_ambiente_id: 5, tipo_ambiente_nombre: 'Aula', cantidad: 14 },
     ]);
-    // 5) capacidadPorBloque
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       {
         bloque_id: 101,
@@ -271,55 +186,12 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
         capacidad_examen: 180,
       },
     ]);
-    // 6) activosPorBloque
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       { bloque_id: 101, bloque_nombre: 'Bloque A', activos_asignados: 60 },
     ]);
-    // 7) ambientesActivosInactivosPorBloque
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       { bloque_id: 101, bloque_nombre: 'Bloque A', activos: 8, inactivos: 1 },
     ]);
-    // 8) ocupacionHeatmapSemanal
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      {
-        dia: 1,
-        franja: '08:00-08:45',
-        slots_ocupados: 10,
-        slots_totales: 16,
-        pct_ocupacion: 62.5,
-      },
-    ]);
-    // 9) ocupacionPorBloque
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      {
-        bloque_id: 101,
-        bloque_nombre: 'Bloque A',
-        slots_ocupados: 40,
-        slots_totales: 64,
-        pct_ocupacion: 62.5,
-      },
-    ]);
-    // 10) top sobrecargados
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      {
-        ambiente_id: 500,
-        ambiente_nombre: 'Lab Redes',
-        pct_ocupacion: 95,
-        slots_ocupados: 19,
-        slots_totales: 20,
-      },
-    ]);
-    // 11) top subutilizados
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      {
-        ambiente_id: 501,
-        ambiente_nombre: 'Aula 3',
-        pct_ocupacion: 8,
-        slots_ocupados: 2,
-        slots_totales: 25,
-      },
-    ]);
-    // 12) resumenBloques
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       {
         bloque_id: 101,
@@ -334,18 +206,6 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
         activos_asignados: 60,
       },
     ]);
-    // 13) ambientesUtilizacion
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      {
-        ambiente_id: 500,
-        ambiente_nombre: 'Lab Redes',
-        bloque_nombre: 'Bloque A',
-        slots_ocupados: 19,
-        slots_totales: 20,
-        pct_ocupacion: 95,
-      },
-    ]);
-    // 14) no asignados global
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       { no_asignados: 11 },
     ]);
@@ -357,8 +217,6 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
     const filters = {
       facultadId: 22,
       includeInactive: true,
-      slotMinutes: 45,
-      dias: [1, 2, 3, 4, 5],
     };
     const result = await repo.getDetailDashboard(filters);
 
@@ -385,21 +243,9 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
       tipoBloqueNombre: 'Academico',
       cantidad: 3,
     });
-    expect(result?.data.charts.ocupacionHeatmapSemanal[0]).toEqual({
-      dia: 1,
-      franja: '08:00-08:45',
-      slotsOcupados: 10,
-      slotsTotales: 16,
-      pctOcupacion: 62.5,
-    });
     expect(result?.data.tables.resumenBloques[0]).toMatchObject({
       bloqueId: 101,
       bloqueNombre: 'Bloque A',
-    });
-    expect(result?.data.tables.ambientesUtilizacion[0]).toMatchObject({
-      ambienteId: 500,
-      ambienteNombre: 'Lab Redes',
-      pctOcupacion: 95,
     });
   });
 });

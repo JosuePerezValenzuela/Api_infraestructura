@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { DashboardFacultadRepositoryPort } from '../domain/dashboard-facultad.repository.port';
@@ -35,10 +34,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
   async getGlobalDashboard(
     filters: DashboardFacultadGlobalFilters,
   ): Promise<DashboardFacultadGlobalResult> {
-    const { campusIds, facultadIds, includeInactive, slotMinutes, dias } =
-      filters;
-    const diasFiltro = dias && dias.length > 0 ? dias : [0, 1, 2, 3, 4, 5, 6];
-
+    const { campusIds, facultadIds, includeInactive } = filters;
     const campusFilter =
       campusIds && campusIds.length > 0 ? 'AND f.campus_id = ANY($1)' : '';
     const facultadFilter =
@@ -280,328 +276,6 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         params,
       )) ?? [];
 
-    const slotMinutesParamIndex = params.length + 1;
-    const diasParamIndex = params.length + 2;
-    const occupancyParams = [...params, slotMinutes, diasFiltro];
-
-    // 8) ocupacion heatmap semanal global.
-    const heatmapRows: Array<{
-      dia: number;
-      franja: string;
-      slots_ocupados: number;
-      slots_totales: number;
-      pct_ocupacion: number;
-    }> =
-      (await this.dataSource.query(
-        `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
-        WHERE 1=1
-        ${campusFilter}
-        ${facultadFilter}
-        ${
-          includeInactive
-            ? ''
-            : 'AND f.activo = TRUE AND b.activo = TRUE AND a.activo = TRUE'
-        }
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          d.dia,
-          sa.ambiente_id,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesParamIndex}),
-          make_interval(mins => $${slotMinutesParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.dia,
-        to_char(sm.slot_start, 'HH24:MI') || '-' || to_char(sm.slot_end, 'HH24:MI') AS franja,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.dia, franja
-      ORDER BY sm.dia ASC, franja ASC
-    `,
-        occupancyParams,
-      )) ?? [];
-
-    // 9) ocupacion por bloque global.
-    const ocupacionPorBloqueRows: Array<{
-      bloque_id: number;
-      bloque_nombre: string;
-      slots_ocupados: number;
-      slots_totales: number;
-      pct_ocupacion: number;
-    }> =
-      (await this.dataSource.query(
-        `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          b.id AS bloque_id,
-          b.nombre AS bloque_nombre,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
-        WHERE 1=1
-        ${campusFilter}
-        ${facultadFilter}
-        ${
-          includeInactive
-            ? ''
-            : 'AND f.activo = TRUE AND b.activo = TRUE AND a.activo = TRUE'
-        }
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          sa.bloque_id,
-          sa.bloque_nombre,
-          d.dia,
-          sa.ambiente_id,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesParamIndex}),
-          make_interval(mins => $${slotMinutesParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.bloque_id,
-        sm.bloque_nombre,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.bloque_id, sm.bloque_nombre
-      ORDER BY pct_ocupacion DESC
-    `,
-        occupancyParams,
-      )) ?? [];
-
-    // 10) top sobrecargados global.
-    const topSobrecargadosRows: Array<{
-      ambiente_id: number;
-      ambiente_nombre: string;
-      bloque_nombre: string;
-      pct_ocupacion: number;
-      slots_ocupados: number;
-      slots_totales: number;
-    }> =
-      (await this.dataSource.query(
-        `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          a.nombre AS ambiente_nombre,
-          b.nombre AS bloque_nombre,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
-        WHERE 1=1
-        ${campusFilter}
-        ${facultadFilter}
-        ${
-          includeInactive
-            ? ''
-            : 'AND f.activo = TRUE AND b.activo = TRUE AND a.activo = TRUE'
-        }
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          sa.ambiente_id,
-          sa.ambiente_nombre,
-          sa.bloque_nombre,
-          d.dia,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesParamIndex}),
-          make_interval(mins => $${slotMinutesParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.ambiente_id,
-        sm.ambiente_nombre,
-        sm.bloque_nombre,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
-      ORDER BY pct_ocupacion DESC, slots_ocupados DESC
-      LIMIT 5
-    `,
-        occupancyParams,
-      )) ?? [];
-
-    // 11) top subutilizados global.
-    const topSubutilizadosRows: Array<{
-      ambiente_id: number;
-      ambiente_nombre: string;
-      bloque_nombre: string;
-      pct_ocupacion: number;
-      slots_ocupados: number;
-      slots_totales: number;
-    }> =
-      (await this.dataSource.query(
-        `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          a.nombre AS ambiente_nombre,
-          b.nombre AS bloque_nombre,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
-        WHERE 1=1
-        ${campusFilter}
-        ${facultadFilter}
-        ${
-          includeInactive
-            ? ''
-            : 'AND f.activo = TRUE AND b.activo = TRUE AND a.activo = TRUE'
-        }
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          sa.ambiente_id,
-          sa.ambiente_nombre,
-          sa.bloque_nombre,
-          d.dia,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesParamIndex}),
-          make_interval(mins => $${slotMinutesParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.ambiente_id,
-        sm.ambiente_nombre,
-        sm.bloque_nombre,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
-      ORDER BY pct_ocupacion ASC, slots_ocupados ASC
-      LIMIT 5
-    `,
-        occupancyParams,
-      )) ?? [];
-
     // 12) tabla resumen de bloques global.
     const resumenBloquesRows: Array<{
       bloque_id: number;
@@ -644,95 +318,12 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
         params,
       )) ?? [];
 
-    // 13) tabla ambientes utilizacion global.
-    const ambientesUtilizacionRows: Array<{
-      ambiente_id: number;
-      ambiente_nombre: string;
-      bloque_nombre: string;
-      slots_ocupados: number;
-      slots_totales: number;
-      pct_ocupacion: number;
-    }> =
-      (await this.dataSource.query(
-        `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          a.nombre AS ambiente_nombre,
-          b.nombre AS bloque_nombre,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
-        WHERE 1=1
-        ${campusFilter}
-        ${facultadFilter}
-        ${
-          includeInactive
-            ? ''
-            : 'AND f.activo = TRUE AND b.activo = TRUE AND a.activo = TRUE'
-        }
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          sa.ambiente_id,
-          sa.ambiente_nombre,
-          sa.bloque_nombre,
-          d.dia,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesParamIndex}),
-          make_interval(mins => $${slotMinutesParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.ambiente_id,
-        sm.ambiente_nombre,
-        sm.bloque_nombre,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
-      ORDER BY pct_ocupacion DESC
-    `,
-        occupancyParams,
-      )) ?? [];
-
     return {
       schemaVersion: 2,
       filtersApplied: {
         campusIds,
         facultadIds,
         includeInactive,
-        slotMinutes,
-        dias,
       },
       layout: { mode: 'global' },
       data: {
@@ -767,38 +358,6 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
               inactivos: Number(row.inactivos ?? 0),
             }),
           ),
-          ocupacionHeatmapSemanal: heatmapRows.map((row) => ({
-            dia: Number(row.dia),
-            franja: row.franja,
-            slotsOcupados: Number(row.slots_ocupados ?? 0),
-            slotsTotales: Number(row.slots_totales ?? 0),
-            pctOcupacion: Number(row.pct_ocupacion ?? 0),
-          })),
-          ocupacionPorBloque: ocupacionPorBloqueRows.map((row) => ({
-            bloqueId: Number(row.bloque_id),
-            bloqueNombre: row.bloque_nombre,
-            slotsOcupados: Number(row.slots_ocupados ?? 0),
-            slotsTotales: Number(row.slots_totales ?? 0),
-            pctOcupacion: Number(row.pct_ocupacion ?? 0),
-          })),
-          topAmbientesUtilizacion: {
-            sobrecargados: topSobrecargadosRows.map((row) => ({
-              ambienteId: Number(row.ambiente_id),
-              ambienteNombre: row.ambiente_nombre,
-              bloqueNombre: row.bloque_nombre,
-              pctOcupacion: Number(row.pct_ocupacion ?? 0),
-              slotsOcupados: Number(row.slots_ocupados ?? 0),
-              slotsTotales: Number(row.slots_totales ?? 0),
-            })),
-            subutilizados: topSubutilizadosRows.map((row) => ({
-              ambienteId: Number(row.ambiente_id),
-              ambienteNombre: row.ambiente_nombre,
-              bloqueNombre: row.bloque_nombre,
-              pctOcupacion: Number(row.pct_ocupacion ?? 0),
-              slotsOcupados: Number(row.slots_ocupados ?? 0),
-              slotsTotales: Number(row.slots_totales ?? 0),
-            })),
-          },
         },
         tables: {
           resumenBloques: resumenBloquesRows.map((row) => ({
@@ -814,14 +373,6 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
             capacidadExamen: Number(row.capacidad_examen ?? 0),
             activosAsignados: Number(row.activos_asignados ?? 0),
           })),
-          ambientesUtilizacion: ambientesUtilizacionRows.map((row) => ({
-            ambienteId: Number(row.ambiente_id),
-            ambienteNombre: row.ambiente_nombre,
-            bloqueNombre: row.bloque_nombre,
-            slotsOcupados: Number(row.slots_ocupados ?? 0),
-            slotsTotales: Number(row.slots_totales ?? 0),
-            pctOcupacion: Number(row.pct_ocupacion ?? 0),
-          })),
         },
       },
     };
@@ -831,17 +382,13 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
   async getDetailDashboard(
     filters: DashboardFacultadDetailFilters,
   ): Promise<DashboardFacultadDetailResult | null> {
-    const { facultadId, includeInactive, slotMinutes, dias } = filters;
-    const diasFiltro = dias && dias.length > 0 ? dias : [0, 1, 2, 3, 4, 5, 6];
+    const { facultadId, includeInactive } = filters;
     const activeFilter = includeInactive ? '' : 'AND f.activo = TRUE';
     const activeHierarchyFilter = includeInactive
       ? ''
       : 'AND (b.id IS NULL OR b.activo = TRUE) AND (a.id IS NULL OR a.activo = TRUE)';
     const activeBloqueFilter = includeInactive ? '' : 'AND b.activo = TRUE';
     const activeAmbienteFilter = includeInactive ? '' : 'AND a.activo = TRUE';
-    const activeBloqueAmbienteFilter = includeInactive
-      ? ''
-      : 'AND b.activo = TRUE AND a.activo = TRUE';
 
     // 1) Facultad base.
     const facultadRows: Array<{
@@ -1025,296 +572,6 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       [facultadId],
     );
 
-    const slotMinutesDetailParamIndex = 2;
-    const diasDetailParamIndex = 3;
-    const occupancyDetailParams = [facultadId, slotMinutes, diasFiltro];
-
-    // 8) ocupacionHeatmapSemanal.
-    const heatmapRows: Array<{
-      dia: number;
-      franja: string;
-      slots_ocupados: number;
-      slots_totales: number;
-      pct_ocupacion: number;
-    }> = await this.dataSource.query(
-      `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        WHERE b.facultad_id = $1
-        ${activeBloqueAmbienteFilter}
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasDetailParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          d.dia,
-          sa.ambiente_id,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesDetailParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesDetailParamIndex}),
-          make_interval(mins => $${slotMinutesDetailParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.dia,
-        to_char(sm.slot_start, 'HH24:MI') || '-' || to_char(sm.slot_end, 'HH24:MI') AS franja,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.dia, franja
-      ORDER BY sm.dia ASC, franja ASC
-    `,
-      occupancyDetailParams,
-    );
-
-    // 9) ocupacionPorBloque.
-    const ocupacionPorBloqueRows: Array<{
-      bloque_id: number;
-      bloque_nombre: string;
-      slots_ocupados: number;
-      slots_totales: number;
-      pct_ocupacion: number;
-    }> = await this.dataSource.query(
-      `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          b.id AS bloque_id,
-          b.nombre AS bloque_nombre,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        WHERE b.facultad_id = $1
-        ${activeBloqueAmbienteFilter}
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasDetailParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          sa.bloque_id,
-          sa.bloque_nombre,
-          d.dia,
-          sa.ambiente_id,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesDetailParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesDetailParamIndex}),
-          make_interval(mins => $${slotMinutesDetailParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.bloque_id,
-        sm.bloque_nombre,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.bloque_id, sm.bloque_nombre
-      ORDER BY pct_ocupacion DESC
-    `,
-      occupancyDetailParams,
-    );
-
-    // 10) top sobrecargados.
-    const topSobrecargadosRows: Array<{
-      ambiente_id: number;
-      ambiente_nombre: string;
-      bloque_nombre: string;
-      pct_ocupacion: number;
-      slots_ocupados: number;
-      slots_totales: number;
-    }> = await this.dataSource.query(
-      `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          a.nombre AS ambiente_nombre,
-          b.nombre AS bloque_nombre,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        WHERE b.facultad_id = $1
-        ${activeBloqueAmbienteFilter}
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasDetailParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          sa.ambiente_id,
-          sa.ambiente_nombre,
-          sa.bloque_nombre,
-          d.dia,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesDetailParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesDetailParamIndex}),
-          make_interval(mins => $${slotMinutesDetailParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.ambiente_id,
-        sm.ambiente_nombre,
-        sm.bloque_nombre,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
-      ORDER BY pct_ocupacion DESC, slots_ocupados DESC
-      LIMIT 5
-    `,
-      occupancyDetailParams,
-    );
-
-    // 11) top subutilizados.
-    const topSubutilizadosRows: Array<{
-      ambiente_id: number;
-      ambiente_nombre: string;
-      bloque_nombre: string;
-      pct_ocupacion: number;
-      slots_ocupados: number;
-      slots_totales: number;
-    }> = await this.dataSource.query(
-      `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          a.nombre AS ambiente_nombre,
-          b.nombre AS bloque_nombre,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        WHERE b.facultad_id = $1
-        ${activeBloqueAmbienteFilter}
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasDetailParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          sa.ambiente_id,
-          sa.ambiente_nombre,
-          sa.bloque_nombre,
-          d.dia,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesDetailParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesDetailParamIndex}),
-          make_interval(mins => $${slotMinutesDetailParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.ambiente_id,
-        sm.ambiente_nombre,
-        sm.bloque_nombre,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
-      ORDER BY pct_ocupacion ASC, slots_ocupados ASC
-      LIMIT 5
-    `,
-      occupancyDetailParams,
-    );
-
     // 12) resumenBloques.
     const resumenBloquesRows: Array<{
       bloque_id: number;
@@ -1354,79 +611,6 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
       [facultadId],
     );
 
-    // 13) ambientesUtilizacion.
-    const ambientesUtilizacionRows: Array<{
-      ambiente_id: number;
-      ambiente_nombre: string;
-      bloque_nombre: string;
-      slots_ocupados: number;
-      slots_totales: number;
-      pct_ocupacion: number;
-    }> = await this.dataSource.query(
-      `
-      WITH scope_ambientes AS (
-        SELECT
-          a.id AS ambiente_id,
-          a.nombre AS ambiente_nombre,
-          b.nombre AS bloque_nombre,
-          a.hora_apertura,
-          a.hora_cierre
-        FROM infraestructura.ambientes a
-        INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-        WHERE b.facultad_id = $1
-        ${activeBloqueAmbienteFilter}
-          AND a.hora_apertura IS NOT NULL
-          AND a.hora_cierre IS NOT NULL
-          AND a.hora_apertura < a.hora_cierre
-      ),
-      dias_sel AS (
-        SELECT unnest($${diasDetailParamIndex}::int[]) AS dia
-      ),
-      slots AS (
-        SELECT
-          sa.ambiente_id,
-          sa.ambiente_nombre,
-          sa.bloque_nombre,
-          d.dia,
-          gs AS slot_start,
-          gs + make_interval(mins => $${slotMinutesDetailParamIndex}) AS slot_end
-        FROM scope_ambientes sa
-        CROSS JOIN dias_sel d
-        CROSS JOIN LATERAL generate_series(
-          ('2000-01-01'::timestamp + sa.hora_apertura),
-          ('2000-01-01'::timestamp + sa.hora_cierre) - make_interval(mins => $${slotMinutesDetailParamIndex}),
-          make_interval(mins => $${slotMinutesDetailParamIndex})
-        ) gs
-      ),
-      slots_marcados AS (
-        SELECT
-          s.*,
-          EXISTS (
-            SELECT 1
-            FROM infraestructura.horarios h
-            WHERE h.ambiente_id = s.ambiente_id
-              AND h.dia = s.dia
-              AND h.slot_range && tsrange(s.slot_start, s.slot_end, '[)')
-          ) AS ocupado
-        FROM slots s
-      )
-      SELECT
-        sm.ambiente_id,
-        sm.ambiente_nombre,
-        sm.bloque_nombre,
-        COUNT(*) FILTER (WHERE sm.ocupado)::int AS slots_ocupados,
-        COUNT(*)::int AS slots_totales,
-        CASE
-          WHEN COUNT(*) = 0 THEN 0
-          ELSE ROUND(((COUNT(*) FILTER (WHERE sm.ocupado))::numeric * 100) / COUNT(*), 2)
-        END AS pct_ocupacion
-      FROM slots_marcados sm
-      GROUP BY sm.ambiente_id, sm.ambiente_nombre, sm.bloque_nombre
-      ORDER BY pct_ocupacion DESC
-    `,
-      occupancyDetailParams,
-    );
-
     // 14) activos no asignados global.
     const unassignedRows: Array<{ no_asignados: number }> =
       await this.dataSource.query(
@@ -1440,7 +624,7 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
 
     return {
       schemaVersion: 2,
-      filtersApplied: { facultadId, includeInactive, slotMinutes, dias },
+      filtersApplied: { facultadId, includeInactive },
       layout: { mode: 'detail' },
       data: {
         facultad: {
@@ -1503,38 +687,6 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
               inactivos: Number(row.inactivos ?? 0),
             }),
           ),
-          ocupacionHeatmapSemanal: heatmapRows.map((row) => ({
-            dia: Number(row.dia),
-            franja: row.franja,
-            slotsOcupados: Number(row.slots_ocupados ?? 0),
-            slotsTotales: Number(row.slots_totales ?? 0),
-            pctOcupacion: Number(row.pct_ocupacion ?? 0),
-          })),
-          ocupacionPorBloque: ocupacionPorBloqueRows.map((row) => ({
-            bloqueId: Number(row.bloque_id),
-            bloqueNombre: row.bloque_nombre,
-            slotsOcupados: Number(row.slots_ocupados ?? 0),
-            slotsTotales: Number(row.slots_totales ?? 0),
-            pctOcupacion: Number(row.pct_ocupacion ?? 0),
-          })),
-          topAmbientesUtilizacion: {
-            sobrecargados: topSobrecargadosRows.map((row) => ({
-              ambienteId: Number(row.ambiente_id),
-              ambienteNombre: row.ambiente_nombre,
-              bloqueNombre: row.bloque_nombre,
-              pctOcupacion: Number(row.pct_ocupacion ?? 0),
-              slotsOcupados: Number(row.slots_ocupados ?? 0),
-              slotsTotales: Number(row.slots_totales ?? 0),
-            })),
-            subutilizados: topSubutilizadosRows.map((row) => ({
-              ambienteId: Number(row.ambiente_id),
-              ambienteNombre: row.ambiente_nombre,
-              bloqueNombre: row.bloque_nombre,
-              pctOcupacion: Number(row.pct_ocupacion ?? 0),
-              slotsOcupados: Number(row.slots_ocupados ?? 0),
-              slotsTotales: Number(row.slots_totales ?? 0),
-            })),
-          },
         },
         tables: {
           resumenBloques: resumenBloquesRows.map((row) => ({
@@ -1549,14 +701,6 @@ export class DashboardFacultadTypeormRepository implements DashboardFacultadRepo
             capacidadTotal: Number(row.capacidad_total ?? 0),
             capacidadExamen: Number(row.capacidad_examen ?? 0),
             activosAsignados: Number(row.activos_asignados ?? 0),
-          })),
-          ambientesUtilizacion: ambientesUtilizacionRows.map((row) => ({
-            ambienteId: Number(row.ambiente_id),
-            ambienteNombre: row.ambiente_nombre,
-            bloqueNombre: row.bloque_nombre,
-            slotsOcupados: Number(row.slots_ocupados ?? 0),
-            slotsTotales: Number(row.slots_totales ?? 0),
-            pctOcupacion: Number(row.pct_ocupacion ?? 0),
           })),
         },
       },

@@ -2,15 +2,11 @@ export type DashboardFacultadGlobalFilters = {
   campusIds?: number[];
   facultadIds?: number[];
   includeInactive: boolean;
-  slotMinutes: number;
-  dias?: number[];
 };
 
 export type DashboardFacultadDetailFilters = {
   facultadId: number;
   includeInactive: boolean;
-  slotMinutes: number;
-  dias?: number[];
 };
 
 export type DashboardFacultadKpis = {
@@ -56,36 +52,6 @@ export type DashboardFacultadAmbientesActivosInactivosPorBloqueChart = {
   inactivos: number;
 };
 
-export type DashboardFacultadOcupacionHeatmapSemanalChart = {
-  dia: number;
-  franja: string;
-  slotsOcupados: number;
-  slotsTotales: number;
-  pctOcupacion: number;
-};
-
-export type DashboardFacultadOcupacionPorBloqueChart = {
-  bloqueId: number;
-  bloqueNombre: string;
-  slotsOcupados: number;
-  slotsTotales: number;
-  pctOcupacion: number;
-};
-
-export type DashboardFacultadUtilizacionAmbienteItem = {
-  ambienteId: number;
-  ambienteNombre: string;
-  bloqueNombre: string;
-  pctOcupacion: number;
-  slotsOcupados: number;
-  slotsTotales: number;
-};
-
-export type DashboardFacultadTopAmbientesUtilizacionChart = {
-  sobrecargados: DashboardFacultadUtilizacionAmbienteItem[];
-  subutilizados: DashboardFacultadUtilizacionAmbienteItem[];
-};
-
 export type DashboardFacultadResumenBloquesRow = {
   bloqueId: number;
   bloqueNombre: string;
@@ -100,29 +66,16 @@ export type DashboardFacultadResumenBloquesRow = {
   activosAsignados: number;
 };
 
-export type DashboardFacultadAmbientesUtilizacionRow = {
-  ambienteId: number;
-  ambienteNombre: string;
-  bloqueNombre: string;
-  slotsOcupados: number;
-  slotsTotales: number;
-  pctOcupacion: number;
-};
-
 export type DashboardFacultadCharts = {
   tiposBloque: DashboardFacultadTiposBloqueChart[];
   tiposAmbiente: DashboardFacultadTiposAmbienteChart[];
   capacidadPorBloque: DashboardFacultadCapacidadPorBloqueChart[];
   activosPorBloque: DashboardFacultadActivosPorBloqueChart[];
   ambientesActivosInactivosPorBloque: DashboardFacultadAmbientesActivosInactivosPorBloqueChart[];
-  ocupacionHeatmapSemanal: DashboardFacultadOcupacionHeatmapSemanalChart[];
-  ocupacionPorBloque: DashboardFacultadOcupacionPorBloqueChart[];
-  topAmbientesUtilizacion: DashboardFacultadTopAmbientesUtilizacionChart;
 };
 
 export type DashboardFacultadTables = {
   resumenBloques: DashboardFacultadResumenBloquesRow[];
-  ambientesUtilizacion: DashboardFacultadAmbientesUtilizacionRow[];
 };
 
 export type DashboardFacultadGlobalResult = {

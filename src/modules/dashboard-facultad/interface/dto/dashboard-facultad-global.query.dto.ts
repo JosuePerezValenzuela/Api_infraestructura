@@ -29,24 +29,4 @@ export class DashboardFacultadGlobalQueryDto {
   @IsOptional()
   @IsString()
   includeInactive?: string | boolean;
-
-  @ApiPropertyOptional({
-    description:
-      'Tamano del slot en minutos para metricas de ocupacion (permitidos: 15,30,45,60)',
-    example: '45',
-    default: '45',
-  })
-  @IsOptional()
-  @IsString()
-  slotMinutes?: string;
-
-  @ApiPropertyOptional({
-    description:
-      'Dias de semana separados por coma (0=domingo ... 6=sabado). Por defecto 0,1,2,3,4,5,6',
-    example: '1,2,3,4,5',
-    default: '0,1,2,3,4,5,6',
-  })
-  @IsOptional()
-  @IsString()
-  dias?: string;
 }
