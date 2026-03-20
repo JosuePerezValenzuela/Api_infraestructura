@@ -3,6 +3,7 @@ import {
   IsArray,
   IsInt,
   IsString,
+  Matches,
   Max,
   Min,
   ValidateNested,
@@ -26,7 +27,9 @@ class HorarioDiaDto {
     example: '06:45',
   })
   @IsString({ message: 'apertura debe ser texto' })
-  @Min(0)
+  @Matches(/^(?:[01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'apertura debe tener formato HH:mm',
+  })
   apertura!: string;
 
   @ApiProperty({
@@ -34,7 +37,9 @@ class HorarioDiaDto {
     example: '21:45',
   })
   @IsString({ message: 'cierre debe ser texto' })
-  @Min(0)
+  @Matches(/^(?:[01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'cierre debe tener formato HH:mm',
+  })
   cierre!: string;
 }
 
