@@ -4,7 +4,7 @@ import { IsInt, IsOptional, IsString, Matches, Min } from 'class-validator';
 export class ReplaceHorariosDto {
   @ApiProperty({
     description: 'Hora de apertura del ambiente en formato HH:mm',
-    example: '07:00',
+    example: '06:45',
     required: false,
     nullable: true,
   })
@@ -17,7 +17,7 @@ export class ReplaceHorariosDto {
 
   @ApiProperty({
     description: 'Hora de cierre del ambiente en formato HH:mm',
-    example: '21:00',
+    example: '21:45',
     required: false,
     nullable: true,
   })
@@ -30,7 +30,7 @@ export class ReplaceHorariosDto {
 
   @ApiProperty({
     description: 'Duracion base en minutos para bloques de horario',
-    example: 90,
+    example: 45,
     minimum: 1,
     required: false,
     nullable: true,
