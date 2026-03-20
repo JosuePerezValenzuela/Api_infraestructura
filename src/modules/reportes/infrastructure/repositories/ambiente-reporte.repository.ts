@@ -98,16 +98,16 @@ export class AmbienteReporteRepositoryAdapter implements AmbienteReporteReposito
       return null;
     }
 
-    // Horarios del ambiente ordenados por dia y hora de inicio.
+    // Horarios de operacion del ambiente por dia.
     const horarios: HorarioRow[] = await this.dataSource.query(
       `
         SELECT
           dia,
           to_char(hora_inicio, 'HH24:MI') AS hora_inicio,
           to_char(hora_fin, 'HH24:MI') AS hora_fin
-        FROM infraestructura.horarios
+        FROM infraestructura.horarios_operacion
         WHERE ambiente_id = $1
-        ORDER BY dia ASC, hora_inicio ASC
+        ORDER BY dia ASC
       `,
       [header.ambiente_id],
     );

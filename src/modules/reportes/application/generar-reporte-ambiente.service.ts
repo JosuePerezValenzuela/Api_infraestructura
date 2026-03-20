@@ -36,12 +36,35 @@ export class GenerarReporteAmbienteService {
       });
     }
 
-    // Calculamos la matriz Horas-Lunes...Domingo usando las franjas y el periodo del ambiente.
+    // Calculamos la matriz Horas-Lunes...Domingo usando los horarios de operacion.
+    // Determinamos el rango global (apertura minima y cierre maxima) desde los horarios.
+    const toMinutes = (hhmm: string): number => {
+      const [h, m] = hhmm.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const horarios = viewModel.horarios;
+    let horaApertura = '00:00';
+    let horaCierre = '00:00';
+    let periodo = 60;
+
+    if (horarios.length > 0) {
+      // Obtener apertura minima y cierre maxima
+      horaApertura = horarios.reduce((min, h) =>
+        toMinutes(h.hora_inicio) < toMinutes(min.hora_inicio) ? h : min,
+      ).hora_inicio;
+      horaCierre = horarios.reduce((max, h) =>
+        toMinutes(h.hora_fin) > toMinutes(max.hora_fin) ? h : max,
+      ).hora_fin;
+      // Obtener periodo del primer horario (todos tienen el mismo)
+      periodo = 45; // valor por defecto, el trigger de BD asegura que todos lo tengan
+    }
+
     const disponibilidadMatriz = buildDisponibilidadMatriz({
-      horaApertura: viewModel.ambiente.hora_apertura ?? '00:00', // hora desde donde comienza la tabla; si viene nulo usamos 00:00 para no romper
-      horaCierre: viewModel.ambiente.hora_cierre ?? '00:00', // hora donde termina la tabla; si viene nulo usamos 00:00
-      periodo: viewModel.ambiente.periodo ?? 60, // salto en minutos entre filas; si no existe asumimos 60 min
-      franjas: viewModel.horarios, // lista de intervalos disponibles por dia
+      horaApertura,
+      horaCierre,
+      periodo,
+      franjas: horarios,
     });
 
     // Componemos un nuevo view-model incluyendo la matriz calculada.

@@ -12,9 +12,6 @@ export interface AmbienteDetalleViewModel {
     activo: boolean;
     capacidad: { total: number; examen: number };
     dimension: { largo: number; ancho: number; alto: number; unid_med: string };
-    hora_apertura: string | null;
-    hora_cierre: string | null;
-    periodo: number | null;
     creado_en: string;
     actualizado_en: string;
   };

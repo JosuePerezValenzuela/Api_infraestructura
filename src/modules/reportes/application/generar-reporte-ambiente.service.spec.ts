@@ -100,9 +100,9 @@ describe('GenerarReporteAmbienteService', () => {
     expect(generador.generar_pdf).toHaveBeenCalledTimes(1);
     // Inspeccionamos el view-model con el que se llamo al generador para confirmar la matriz.
     const vm = generador.generar_pdf.mock.calls[0][0];
-    expect(vm.disponibilidadMatriz).toHaveLength(4); // 08:00, 08:30, 09:00, 09:30
+    expect(vm.disponibilidadMatriz).toHaveLength(3); // 08:00, 08:45, 09:30 con periodo 45
     expect(vm.disponibilidadMatriz[0].lunes).toBe(true);
-    expect(vm.disponibilidadMatriz[3].martes).toBe(true);
+    expect(vm.disponibilidadMatriz[1].martes).toBe(true);
   });
 
   it('genera Excel cuando se solicita formato excel', async () => {

@@ -168,7 +168,12 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
       ],
       ['Piso', view.ambiente.piso],
       ['Clases', view.ambiente.clases ? 'Si' : 'No'],
-      ['Periodo (min)', view.ambiente.periodo ?? '-'],
+      [
+        'Horario operacion',
+        view.horarios.length > 0
+          ? `${view.horarios[0].hora_inicio} - ${view.horarios[0].hora_fin}`
+          : 'Sin horario',
+      ],
     ];
 
     return {
@@ -288,12 +293,11 @@ export class ReporteAmbienteGeneradorAdapter implements ReporteAmbienteGenerador
       ['Piso', view.ambiente.piso],
       ['Clases', view.ambiente.clases ? 'Si' : 'No'],
       [
-        'Horario base',
-        `${view.ambiente.hora_apertura ?? '-'} - ${
-          view.ambiente.hora_cierre ?? '-'
-        }`,
+        'Horario operacion',
+        view.horarios.length > 0
+          ? `${view.horarios[0].hora_inicio} - ${view.horarios[0].hora_fin}`
+          : 'Sin horario',
       ],
-      ['Periodo (min)', view.ambiente.periodo ?? '-'],
     ];
     fichaRows.forEach((r) => {
       const row = sheet.addRow(r);

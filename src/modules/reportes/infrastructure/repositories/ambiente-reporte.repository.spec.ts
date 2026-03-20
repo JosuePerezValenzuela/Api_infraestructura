@@ -71,7 +71,7 @@ describe('AmbienteReporteRepositoryAdapter', () => {
     );
     expect(dataSource.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('FROM infraestructura.horarios'),
+      expect.stringContaining('FROM infraestructura.horarios_operacion'),
       [1],
     );
     expect(dataSource.query).toHaveBeenNthCalledWith(
