@@ -51,9 +51,6 @@ export interface AmbientItem {
   creado_en: string;
   tipo_ambiente_id: number;
   bloque_id: number;
-  hora_apertura?: string | null;
-  hora_cierre?: string | null;
-  periodo?: number | null;
 }
 
 export interface ListAmbientesResult {
