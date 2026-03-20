@@ -166,8 +166,8 @@ export class ReplaceHorariosUseCase {
   private buildInsertSql(total: number): string {
     const values = Array.from({ length: total })
       .map((_, index) => {
-        const base = index * 4;
-        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
+        const base = index * 5;
+        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
       })
       .join(', ');
 
