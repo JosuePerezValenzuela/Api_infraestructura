@@ -18,9 +18,6 @@ type HeaderRow = {
     alto?: number;
     unid_med?: string;
   } | null;
-  hora_apertura: string | null;
-  hora_cierre: string | null;
-  periodo: number | null;
   creado_en: Date | string;
   actualizado_en: Date | string;
   bloque_id: number;
@@ -62,9 +59,6 @@ export class AmbienteReporteRepositoryAdapter implements AmbienteReporteReposito
           a.activo,
           a.capacidad,
           a.dimension,
-          to_char(a.hora_apertura, 'HH24:MI') AS hora_apertura,
-          to_char(a.hora_cierre, 'HH24:MI') AS hora_cierre,
-          a.periodo,
           a.creado_en,
           a.actualizado_en,
           b.id AS bloque_id,
@@ -158,9 +152,6 @@ export class AmbienteReporteRepositoryAdapter implements AmbienteReporteReposito
           alto: Number(dimension.alto ?? 0),
           unid_med: dimension.unid_med ?? 'metros',
         },
-        hora_apertura: header.hora_apertura,
-        hora_cierre: header.hora_cierre,
-        periodo: header.periodo,
         creado_en: toIso(header.creado_en),
         actualizado_en: toIso(header.actualizado_en),
       },
