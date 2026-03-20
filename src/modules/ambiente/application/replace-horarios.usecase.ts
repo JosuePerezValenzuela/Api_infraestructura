@@ -4,25 +4,33 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import {
   AmbienteRepositoryPort,
   AmbienteRepositoryPort as AmbienteRepoToken,
 } from '../domain/ambiente.repository.port';
-import { UpdateAmbienteCommand } from '../domain/commands/update-ambiente.command';
+
+interface HorarioInput {
+  dia: number;
+  apertura: string;
+  cierre: string;
+}
 
 @Injectable()
 export class ReplaceHorariosUseCase {
   constructor(
     @Inject(AmbienteRepoToken)
     private readonly ambienteRepo: AmbienteRepositoryPort,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   async execute(input: {
     ambiente_id: number;
-    hora_apertura?: string | null;
-    hora_cierre?: string | null;
-    periodo?: number | null;
-  }): Promise<{ id: number }> {
+    periodo: number;
+    horarios: HorarioInput[];
+  }): Promise<{ ambiente_id: number; total: number }> {
     const ambiente = await this.ambienteRepo.findById(input.ambiente_id);
     if (!ambiente) {
       throw new NotFoundException({
@@ -44,103 +52,34 @@ export class ReplaceHorariosUseCase {
       });
     }
 
-    const horaApertura = this.validateOptionalTime(
-      'hora_apertura',
-      input.hora_apertura,
+    const periodo = this.validatePeriodo(input.periodo);
+    const validatedHorarios = input.horarios.map((h) =>
+      this.validateHorario(h),
     );
-    const horaCierre = this.validateOptionalTime(
-      'hora_cierre',
-      input.hora_cierre,
-    );
-    const periodo = this.validateOptionalPeriodo(input.periodo);
 
-    if (
-      horaApertura !== undefined &&
-      horaCierre !== undefined &&
-      horaApertura !== null &&
-      horaCierre !== null &&
-      !this.isStartBeforeEnd(horaApertura, horaCierre)
-    ) {
-      throw new BadRequestException({
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [
-          {
-            field: 'hora_apertura',
-            message: 'hora_apertura debe ser menor que hora_cierre',
-          },
-        ],
-      });
+    await this.dataSource.query(
+      'DELETE FROM infraestructura.horarios_operacion WHERE ambiente_id = $1',
+      [input.ambiente_id],
+    );
+
+    if (validatedHorarios.length === 0) {
+      return { ambiente_id: input.ambiente_id, total: 0 };
     }
 
-    const mustUpdateAmbiente =
-      horaApertura !== undefined ||
-      horaCierre !== undefined ||
-      periodo !== undefined;
+    const insertSql = this.buildInsertSql(validatedHorarios.length);
+    const params = this.buildInsertParams(
+      input.ambiente_id,
+      periodo,
+      validatedHorarios,
+    );
 
-    if (mustUpdateAmbiente) {
-      const updateCommand: UpdateAmbienteCommand = {
-        id: input.ambiente_id,
-      };
+    await this.dataSource.query(insertSql, params);
 
-      if (horaApertura !== undefined) {
-        updateCommand.hora_apertura = horaApertura;
-      }
-
-      if (horaCierre !== undefined) {
-        updateCommand.hora_cierre = horaCierre;
-      }
-
-      if (periodo !== undefined) {
-        updateCommand.periodo = periodo;
-      }
-
-      await this.ambienteRepo.update(updateCommand);
-    }
-
-    return { id: input.ambiente_id };
+    return { ambiente_id: input.ambiente_id, total: validatedHorarios.length };
   }
 
-  private validateOptionalTime(
-    field: 'hora_apertura' | 'hora_cierre',
-    value: string | null | undefined,
-  ): string | null | undefined {
-    if (value === undefined) {
-      return undefined;
-    }
-
-    if (value === null) {
-      return null;
-    }
-
-    if (!this.isValidTime(value)) {
-      throw new BadRequestException({
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [
-          {
-            field,
-            message: 'Debe tener formato HH:mm',
-          },
-        ],
-      });
-    }
-
-    return value;
-  }
-
-  private validateOptionalPeriodo(
-    value: number | null | undefined,
-  ): number | null | undefined {
-    if (value === undefined) {
-      return undefined;
-    }
-
-    if (value === null) {
-      return null;
-    }
-
-    if (!Number.isInteger(value) || value < 1) {
+  private validatePeriodo(value: number): number {
+    if (!Number.isInteger(value) || value <= 0) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
@@ -152,8 +91,63 @@ export class ReplaceHorariosUseCase {
         ],
       });
     }
-
     return value;
+  }
+
+  private validateHorario(horario: HorarioInput): HorarioInput {
+    if (!Number.isInteger(horario.dia) || horario.dia < 0 || horario.dia > 6) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'dia',
+            message: 'dia debe estar entre 0 (lunes) y 6 (domingo)',
+          },
+        ],
+      });
+    }
+
+    if (!this.isValidTime(horario.apertura)) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'apertura',
+            message: 'apertura debe tener formato HH:mm',
+          },
+        ],
+      });
+    }
+
+    if (!this.isValidTime(horario.cierre)) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'cierre',
+            message: 'cierre debe tener formato HH:mm',
+          },
+        ],
+      });
+    }
+
+    if (!this.isStartBeforeEnd(horario.apertura, horario.cierre)) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'apertura',
+            message: 'apertura debe ser menor que cierre',
+          },
+        ],
+      });
+    }
+
+    return horario;
   }
 
   private isValidTime(value: string): boolean {
@@ -167,5 +161,31 @@ export class ReplaceHorariosUseCase {
       return h * 60 + m;
     };
     return toMinutes(hora_inicio) < toMinutes(hora_fin);
+  }
+
+  private buildInsertSql(total: number): string {
+    const values = Array.from({ length: total })
+      .map((_, index) => {
+        const base = index * 4;
+        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
+      })
+      .join(', ');
+
+    return `
+      INSERT INTO infraestructura.horarios_operacion (ambiente_id, dia, hora_inicio, hora_fin, periodo)
+      VALUES ${values}
+    `;
+  }
+
+  private buildInsertParams(
+    ambiente_id: number,
+    periodo: number,
+    horarios: HorarioInput[],
+  ): Array<string | number> {
+    const params: Array<string | number> = [];
+    for (const h of horarios) {
+      params.push(ambiente_id, h.dia, h.apertura, h.cierre, periodo);
+    }
+    return params;
   }
 }

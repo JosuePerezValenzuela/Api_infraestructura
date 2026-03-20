@@ -1,42 +1,63 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Matches, Min } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsString,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+class HorarioDiaDto {
+  @ApiProperty({
+    description: 'Dia de la semana (0=lunes, 6=domingo)',
+    example: 0,
+    minimum: 0,
+    maximum: 6,
+  })
+  @IsInt({ message: 'dia debe ser un entero' })
+  @Min(0, { message: 'dia debe estar entre 0 y 6' })
+  @Max(6, { message: 'dia debe estar entre 0 y 6' })
+  dia!: number;
+
+  @ApiProperty({
+    description: 'Hora de apertura en formato HH:mm',
+    example: '06:45',
+  })
+  @IsString({ message: 'apertura debe ser texto' })
+  @Min(0)
+  apertura!: string;
+
+  @ApiProperty({
+    description: 'Hora de cierre en formato HH:mm',
+    example: '21:45',
+  })
+  @IsString({ message: 'cierre debe ser texto' })
+  @Min(0)
+  cierre!: string;
+}
 
 export class ReplaceHorariosDto {
   @ApiProperty({
-    description: 'Hora de apertura del ambiente en formato HH:mm',
-    example: '06:45',
-    required: false,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsString({ message: 'hora_apertura debe ser texto' })
-  @Matches(/^(?:[01]\d|2[0-3]):[0-5]\d$/, {
-    message: 'hora_apertura debe tener formato HH:mm',
-  })
-  hora_apertura?: string | null;
-
-  @ApiProperty({
-    description: 'Hora de cierre del ambiente en formato HH:mm',
-    example: '21:45',
-    required: false,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsString({ message: 'hora_cierre debe ser texto' })
-  @Matches(/^(?:[01]\d|2[0-3]):[0-5]\d$/, {
-    message: 'hora_cierre debe tener formato HH:mm',
-  })
-  hora_cierre?: string | null;
-
-  @ApiProperty({
-    description: 'Duracion base en minutos para bloques de horario',
+    description: 'Periodo en minutos (duracion de cada bloque)',
     example: 45,
     minimum: 1,
-    required: false,
-    nullable: true,
   })
-  @IsOptional()
-  @IsInt({ message: 'periodo debe ser un entero positivo' })
-  @Min(1, { message: 'periodo debe ser un entero positivo' })
-  periodo?: number | null;
+  @IsInt({ message: 'periodo debe ser un entero' })
+  @Min(1, { message: 'periodo debe ser positivo' })
+  periodo!: number;
+
+  @ApiProperty({
+    description: 'Lista de horarios de operacion por dia',
+    type: [HorarioDiaDto],
+    example: [
+      { dia: 0, apertura: '06:45', cierre: '21:45' },
+      { dia: 5, apertura: '06:45', cierre: '14:15' },
+    ],
+  })
+  @IsArray({ message: 'horarios debe ser un arreglo' })
+  @ValidateNested({ each: true })
+  @Type(() => HorarioDiaDto)
+  horarios!: HorarioDiaDto[];
 }

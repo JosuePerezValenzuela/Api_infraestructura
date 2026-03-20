@@ -355,12 +355,14 @@ export class AmbienteController {
   @Put(':id/horarios')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Reemplazar todas las franjas horarias de un ambiente',
+    summary: 'Reemplazar horarios de operacion de un ambiente',
   })
   @ApiBody({ type: ReplaceHorariosDto })
   @ApiOkResponse({
-    description: 'Horarios actualizados',
-    schema: { example: { id: 1 } },
+    description: 'Horarios de operacion actualizados',
+    schema: {
+      example: { ambiente_id: 5, total: 2 },
+    },
   })
   @ApiBadRequestResponse({
     description: 'Datos invalidos o ambiente inactivo',
@@ -370,8 +372,8 @@ export class AmbienteController {
         message: 'Los datos enviados no son validos',
         details: [
           {
-            field: 'franjas',
-            message: 'hora_inicio debe ser menor que hora_fin',
+            field: 'dia',
+            message: 'dia debe estar entre 0 (lunes) y 6 (domingo)',
           },
         ],
       },
@@ -387,15 +389,15 @@ export class AmbienteController {
     },
   })
   @ApiConflictResponse({
-    description: 'Traslape de franjas u otra restriccion de BD',
+    description: 'Dia duplicado u otra restriccion de BD',
     schema: {
       example: {
         error: 'CONFLICT_ERROR',
         message: 'Los datos enviados no son validos',
         details: [
           {
-            field: 'franjas',
-            message: 'Las franjas se traslapan o violan una restriccion unica',
+            field: 'horarios',
+            message: 'Ya existe un horario para el dia especificado',
           },
         ],
       },
@@ -407,9 +409,12 @@ export class AmbienteController {
   ) {
     const result = await this.replaceHorarios.execute({
       ambiente_id: id,
-      hora_apertura: dto.hora_apertura,
-      hora_cierre: dto.hora_cierre,
       periodo: dto.periodo,
+      horarios: dto.horarios.map((h) => ({
+        dia: h.dia,
+        apertura: h.apertura,
+        cierre: h.cierre,
+      })),
     });
     return result;
   }

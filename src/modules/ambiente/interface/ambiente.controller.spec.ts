@@ -38,7 +38,7 @@ type UpdateUseCaseMock = {
   execute: jest.Mock<Promise<{ id: number }>, [any]>;
 };
 type ReplaceUseCaseMock = {
-  execute: jest.Mock<Promise<{ id: number }>, [any]>;
+  execute: jest.Mock<Promise<{ ambiente_id: number; total: number }>, [any]>;
 };
 type ListHorariosUseCaseMock = {
   execute: jest.Mock<Promise<any>, [any]>;
@@ -339,38 +339,42 @@ describe('AmbienteController', () => {
     });
   });
   describe('replaceHorariosHandler', () => {
-    it('llama al caso de uso para actualizar hora_apertura, hora_cierre y periodo', async () => {
-      replaceUseCase.execute.mockResolvedValue({ id: 9 });
+    it('llama al caso de uso para reemplazar horarios de operacion', async () => {
+      replaceUseCase.execute.mockResolvedValue({ ambiente_id: 9, total: 2 });
       const dto: ReplaceHorariosDto = {
-        hora_apertura: '07:00',
-        hora_cierre: '21:00',
-        periodo: 90,
+        periodo: 45,
+        horarios: [
+          { dia: 0, apertura: '06:45', cierre: '21:45' },
+          { dia: 5, apertura: '06:45', cierre: '14:15' },
+        ],
       };
 
       const result = await controller.replaceHorariosHandler(9, dto);
 
-      expect(replaceUseCase.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          ambiente_id: 9,
-          hora_apertura: '07:00',
-          hora_cierre: '21:00',
-          periodo: 90,
-        }),
-      );
-      expect(result).toEqual({ id: 9 });
+      expect(replaceUseCase.execute).toHaveBeenCalledWith({
+        ambiente_id: 9,
+        periodo: 45,
+        horarios: [
+          { dia: 0, apertura: '06:45', cierre: '21:45' },
+          { dia: 5, apertura: '06:45', cierre: '14:15' },
+        ],
+      });
+      expect(result).toEqual({ ambiente_id: 9, total: 2 });
     });
 
-    it('actualiza solo los campos enviados', async () => {
-      replaceUseCase.execute.mockResolvedValue({ id: 5 });
+    it('permite lista vacia para borrar todos los horarios', async () => {
+      replaceUseCase.execute.mockResolvedValue({ ambiente_id: 5, total: 0 });
       const dto: ReplaceHorariosDto = {
-        hora_apertura: '08:00',
+        periodo: 45,
+        horarios: [],
       };
 
       await controller.replaceHorariosHandler(5, dto);
 
       expect(replaceUseCase.execute).toHaveBeenCalledWith({
         ambiente_id: 5,
-        hora_apertura: '08:00',
+        periodo: 45,
+        horarios: [],
       });
     });
 
@@ -379,7 +383,8 @@ describe('AmbienteController', () => {
         new BadRequestException('horario inválido'),
       );
       const dto: ReplaceHorariosDto = {
-        hora_apertura: '25:00',
+        periodo: 45,
+        horarios: [{ dia: 7, apertura: '06:45', cierre: '21:45' }],
       };
 
       await expect(

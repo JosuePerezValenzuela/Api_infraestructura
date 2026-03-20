@@ -2,11 +2,8 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ReplaceHorariosUseCase } from './replace-horarios.usecase';
 import { AmbienteRepositoryPort } from '../domain/ambiente.repository.port';
 import { AmbientItem } from '../domain/ambiente.list.types';
-import { UpdateAmbienteCommand } from '../domain/commands/update-ambiente.command';
 
 class AmbienteRepoStub implements AmbienteRepositoryPort {
-  public lastUpdateCommand: UpdateAmbienteCommand | null = null;
-
   constructor(private readonly fixtures: Record<number, AmbientItem | null>) {}
 
   async create(): Promise<{ id: number }> {
@@ -40,231 +37,219 @@ class AmbienteRepoStub implements AmbienteRepositoryPort {
 
   async deleteAssets(): Promise<void> {}
 
-  async update(command: UpdateAmbienteCommand): Promise<{ id: number }> {
-    this.lastUpdateCommand = command;
-    return { id: command.id };
+  async update(): Promise<{ id: number }> {
+    return { id: 0 };
+  }
+}
+
+class DataSourceStub {
+  queries: Array<{ sql: string; params: unknown[] }> = [];
+
+  async query(sql: string, params: unknown[] = []) {
+    this.queries.push({ sql, params });
+    if (sql.includes('DELETE FROM infraestructura.horarios_operacion')) {
+      return { rowCount: 0 };
+    }
+    if (sql.includes('INSERT INTO infraestructura.horarios_operacion')) {
+      return { rowCount: params.length / 4 };
+    }
+    return [];
   }
 }
 
 describe('ReplaceHorariosUseCase', () => {
-  it('actualiza hora_apertura, hora_cierre y periodo cuando el ambiente existe y esta activo', async () => {
-    const ambienteActivo: AmbientItem = {
-      id: 5,
-      codigo: 'A-1',
-      nombre: 'Aula',
-      nombre_corto: null,
-      piso: 1,
-      capacidad: { total: 10, examen: 10 },
-      dimension: { largo: 1, ancho: 1, alto: 1, unid_med: 'metros' },
-      clases: true,
-      activo: true,
-      creado_en: '2024-01-01',
-      tipo_ambiente_id: 1,
-      bloque_id: 1,
-    };
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-    const ambienteRepo = new AmbienteRepoStub({ 5: ambienteActivo });
-    const useCase = new ReplaceHorariosUseCase(ambienteRepo as any);
+  it('reemplaza todos los horarios de operacion cuando el ambiente existe y esta activo', async () => {
+    const ambienteRepo = new AmbienteRepoStub({
+      5: { id: 5, nombre: 'Aula 101', activo: true } as AmbientItem,
+    });
+    const dataSource = new DataSourceStub();
+
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
 
     const result = await useCase.execute({
       ambiente_id: 5,
-      hora_apertura: '07:00',
-      hora_cierre: '21:00',
-      periodo: 90,
+      periodo: 45,
+      horarios: [
+        { dia: 0, apertura: '06:45', cierre: '21:45' },
+        { dia: 5, apertura: '06:45', cierre: '14:15' },
+      ],
     });
 
-    expect(result).toEqual({ id: 5 });
-    expect(ambienteRepo.lastUpdateCommand).toEqual({
-      id: 5,
-      hora_apertura: '07:00',
-      hora_cierre: '21:00',
-      periodo: 90,
-    });
-  });
-
-  it('actualiza solo los campos enviados (parcial)', async () => {
-    const ambienteActivo: AmbientItem = {
-      id: 6,
-      codigo: 'A-2',
-      nombre: 'Aula',
-      nombre_corto: null,
-      piso: 1,
-      capacidad: { total: 10, examen: 10 },
-      dimension: { largo: 1, ancho: 1, alto: 1, unid_med: 'metros' },
-      clases: true,
-      activo: true,
-      creado_en: '2024-01-01',
-      tipo_ambiente_id: 1,
-      bloque_id: 1,
-    };
-
-    const ambienteRepo = new AmbienteRepoStub({ 6: ambienteActivo });
-    const useCase = new ReplaceHorariosUseCase(ambienteRepo as any);
-
-    await useCase.execute({
-      ambiente_id: 6,
-      hora_apertura: '08:00',
-    });
-
-    expect(ambienteRepo.lastUpdateCommand).toEqual({
-      id: 6,
-      hora_apertura: '08:00',
-    });
+    expect(result).toEqual({ ambiente_id: 5, total: 2 });
+    expect(dataSource.queries[0].sql).toContain(
+      'DELETE FROM infraestructura.horarios_operacion',
+    );
+    expect(dataSource.queries[1].sql).toContain(
+      'INSERT INTO infraestructura.horarios_operacion',
+    );
   });
 
   it('lanza NotFound si el ambiente no existe', async () => {
     const ambienteRepo = new AmbienteRepoStub({});
-    const useCase = new ReplaceHorariosUseCase(ambienteRepo as any);
+    const dataSource = new DataSourceStub();
+
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
 
     await expect(
       useCase.execute({
         ambiente_id: 999,
-        hora_apertura: '07:00',
+        periodo: 45,
+        horarios: [{ dia: 0, apertura: '06:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('lanza BadRequest si el ambiente esta inactivo', async () => {
-    const ambienteInactivo: AmbientItem = {
-      id: 2,
-      codigo: 'B-1',
-      nombre: 'Sala',
-      nombre_corto: null,
-      piso: 1,
-      capacidad: { total: 10, examen: 10 },
-      dimension: { largo: 1, ancho: 1, alto: 1, unid_med: 'metros' },
-      clases: true,
-      activo: false,
-      creado_en: '2024-01-01',
-      tipo_ambiente_id: 1,
-      bloque_id: 1,
-    };
+    const ambienteRepo = new AmbienteRepoStub({
+      2: { id: 2, nombre: 'Sala', activo: false } as AmbientItem,
+    });
+    const dataSource = new DataSourceStub();
 
-    const ambienteRepo = new AmbienteRepoStub({ 2: ambienteInactivo });
-    const useCase = new ReplaceHorariosUseCase(ambienteRepo as any);
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
 
     await expect(
       useCase.execute({
         ambiente_id: 2,
-        hora_apertura: '07:00',
+        periodo: 45,
+        horarios: [{ dia: 0, apertura: '06:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('valida formato HH:mm en hora_apertura', async () => {
-    const ambienteActivo: AmbientItem = {
-      id: 3,
-      codigo: 'A-3',
-      nombre: 'Lab',
-      nombre_corto: null,
-      piso: 1,
-      capacidad: { total: 10, examen: 10 },
-      dimension: { largo: 1, ancho: 1, alto: 1, unid_med: 'metros' },
-      clases: true,
-      activo: true,
-      creado_en: '2024-01-01',
-      tipo_ambiente_id: 1,
-      bloque_id: 1,
-    };
+  it('valida que dia este entre 0 y 6', async () => {
+    const ambienteRepo = new AmbienteRepoStub({
+      1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
+    });
+    const dataSource = new DataSourceStub();
 
-    const ambienteRepo = new AmbienteRepoStub({ 3: ambienteActivo });
-    const useCase = new ReplaceHorariosUseCase(ambienteRepo as any);
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
 
     await expect(
       useCase.execute({
-        ambiente_id: 3,
-        hora_apertura: '7:00',
+        ambiente_id: 1,
+        periodo: 45,
+        horarios: [{ dia: 7, apertura: '06:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('valida formato HH:mm en hora_cierre', async () => {
-    const ambienteActivo: AmbientItem = {
-      id: 4,
-      codigo: 'A-4',
-      nombre: 'Lab',
-      nombre_corto: null,
-      piso: 1,
-      capacidad: { total: 10, examen: 10 },
-      dimension: { largo: 1, ancho: 1, alto: 1, unid_med: 'metros' },
-      clases: true,
-      activo: true,
-      creado_en: '2024-01-01',
-      tipo_ambiente_id: 1,
-      bloque_id: 1,
-    };
+  it('valida que hora_inicio sea menor que hora_fin', async () => {
+    const ambienteRepo = new AmbienteRepoStub({
+      1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
+    });
+    const dataSource = new DataSourceStub();
 
-    const ambienteRepo = new AmbienteRepoStub({ 4: ambienteActivo });
-    const useCase = new ReplaceHorariosUseCase(ambienteRepo as any);
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
 
     await expect(
       useCase.execute({
-        ambiente_id: 4,
-        hora_cierre: '9pm',
+        ambiente_id: 1,
+        periodo: 45,
+        horarios: [{ dia: 0, apertura: '21:45', cierre: '06:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('valida que hora_apertura sea menor que hora_cierre cuando ambos existen', async () => {
-    const ambienteActivo: AmbientItem = {
-      id: 5,
-      codigo: 'A-5',
-      nombre: 'Aula',
-      nombre_corto: null,
-      piso: 1,
-      capacidad: { total: 10, examen: 10 },
-      dimension: { largo: 1, ancho: 1, alto: 1, unid_med: 'metros' },
-      clases: true,
-      activo: true,
-      creado_en: '2024-01-01',
-      tipo_ambiente_id: 1,
-      bloque_id: 1,
-    };
+  it('valida formato HH:mm en apertura', async () => {
+    const ambienteRepo = new AmbienteRepoStub({
+      1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
+    });
+    const dataSource = new DataSourceStub();
 
-    const ambienteRepo = new AmbienteRepoStub({ 5: ambienteActivo });
-    const useCase = new ReplaceHorariosUseCase(ambienteRepo as any);
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
 
     await expect(
       useCase.execute({
-        ambiente_id: 5,
-        hora_apertura: '18:00',
-        hora_cierre: '17:00',
+        ambiente_id: 1,
+        periodo: 45,
+        horarios: [{ dia: 0, apertura: '6:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('permite null para limpiar campos', async () => {
-    const ambienteActivo: AmbientItem = {
-      id: 6,
-      codigo: 'A-6',
-      nombre: 'Aula',
-      nombre_corto: null,
-      piso: 1,
-      capacidad: { total: 10, examen: 10 },
-      dimension: { largo: 1, ancho: 1, alto: 1, unid_med: 'metros' },
-      clases: true,
-      activo: true,
-      creado_en: '2024-01-01',
-      tipo_ambiente_id: 1,
-      bloque_id: 1,
-      hora_apertura: '07:00',
-      hora_cierre: '21:00',
-    };
+  it('valida formato HH:mm en cierre', async () => {
+    const ambienteRepo = new AmbienteRepoStub({
+      1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
+    });
+    const dataSource = new DataSourceStub();
 
-    const ambienteRepo = new AmbienteRepoStub({ 6: ambienteActivo });
-    const useCase = new ReplaceHorariosUseCase(ambienteRepo as any);
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
+
+    await expect(
+      useCase.execute({
+        ambiente_id: 1,
+        periodo: 45,
+        horarios: [{ dia: 0, apertura: '06:45', cierre: '9pm' }],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('valida periodo entero positivo', async () => {
+    const ambienteRepo = new AmbienteRepoStub({
+      1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
+    });
+    const dataSource = new DataSourceStub();
+
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
+
+    await expect(
+      useCase.execute({
+        ambiente_id: 1,
+        periodo: -5,
+        horarios: [{ dia: 0, apertura: '06:45', cierre: '21:45' }],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('permite horario vacio para borrar todos los horarios', async () => {
+    const ambienteRepo = new AmbienteRepoStub({
+      1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
+    });
+    const dataSource = new DataSourceStub();
+
+    const useCase = new ReplaceHorariosUseCase(
+      ambienteRepo as any,
+      dataSource as any,
+    );
 
     const result = await useCase.execute({
-      ambiente_id: 6,
-      hora_apertura: null,
-      hora_cierre: null,
+      ambiente_id: 1,
+      periodo: 45,
+      horarios: [],
     });
 
-    expect(result).toEqual({ id: 6 });
-    expect(ambienteRepo.lastUpdateCommand).toEqual({
-      id: 6,
-      hora_apertura: null,
-      hora_cierre: null,
-    });
+    expect(result).toEqual({ ambiente_id: 1, total: 0 });
+    expect(dataSource.queries[0].sql).toContain(
+      'DELETE FROM infraestructura.horarios_operacion',
+    );
+    expect(dataSource.queries.length).toBe(1);
   });
 });
