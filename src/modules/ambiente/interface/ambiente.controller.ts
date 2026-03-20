@@ -353,7 +353,7 @@ export class AmbienteController {
   @ApiBody({ type: ReplaceHorariosDto })
   @ApiOkResponse({
     description: 'Horarios actualizados',
-    schema: { example: { ambiente_id: 1, total: 2 } },
+    schema: { example: { id: 1 } },
   })
   @ApiBadRequestResponse({
     description: 'Datos invalidos o ambiente inactivo',
