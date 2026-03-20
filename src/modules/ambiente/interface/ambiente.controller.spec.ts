@@ -188,11 +188,15 @@ describe('AmbienteController', () => {
   });
 
   describe('listHorarios', () => {
-    it('retorna hora_apertura, hora_cierre y periodo del ambiente', async () => {
+    it('retorna horarios de operacion del ambiente por dia', async () => {
       const dtoResult = {
-        hora_apertura: '07:00',
-        hora_cierre: '21:00',
-        periodo: 90,
+        ambiente_id: 5,
+        ambiente_nombre: 'Aula 101',
+        periodo: 45,
+        horarios: [
+          { dia: 0, nombre_dia: 'Lunes', apertura: '06:45', cierre: '21:45' },
+          { dia: 5, nombre_dia: 'Sabado', apertura: '06:45', cierre: '14:15' },
+        ],
       };
       listHorariosUseCase.execute.mockResolvedValue(dtoResult);
 
