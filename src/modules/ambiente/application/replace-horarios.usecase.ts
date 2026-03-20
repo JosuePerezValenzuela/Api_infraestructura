@@ -163,6 +163,19 @@ export class ReplaceHorariosUseCase {
       });
     }
 
+    if (!this.isMultipleOfPeriod(horario.cierre, periodo)) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'cierre',
+            message: `cierre debe ser múltiplo del periodo (${periodo} min)`,
+          },
+        ],
+      });
+    }
+
     return horario;
   }
 
