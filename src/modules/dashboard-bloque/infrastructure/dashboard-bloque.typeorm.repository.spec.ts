@@ -62,62 +62,6 @@ describe('DashboardBloqueTypeormRepository.getGlobalDashboard', () => {
     const activosPorBloqueRows = [
       { bloque_id: 100, bloque_nombre: 'Bloque A', activos_asignados: 40 },
     ];
-    const heatmapRows = [
-      {
-        dia: 1,
-        franja: '08:00-08:45',
-        slots_ocupados: 12,
-        slots_totales: 20,
-        pct_ocupacion: 60,
-      },
-    ];
-    const ocupacionPorBloqueRows = [
-      {
-        bloque_id: 100,
-        bloque_nombre: 'Bloque A',
-        slots_ocupados: 50,
-        slots_totales: 100,
-        pct_ocupacion: 50,
-      },
-    ];
-    const topBloquesHighRows = [
-      {
-        bloque_id: 100,
-        bloque_nombre: 'Bloque A',
-        pct_ocupacion: 88,
-        slots_ocupados: 88,
-        slots_totales: 100,
-      },
-    ];
-    const topBloquesLowRows = [
-      {
-        bloque_id: 101,
-        bloque_nombre: 'Bloque B',
-        pct_ocupacion: 12,
-        slots_ocupados: 12,
-        slots_totales: 100,
-      },
-    ];
-    const topPisosHighRows = [
-      {
-        bloque_id: 100,
-        bloque_nombre: 'Bloque A',
-        piso: 2,
-        pct_ocupacion: 90,
-        slots_ocupados: 90,
-        slots_totales: 100,
-      },
-    ];
-    const topPisosLowRows = [
-      {
-        bloque_id: 101,
-        bloque_nombre: 'Bloque B',
-        piso: 0,
-        pct_ocupacion: 10,
-        slots_ocupados: 10,
-        slots_totales: 100,
-      },
-    ];
     const resumenBloquesRows = [
       {
         bloque_id: 100,
@@ -131,23 +75,6 @@ describe('DashboardBloqueTypeormRepository.getGlobalDashboard', () => {
         capacidad_total: 200,
         capacidad_examen: 120,
         activos_asignados: 40,
-        slots_ocupados: 50,
-        slots_totales: 100,
-        pct_ocupacion: 50,
-      },
-    ];
-    const pisosUtilizacionRows = [
-      {
-        bloque_id: 100,
-        bloque_nombre: 'Bloque A',
-        piso: 2,
-        ambientes: 3,
-        capacidad_total: 80,
-        capacidad_examen: 45,
-        activos_asignados: 12,
-        slots_ocupados: 90,
-        slots_totales: 100,
-        pct_ocupacion: 90,
       },
     ];
 
@@ -162,16 +89,7 @@ describe('DashboardBloqueTypeormRepository.getGlobalDashboard', () => {
       capacidadPorBloqueRows,
     );
     (dataSource.query as jest.Mock).mockResolvedValueOnce(activosPorBloqueRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(heatmapRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(
-      ocupacionPorBloqueRows,
-    );
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(topBloquesHighRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(topBloquesLowRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(topPisosHighRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(topPisosLowRows);
     (dataSource.query as jest.Mock).mockResolvedValueOnce(resumenBloquesRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(pisosUtilizacionRows);
 
     const repo = new DashboardBloqueTypeormRepository(
       dataSource as unknown as DataSource,
@@ -183,8 +101,6 @@ describe('DashboardBloqueTypeormRepository.getGlobalDashboard', () => {
       bloqueIds: [100, 101],
       tipoBloqueIds: [1],
       includeInactive: true,
-      slotMinutes: 45,
-      dias: [1, 2, 3, 4, 5],
     };
 
     const result = await repo.getGlobalDashboard(filters);
@@ -202,27 +118,40 @@ describe('DashboardBloqueTypeormRepository.getGlobalDashboard', () => {
       asignados: 50,
       noAsignadosGlobal: 7,
     });
-    expect(result.data.kpis.ocupacion).toEqual({ pctPromedioGlobal: 50 });
 
     expect(result.data.charts.tiposBloque[0]).toEqual({
       tipoBloqueId: 1,
       tipoBloqueNombre: 'Academico',
       cantidad: 2,
     });
-    expect(
-      result.data.charts.topPisosUtilizacion.sobrecargadosTop10[0],
-    ).toEqual({
+    expect(result.data.charts.ambientesPorBloque[0]).toEqual({
       bloqueId: 100,
       bloqueNombre: 'Bloque A',
-      piso: 2,
-      pctOcupacion: 90,
-      slotsOcupados: 90,
-      slotsTotales: 100,
+      ambientes: 6,
     });
-    expect(result.data.tables.pisosUtilizacion[0]).toMatchObject({
+    expect(result.data.charts.capacidadPorBloque[0]).toEqual({
       bloqueId: 100,
-      piso: 2,
-      pctOcupacion: 90,
+      bloqueNombre: 'Bloque A',
+      capacidadTotal: 200,
+      capacidadExamen: 120,
+    });
+    expect(result.data.charts.activosPorBloque[0]).toEqual({
+      bloqueId: 100,
+      bloqueNombre: 'Bloque A',
+      activosAsignados: 40,
+    });
+    expect(result.data.tables.resumenBloques[0]).toMatchObject({
+      bloqueId: 100,
+      bloqueNombre: 'Bloque A',
+      campusNombre: 'Central',
+      facultadNombre: 'Ingenieria',
+      tipoBloqueNombre: 'Academico',
+      pisos: 4,
+      activo: true,
+      ambientes: 6,
+      capacidadTotal: 200,
+      capacidadExamen: 120,
+      activosAsignados: 40,
     });
   });
 });

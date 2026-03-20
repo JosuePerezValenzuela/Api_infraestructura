@@ -21,31 +21,17 @@ describe('DashboardBloqueQueryMapper', () => {
       bloqueIds: [100, 101],
       tipoBloqueIds: [1, 2],
       includeInactive: true,
-      slotMinutes: 45,
-      dias: [0, 1, 2, 3, 4, 5, 6],
     });
   });
 
-  it('convierte includeInactive, slotMinutes y dias', () => {
+  it('convierte includeInactive', () => {
     const filters = mapper.toGlobalFilters({
       includeInactive: 'false',
-      slotMinutes: '60',
-      dias: '1,2,3,4,5',
     });
 
     expect(filters).toMatchObject({
       includeInactive: false,
-      slotMinutes: 60,
-      dias: [1, 2, 3, 4, 5],
     });
-  });
-
-  it('acepta slotMinutes=90 como valor valido', () => {
-    const filters = mapper.toGlobalFilters({
-      slotMinutes: '90',
-    });
-
-    expect(filters.slotMinutes).toBe(90);
   });
 
   it('lanza VALIDATION_ERROR cuando bloqueIds no es CSV valido', () => {

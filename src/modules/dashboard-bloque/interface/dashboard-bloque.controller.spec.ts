@@ -30,8 +30,6 @@ describe('DashboardBloqueController', () => {
         bloqueIds: [100, 101],
         tipoBloqueIds: [2],
         includeInactive: true,
-        slotMinutes: 45,
-        dias: [0, 1, 2, 3, 4, 5, 6],
       },
       layout: { mode: 'global' as const },
       data: { kpis: {}, charts: {}, tables: {} },
@@ -52,21 +50,7 @@ describe('DashboardBloqueController', () => {
       bloqueIds: [100, 101],
       tipoBloqueIds: [2],
       includeInactive: true,
-      slotMinutes: 45,
-      dias: [0, 1, 2, 3, 4, 5, 6],
     });
     expect(response).toEqual(mockResult);
-  });
-
-  it('lanza VALIDATION_ERROR cuando slotMinutes no es permitido', async () => {
-    await expect(
-      controller.getGlobalDashboard({ slotMinutes: '50' }),
-    ).rejects.toMatchObject({
-      response: {
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-      },
-      status: 400,
-    });
   });
 });

@@ -53,20 +53,6 @@ export class DashboardBloqueController {
     example: true,
     schema: { default: true },
   })
-  @ApiQuery({
-    name: 'slotMinutes',
-    required: false,
-    description: 'Tamano de slot para ocupacion (15,30,45,60,90). Default 45',
-    example: 45,
-    schema: { default: 45 },
-  })
-  @ApiQuery({
-    name: 'dias',
-    required: false,
-    description:
-      'Dias separados por coma (0=lunes ... 6=domingo). Default 0,1,2,3,4,5,6',
-    example: '1,2,3,4,5',
-  })
   @ApiOkResponse({
     description: 'Dashboard global de bloques con KPIs, charts y tablas',
     schema: {
@@ -78,8 +64,6 @@ export class DashboardBloqueController {
           bloqueIds: [100, 101],
           tipoBloqueIds: [2],
           includeInactive: true,
-          slotMinutes: 45,
-          dias: [1, 2, 3, 4, 5],
         },
         layout: { mode: 'global' },
         data: {
@@ -90,7 +74,6 @@ export class DashboardBloqueController {
             ambientes: { activos: 42, inactivos: 5 },
             capacidad: { total: 2200, examen: 1260 },
             activos: { asignados: 280, noAsignadosGlobal: 17 },
-            ocupacion: { pctPromedioGlobal: 64.5 },
           },
           charts: {
             tiposBloque: [
@@ -114,66 +97,6 @@ export class DashboardBloqueController {
                 activosAsignados: 68,
               },
             ],
-            ocupacionHeatmapSemanal: [
-              {
-                dia: 1,
-                franja: '08:00-08:45',
-                slotsOcupados: 35,
-                slotsTotales: 54,
-                pctOcupacion: 64.81,
-              },
-            ],
-            ocupacionPorBloque: [
-              {
-                bloqueId: 100,
-                bloqueNombre: 'Bloque A',
-                slotsOcupados: 210,
-                slotsTotales: 320,
-                pctOcupacion: 65.63,
-              },
-            ],
-            topBloquesUtilizacion: {
-              sobrecargadosTop10: [
-                {
-                  bloqueId: 100,
-                  bloqueNombre: 'Bloque A',
-                  pctOcupacion: 89.5,
-                  slotsOcupados: 179,
-                  slotsTotales: 200,
-                },
-              ],
-              subutilizadosTop10: [
-                {
-                  bloqueId: 101,
-                  bloqueNombre: 'Bloque B',
-                  pctOcupacion: 14.2,
-                  slotsOcupados: 28,
-                  slotsTotales: 197,
-                },
-              ],
-            },
-            topPisosUtilizacion: {
-              sobrecargadosTop10: [
-                {
-                  bloqueId: 100,
-                  bloqueNombre: 'Bloque A',
-                  piso: 2,
-                  pctOcupacion: 91.2,
-                  slotsOcupados: 114,
-                  slotsTotales: 125,
-                },
-              ],
-              subutilizadosTop10: [
-                {
-                  bloqueId: 101,
-                  bloqueNombre: 'Bloque B',
-                  piso: 0,
-                  pctOcupacion: 11.1,
-                  slotsOcupados: 9,
-                  slotsTotales: 81,
-                },
-              ],
-            },
           },
           tables: {
             resumenBloques: [
@@ -189,23 +112,6 @@ export class DashboardBloqueController {
                 capacidadTotal: 540,
                 capacidadExamen: 300,
                 activosAsignados: 68,
-                slotsOcupados: 210,
-                slotsTotales: 320,
-                pctOcupacion: 65.63,
-              },
-            ],
-            pisosUtilizacion: [
-              {
-                bloqueId: 100,
-                bloqueNombre: 'Bloque A',
-                piso: 2,
-                ambientes: 4,
-                capacidadTotal: 180,
-                capacidadExamen: 100,
-                activosAsignados: 26,
-                slotsOcupados: 114,
-                slotsTotales: 125,
-                pctOcupacion: 91.2,
               },
             ],
           },
@@ -219,7 +125,7 @@ export class DashboardBloqueController {
       example: {
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
-        details: [{ field: 'slotMinutes', message: 'Mensaje de validacion' }],
+        details: [{ field: 'bloqueIds', message: 'Mensaje de validacion' }],
       },
     },
   })
