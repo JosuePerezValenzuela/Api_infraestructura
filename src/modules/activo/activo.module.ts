@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ActivoController } from './interface/activo.controller';
 import { ListActivosUseCase } from './application/list-activos.usecase';
 import { CreateActivoUseCase } from './application/create-activo.usecase';
@@ -12,7 +12,7 @@ import { UpsertActivoByNiaUseCase } from './application/upsert-activo-by-nia.use
 import { GetActivoByNiaUseCase } from './application/get-activo-by-nia.usecase';
 
 @Module({
-  imports: [AmbienteModule],
+  imports: [forwardRef(() => AmbienteModule)],
   controllers: [ActivoController],
   providers: [
     ListActivosUseCase,

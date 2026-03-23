@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AmbienteController } from './interface/ambiente.controller';
 import { CreateAmbienteUseCase } from './application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from './application/list-ambientes.usecase';
@@ -19,7 +19,7 @@ import { TipoAmbienteModule } from '../tipo-ambiente/tipo-ambiente.module';
 import { ActivoModule } from '../activo/activo.module';
 
 @Module({
-  imports: [BloqueModule, TipoAmbienteModule, ActivoModule],
+  imports: [BloqueModule, TipoAmbienteModule, forwardRef(() => ActivoModule)],
   controllers: [AmbienteController],
   providers: [
     CreateAmbienteUseCase,

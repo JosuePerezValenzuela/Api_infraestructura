@@ -14,6 +14,8 @@ import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
 import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase';
 import { ListAmbienteHorariosUseCase } from '../application/list-ambiente-horarios.usecase';
+import { GetAmbienteCompletoUseCase } from '../application/get-ambiente-completo.usecase';
+import { GetAmbienteCompletoResult } from '../application/get-ambiente-completo.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 import { ListAmbientesDisponiblesQueryDto } from './dto/list-ambientes-disponibles-query.dto';
@@ -43,6 +45,9 @@ type ReplaceUseCaseMock = {
 type ListHorariosUseCaseMock = {
   execute: jest.Mock<Promise<any>, [any]>;
 };
+type GetAmbienteCompletoUseCaseMock = {
+  execute: jest.Mock<Promise<GetAmbienteCompletoResult>, [any]>;
+};
 
 describe('AmbienteController', () => {
   let controller: AmbienteController;
@@ -53,6 +58,7 @@ describe('AmbienteController', () => {
   let updateUseCase: UpdateUseCaseMock;
   let replaceUseCase: ReplaceUseCaseMock;
   let listHorariosUseCase: ListHorariosUseCaseMock;
+  let getAmbienteCompletoUseCase: GetAmbienteCompletoUseCaseMock;
 
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
@@ -62,6 +68,7 @@ describe('AmbienteController', () => {
     updateUseCase = { execute: jest.fn() };
     replaceUseCase = { execute: jest.fn() };
     listHorariosUseCase = { execute: jest.fn() };
+    getAmbienteCompletoUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AmbienteController],
@@ -76,6 +83,10 @@ describe('AmbienteController', () => {
         { provide: DeleteAmbienteUseCase, useValue: deleteUseCase },
         { provide: UpdateAmbienteUseCase, useValue: updateUseCase },
         { provide: ReplaceHorariosUseCase, useValue: replaceUseCase },
+        {
+          provide: GetAmbienteCompletoUseCase,
+          useValue: getAmbienteCompletoUseCase,
+        },
       ],
     }).compile();
 
