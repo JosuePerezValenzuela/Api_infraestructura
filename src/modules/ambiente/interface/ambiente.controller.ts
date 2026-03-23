@@ -31,6 +31,7 @@ import { ListAmbienteHorariosUseCase } from '../application/list-ambiente-horari
 import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
 import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase';
+import { GetAmbienteCompletoUseCase } from '../application/get-ambiente-completo.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 import { ListAmbientesDisponiblesQueryDto } from './dto/list-ambientes-disponibles-query.dto';
@@ -48,6 +49,7 @@ export class AmbienteController {
     private readonly deleteAmbiente: DeleteAmbienteUseCase,
     private readonly updateAmbiente: UpdateAmbienteUseCase,
     private readonly replaceHorarios: ReplaceHorariosUseCase,
+    private readonly getAmbienteCompleto: GetAmbienteCompletoUseCase,
   ) {}
 
   @Get()
@@ -220,6 +222,100 @@ export class AmbienteController {
   })
   async listHorarios(@Param('id', ParseIntPipe) id: number) {
     return this.listAmbienteHorarios.execute({ ambiente_id: id });
+  }
+
+  @Get(':id/detalle')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener detalle completo de un ambiente',
+    description:
+      'Devuelve toda la informacion del ambiente incluyendo horarios de operacion y activos asociados',
+  })
+  @ApiOkResponse({
+    description: 'Detalle del ambiente con horarios y activos',
+    schema: {
+      example: {
+        ambiente: {
+          id: 5,
+          codigo: 'AULA-101',
+          nombre: 'Aula 101',
+          nombre_corto: 'A101',
+          piso: 1,
+          capacidad: { total: 30, examen: 25 },
+          dimension: { largo: 10, ancho: 8, alto: 3, unid_med: 'm' },
+          clases: true,
+          activo: true,
+          creado_en: '2025-01-01T00:00:00.000Z',
+          tipo_ambiente_id: 1,
+          tipo_ambiente_nombre: 'Aula',
+          bloque_id: 2,
+          bloque_nombre: 'Bloque A',
+          tipo_bloque_id: 3,
+          tipo_bloque_nombre: 'Academico',
+          facultad_id: 7,
+          facultad_nombre: 'Facultad de Ingenieria',
+          campus_id: 1,
+          campus_nombre: 'Campus Central',
+        },
+        horarios: [
+          {
+            dia: 0,
+            nombre_dia: 'Lunes',
+            apertura: '07:00',
+            cierre: '21:00',
+            periodo: 45,
+          },
+        ],
+        activos: {
+          items: [
+            {
+              id: 1,
+              nia: 'NIA-001',
+              nombre: 'Proyector',
+              descripcion: 'Proyector EPSON',
+              creado_en: '2025-01-15T10:00:00.000Z',
+              ambiente_id: 5,
+              ambiente_nombre: 'Aula 101',
+              ambiente_codigo: 'AULA-101',
+            },
+          ],
+          meta: {
+            total: 1,
+            page: 1,
+            take: 100,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Ambiente no encontrado',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'No se encontro el ambiente solicitado',
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Datos invalidos',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'ambiente_id',
+            message: 'El ambiente_id debe ser un numero entero positivo',
+          },
+        ],
+      },
+    },
+  })
+  async getDetalle(@Param('id', ParseIntPipe) id: number) {
+    return this.getAmbienteCompleto.execute({ ambiente_id: id });
   }
 
   @Patch(':id')
