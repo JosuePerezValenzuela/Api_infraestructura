@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { GetAmbienteCompletoUseCase } from './get-ambiente-completo.usecase';
 
 const createAmbienteRepo = () => ({
-  findById: jest.fn(),
+  findByIdWithRelations: jest.fn(),
 });
 
 const createHorarioRepo = () => ({
@@ -36,6 +36,14 @@ describe('GetAmbienteCompletoUseCase', () => {
       creado_en: '2025-01-01T00:00:00.000Z',
       tipo_ambiente_id: 1,
       bloque_id: 2,
+      bloque_nombre: 'Bloque A',
+      tipo_ambiente_nombre: 'Aula',
+      tipo_bloque_id: 3,
+      tipo_bloque_nombre: 'Academico',
+      facultad_id: 7,
+      facultad_nombre: 'Facultad de Ingenieria',
+      campus_id: 1,
+      campus_nombre: 'Campus Central',
     };
 
     const mockHorarios = [
@@ -77,7 +85,7 @@ describe('GetAmbienteCompletoUseCase', () => {
       },
     };
 
-    ambienteRepo.findById.mockResolvedValueOnce(mockAmbiente);
+    ambienteRepo.findByIdWithRelations.mockResolvedValueOnce(mockAmbiente);
     horarioRepo.findByAmbienteId.mockResolvedValueOnce(mockHorarios);
     listActivosUseCase.execute.mockResolvedValueOnce(mockActivosResult);
 
@@ -89,7 +97,7 @@ describe('GetAmbienteCompletoUseCase', () => {
 
     const result = await useCase.execute({ ambiente_id: 5 });
 
-    expect(ambienteRepo.findById).toHaveBeenCalledWith(5);
+    expect(ambienteRepo.findByIdWithRelations).toHaveBeenCalledWith(5);
     expect(horarioRepo.findByAmbienteId).toHaveBeenCalledWith(5);
     expect(listActivosUseCase.execute).toHaveBeenCalledWith({
       ambienteId: 5,
@@ -106,7 +114,7 @@ describe('GetAmbienteCompletoUseCase', () => {
     const horarioRepo = createHorarioRepo();
     const listActivosUseCase = createListActivosUseCase();
 
-    ambienteRepo.findById.mockResolvedValueOnce(null);
+    ambienteRepo.findByIdWithRelations.mockResolvedValueOnce(null);
 
     const useCase = new GetAmbienteCompletoUseCase(
       ambienteRepo as any,
@@ -117,7 +125,7 @@ describe('GetAmbienteCompletoUseCase', () => {
     await expect(useCase.execute({ ambiente_id: 999 })).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(ambienteRepo.findById).toHaveBeenCalledWith(999);
+    expect(ambienteRepo.findByIdWithRelations).toHaveBeenCalledWith(999);
   });
 
   it('lanza BadRequest cuando ambiente_id no es entero positivo', async () => {
