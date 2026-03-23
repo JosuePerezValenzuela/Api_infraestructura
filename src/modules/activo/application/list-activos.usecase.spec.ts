@@ -119,7 +119,7 @@ describe('ListActivosUseCase', () => {
       BadRequestException,
     );
     // Act & Assert: limit=99 tampoco es valido por superar el maximo.
-    await expect(useCase.execute({ limit: 99 })).rejects.toBeInstanceOf(
+    await expect(useCase.execute({ limit: 299 })).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });

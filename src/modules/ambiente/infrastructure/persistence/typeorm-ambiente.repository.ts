@@ -215,7 +215,7 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
         c.nombre AS campus_nombre
       FROM infraestructura.ambientes a
       INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-      INNER JOIN infraestructura.tipos_ambiente ta ON ta.id = a.tipo_ambiente_id
+      INNER JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
       INNER JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
       INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
       INNER JOIN infraestructura.campus c ON c.id = f.campus_id

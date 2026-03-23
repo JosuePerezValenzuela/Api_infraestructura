@@ -56,7 +56,7 @@ export class ListActivosUseCase {
     }
 
     // limit controla cuantos registros devolvemos; acotamos a 1..50 para proteger el servidor.
-    if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 150) {
       validationError(
         'limit',
         'El limite debe ser un numero entre 1 y 50 registros por pagina',
