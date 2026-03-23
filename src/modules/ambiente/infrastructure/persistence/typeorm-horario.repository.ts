@@ -3,10 +3,28 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError, QueryRunner } from 'typeorm';
 import {
   HorarioRepositoryPort,
+  HorarioOperacionItem,
   ReplaceHorariosCommand,
   ReplaceHorariosResult,
   HorarioSlot,
 } from '../../domain/horario.repository.port';
+
+const DIAS = [
+  'Lunes',
+  'Martes',
+  'Miercoles',
+  'Jueves',
+  'Viernes',
+  'Sabado',
+  'Domingo',
+];
+
+interface HorarioOperacionRow {
+  dia: number;
+  hora_inicio: string;
+  hora_fin: string;
+  periodo: number;
+}
 
 @Injectable()
 export class TypeormHorarioRepository implements HorarioRepositoryPort {
@@ -14,6 +32,25 @@ export class TypeormHorarioRepository implements HorarioRepositoryPort {
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
+
+  async findByAmbienteId(ambienteId: number): Promise<HorarioOperacionItem[]> {
+    const sql = `
+      SELECT dia, hora_inicio, hora_fin, periodo
+      FROM infraestructura.horarios_operacion
+      WHERE ambiente_id = $1
+      ORDER BY dia ASC
+    `;
+    const rows = await this.dataSource.query<HorarioOperacionRow[]>(sql, [
+      ambienteId,
+    ]);
+    return rows.map((row) => ({
+      dia: row.dia,
+      nombre_dia: DIAS[row.dia],
+      apertura: row.hora_inicio,
+      cierre: row.hora_fin,
+      periodo: row.periodo,
+    }));
+  }
 
   async replaceForAmbiente(
     command: ReplaceHorariosCommand,
@@ -58,7 +95,7 @@ export class TypeormHorarioRepository implements HorarioRepositoryPort {
     `;
     const rows = await this.dataSource.query<HorarioSlot[]>(sql, [ambiente_id]);
     return rows.map((row) => ({
-      dia: Number(row.dia) as HorarioSlot['dia'],
+      dia: Number(row.dia),
       hora_inicio: row.hora_inicio,
       hora_fin: row.hora_fin,
     }));
