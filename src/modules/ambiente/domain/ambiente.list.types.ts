@@ -53,6 +53,17 @@ export interface AmbientItem {
   bloque_id: number;
 }
 
+export interface AmbienteCompletoItem extends AmbientItem {
+  bloque_nombre: string;
+  tipo_ambiente_nombre: string;
+  tipo_bloque_id: number;
+  tipo_bloque_nombre: string;
+  facultad_id: number;
+  facultad_nombre: string;
+  campus_id: number;
+  campus_nombre: string;
+}
+
 export interface ListAmbientesResult {
   items: AmbienteListItem[];
   meta: {

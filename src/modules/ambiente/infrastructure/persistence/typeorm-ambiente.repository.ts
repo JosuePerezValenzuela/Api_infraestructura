@@ -13,6 +13,7 @@ import {
   ListAmbientesOptions,
   ListAmbientesResult,
   AmbientItem,
+  AmbienteCompletoItem,
 } from '../../domain/ambiente.list.types';
 
 @Injectable()
@@ -174,6 +175,54 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
       LIMIT 1
     `;
     const rows = await this.dataSource.query<AmbientItem[]>(sql, [id]);
+    if (rows.length === 0) {
+      return null;
+    }
+    const [row] = rows;
+    const capacidad = this.mapCapacidad(row.capacidad as unknown);
+    const dimension = this.mapDimension(row.dimension as unknown);
+    return {
+      ...row,
+      capacidad,
+      dimension,
+    };
+  }
+
+  async findByIdWithRelations(
+    id: number,
+  ): Promise<AmbienteCompletoItem | null> {
+    const sql = `
+      SELECT
+        a.id,
+        a.codigo,
+        a.nombre,
+        a.nombre_corto,
+        a.piso,
+        a.capacidad,
+        a.dimension,
+        a.clases,
+        a.activo,
+        a.creado_en,
+        a.tipo_ambiente_id,
+        a.bloque_id,
+        b.nombre AS bloque_nombre,
+        ta.nombre AS tipo_ambiente_nombre,
+        tb.id AS tipo_bloque_id,
+        tb.nombre AS tipo_bloque_nombre,
+        f.id AS facultad_id,
+        f.nombre AS facultad_nombre,
+        c.id AS campus_id,
+        c.nombre AS campus_nombre
+      FROM infraestructura.ambientes a
+      INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
+      INNER JOIN infraestructura.tipos_ambiente ta ON ta.id = a.tipo_ambiente_id
+      INNER JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
+      INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
+      INNER JOIN infraestructura.campus c ON c.id = f.campus_id
+      WHERE a.id = $1
+      LIMIT 1
+    `;
+    const rows = await this.dataSource.query<AmbienteCompletoItem[]>(sql, [id]);
     if (rows.length === 0) {
       return null;
     }
