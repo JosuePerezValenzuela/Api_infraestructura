@@ -107,7 +107,7 @@ export class ActivoController {
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Cantidad de registros por pagina (1..50). Por defecto 8.',
+    description: 'Cantidad de registros por pagina (1..500). Por defecto 8.',
   })
   @ApiQuery({
     name: 'search',

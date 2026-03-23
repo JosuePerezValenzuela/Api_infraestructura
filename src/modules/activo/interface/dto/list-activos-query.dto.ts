@@ -40,7 +40,7 @@ export class ListActivosQueryDto {
   @IsOptional()
   @IsInt({ message: 'limit debe ser un numero entero' })
   @Min(1, { message: 'limit debe ser mayor o igual a 1' })
-  @Max(50, { message: 'limit no puede superar 50 elementos' })
+  @Max(500, { message: 'limit no puede superar 500 elementos' })
   limit?: number;
 
   @ApiPropertyOptional({
