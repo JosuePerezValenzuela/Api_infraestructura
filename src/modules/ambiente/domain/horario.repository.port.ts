@@ -1,9 +1,15 @@
-export type HorarioDia = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export interface HorarioOperacionItem {
+  dia: number;
+  nombre_dia: string;
+  apertura: string;
+  cierre: string;
+  periodo: number;
+}
 
 export interface HorarioSlot {
-  dia: HorarioDia;
-  hora_inicio: string; // Formato HH:mm
-  hora_fin: string; // Formato HH:mm
+  dia: number;
+  hora_inicio: string;
+  hora_fin: string;
 }
 
 export interface ReplaceHorariosCommand {
@@ -19,9 +25,9 @@ export interface ReplaceHorariosResult {
 export const HorarioRepositoryPort = Symbol('HorarioRepositoryPort');
 
 export interface HorarioRepositoryPort {
+  findByAmbienteId(ambienteId: number): Promise<HorarioOperacionItem[]>;
   replaceForAmbiente(
     command: ReplaceHorariosCommand,
   ): Promise<ReplaceHorariosResult>;
-
   listByAmbiente(ambiente_id: number): Promise<HorarioSlot[]>;
 }
