@@ -472,26 +472,31 @@ VALUES
 
 INSERT INTO infraestructura.campus (codigo, nombre, direccion, coordenadas)
 VALUES
-  ('CAMPUS-001', 'Las cuadras', 'Av. Sucre entre Oquendo y Belzu', POINT(-17.393498, -66.145992)),
-  ('CAMPUS-002', 'Muyurina', 'Entre Aniceto arce y Venezuela', POINT(-17.387393, -66.149539)),
-  ('CAMPUS-003', 'La tamborada', 'Av. Petrolera km 5, Zona la Tamborada', POINT(-17.450072, -66.133656)),
-  ('CAMPUS-004', 'Tacata', 'Predios de la Ex casa Hoschield, Tacata norte', POINT(-17.380368, -66.289096)),
-  ('CAMPUS-005', 'Temporal', 'Av. Atahuallpa final, barrio prefectual, lado de Diprove', POINT(-17.350790, -66.155407));
+  ('1', 'Las cuadras', 'Av. Sucre entre Oquendo y Belzu', POINT(-17.393498, -66.145992)),
+  ('2', 'Salud', 'Entre Aniceto arce y Venezuela', POINT(-17.387393, -66.149539)),
+  ('3', 'Tamborada', 'Av. Petrolera km 5, Zona la Tamborada', POINT(-17.450072, -66.133656)),
+  ('4', 'Quillacollo', 'Predios de la Ex casa Hoschield, Tacata norte', POINT(-17.380368, -66.289096)),
+  ('5', 'Temporal', 'Av. Atahuallpa final, barrio prefectual, lado de Diprove', POINT(-17.350790, -66.155407)),
+  ('6', 'Punata', 'Valle alto', POINT(-17.542904, -65.843325)),
+  ('7', 'Polifuncional', 'Av. Jordan entre Ayacucho y Nataniel Aguirre', POINT(-17.395464, -66.157559));
 
 INSERT INTO infraestructura.facultades (codigo, nombre, nombre_corto, coordenadas, campus_id)
 VALUES
-  ('FACU-001', 'Facultad de Ciencias y Tecnologia', 'FCyT', POINT(-17.393267, -66.144950), 1),
-  ('FACU-002', 'Facultad de Ciencias Economicas', 'FCE', POINT(-17.394840, -66.147865), 1),
-  ('FACU-003', 'Facultad de Humanidades y Ciencias de la educacion', 'FHCE', POINT(-17.393009, -66.147834), 1),
-  ('FACU-004', 'Facultad de Ciencias Politicas y Juridicas', 'FCJyP', POINT(-17.393150, -66.148654), 1),
-  ('FACU-005', 'Facultad de Medicina', 'Medicina', POINT(-17.387348, -66.149420), 2),
-  ('FACU-006', 'Facultad de Ciencias Agricolas, Pecuarias y Forestales', 'FCAPyF', POINT(-17.450068, -66.133971), 3),
-  ('FACU-007', 'Facultad de Arquitectura y Ciencias del Habitat', 'FACH', POINT(-17.394976, -66.146846), 1),
-  ('FACU-008', 'Facultad de Ciencias Veterinarias', 'FCV', POINT(-17.380268, -66.289035), 4),
+  ('20', 'CIENCIAS Y TECNOLOGIA', 'TEC', POINT(-17.393267, -66.144950), 1),
+  ('13', 'CIENCIAS ECONOMICAS', 'ECO', POINT(-17.394840, -66.147865), 1),
+  ('18', 'HUMANIDADES Y CS. DE LA EDUCACION', 'HUM', POINT(-17.393009, -66.147834), 1),
+  ('19', 'CIENCIAS JURIDICAS Y POLITICAS', 'DER', POINT(-17.393150, -66.148654), 1),
+  ('16', 'MEDICINA', 'MED', POINT(-17.387348, -66.149420), 2),
+  ('10', 'CIENCIAS AGRICOLAS Y PECUARIAS', 'AGR', POINT(-17.450068, -66.133971), 3),
+  ('17', 'ARQUITECTURA Y CIENCIAS DEL HABITAT', 'ARQ', POINT(-17.394976, -66.146846), 1),
+  ('27', 'CIENCIAS VETERINARIAS', 'VET', POINT(-17.380268, -66.289035), 4),
   ('FACU-009', 'Escuela de Ciencias Forestales', 'ESFOR', POINT(-17.350558, -66.155250), 5),
-  ('FACU-010', 'Facultad de Odontologia', 'Odontologia', POINT(-17.386703, -66.149857), 2),
-  ('FACU-011', 'Facultad de Ciencias Farmaceuticas y Bioquimicas', 'FARMA y BIOQUI', POINT(-17.387154, -66.149459), 2),
-  ('FACU-012', 'Facultad de Desarrollo Rural y Territorial', 'ETSA', POINT(-17.451490, -66.133164), 3);
+  ('15', 'ODONTOLOGIA', 'ODT', POINT(-17.386703, -66.149857), 2),
+  ('12', 'CS. FARMACEUTICAS Y BIOQUIMICAS', 'BQM', POINT(-17.387154, -66.149459), 2),
+  ('14', 'DESARROLLO RURAL Y TERRITORIAL', 'DRT', POINT(-17.451490, -66.133164), 3),
+  ('21', 'POLITECNICA DEL VALLE ALTO', 'IPU', POINT(-17.542904, -65.843325), 6),
+  ('23', 'CIENCIAS SOCIALES', 'SOC', POINT(-17.393150, -66.148654), 1),
+  ('29', 'ENFERMERIA', 'ENF', POINT(-17.395464, -66.157559), 7);
 
 INSERT INTO infraestructura.bloques ("codigo", "nombre", "nombre_corto", "pisos", "coordenadas", "facultad_id", "tipo_bloque_id") VALUES
     ('1', 'Edif. Cs. Politica', NULL, '5', POINT(-17.392953603912115, -66.1484495907248), '4', '1'),
