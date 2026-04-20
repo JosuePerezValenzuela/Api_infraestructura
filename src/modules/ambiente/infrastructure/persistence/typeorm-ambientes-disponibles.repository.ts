@@ -10,9 +10,7 @@ import {
 } from '../../domain/ambiente.disponibles.types';
 
 @Injectable()
-export class TypeormAmbientesDisponiblesRepository
-  implements AmbientesDisponiblesRepositoryPort
-{
+export class TypeormAmbientesDisponiblesRepository implements AmbientesDisponiblesRepositoryPort {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
@@ -77,7 +75,7 @@ export class TypeormAmbientesDisponiblesRepository
       conditions.push(
         `EXISTS (
            SELECT 1
-           FROM infraestructura.horarios h
+           FROM infraestructura.horarios_operacion h
            WHERE h.ambiente_id = a.id
              AND h.dia = $${params.length - 2}
              AND h.hora_inicio <= $${params.length - 1}
