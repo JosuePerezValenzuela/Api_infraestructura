@@ -8,6 +8,7 @@ import { DeleteAmbienteUseCase } from './application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from './application/update-ambiente.usecase';
 import { ReplaceHorariosUseCase } from './application/replace-horarios.usecase';
 import { GetAmbienteCompletoUseCase } from './application/get-ambiente-completo.usecase';
+import { BuscarAmbienteHorarioUseCase } from './application/buscar-ambiente-horario.usecase';
 import { AmbienteRepositoryPort } from './domain/ambiente.repository.port';
 import { AmbientesDisponiblesRepositoryPort } from './domain/ambiente.disponibles.port';
 import { HorarioRepositoryPort } from './domain/horario.repository.port';
@@ -30,6 +31,7 @@ import { ActivoModule } from '../activo/activo.module';
     UpdateAmbienteUseCase,
     ReplaceHorariosUseCase,
     GetAmbienteCompletoUseCase,
+    BuscarAmbienteHorarioUseCase,
     {
       provide: AmbienteRepositoryPort,
       useClass: TypeormAmbienteRepository,
@@ -53,6 +55,7 @@ import { ActivoModule } from '../activo/activo.module';
     UpdateAmbienteUseCase,
     ReplaceHorariosUseCase,
     HorarioRepositoryPort,
+    BuscarAmbienteHorarioUseCase,
   ],
 })
 export class AmbienteModule {}

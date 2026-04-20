@@ -32,11 +32,13 @@ import { DeleteAmbienteUseCase } from '../application/delete-ambiente.usecase';
 import { UpdateAmbienteUseCase } from '../application/update-ambiente.usecase';
 import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase';
 import { GetAmbienteCompletoUseCase } from '../application/get-ambiente-completo.usecase';
+import { BuscarAmbienteHorarioUseCase } from '../application/buscar-ambiente-horario.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 import { ListAmbientesDisponiblesQueryDto } from './dto/list-ambientes-disponibles-query.dto';
 import { UpdateAmbienteDto } from './dto/update-ambiente.dto';
 import { ReplaceHorariosDto } from './dto/replace-horarios.dto';
+import { BuscarAmbienteHorarioQueryDto } from './dto/buscar-ambiente-horario-query.dto';
 
 @ApiTags('Ambientes')
 @Controller('ambientes')
@@ -50,6 +52,7 @@ export class AmbienteController {
     private readonly updateAmbiente: UpdateAmbienteUseCase,
     private readonly replaceHorarios: ReplaceHorariosUseCase,
     private readonly getAmbienteCompleto: GetAmbienteCompletoUseCase,
+    private readonly buscarAmbienteHorario: BuscarAmbienteHorarioUseCase,
   ) {}
 
   @Get()
@@ -189,6 +192,76 @@ export class AmbienteController {
   })
   async findDisponibles(@Query() query: ListAmbientesDisponiblesQueryDto) {
     return this.listAmbientesDisponibles.execute(query);
+  }
+
+  @Get('buscar-ambiente-horarios')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Buscar ambiente por código, facultad, piso, día y horario',
+    description:
+      'Busca un ambiente específico dado su código, código de facultad, piso, día y rango horario. Retorna el ambiente encontrado junto con la validación de si el horario está dentro del horario de operación.',
+  })
+  @ApiOkResponse({
+    description: 'Ambiente encontrado con validación de horario',
+    schema: {
+      example: {
+        id: 123,
+        codigo: 'E505',
+        nombre: 'AULA 505',
+        nombre_corto: '64',
+        piso: 1,
+        capacidad: { total: 100, examen: 50 },
+        dimension: { largo: 5, ancho: 10, alto: 3, unid_med: 'metros' },
+        clases: true,
+        activo: true,
+        bloque_id: 45,
+        bloque_nombre: 'Edif. nuevo FCE',
+        tipo_ambiente_id: 2,
+        tipo_ambiente_nombre: 'Aula',
+        facultad_id: 5,
+        facultad_nombre: 'CIENCIAS ECONOMICAS',
+        campus_id: 1,
+        campus_nombre: 'Las cuadras',
+        horario_operacion: {
+          dia: 0,
+          nombre_dia: 'Lunes',
+          hora_inicio: '07:00',
+          hora_fin: '21:00',
+          periodo: 60,
+        },
+        dentro_horario: true,
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Facultad o ambiente no encontrado',
+    schema: {
+      example: {
+        error: 'NOT_FOUND',
+        message: 'Facultad no encontrada con código: XYZ',
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Múltiples ambientes encontrados',
+    schema: {
+      example: {
+        error: 'CONFLICT_ERROR',
+        message: 'Se encontró más de un ambiente con el código especificado',
+        details: [
+          {
+            field: 'codigo_ambiente',
+            message:
+              'Existe más de un ambiente con este código en el mismo piso',
+          },
+        ],
+      },
+    },
+  })
+  async buscarAmbienteParaHorario(
+    @Query() query: BuscarAmbienteHorarioQueryDto,
+  ) {
+    return this.buscarAmbienteHorario.execute(query);
   }
 
   @Get(':id/horarios')

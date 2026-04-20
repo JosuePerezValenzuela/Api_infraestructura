@@ -1,5 +1,4 @@
-﻿/* eslint-disable indent */
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { AmbientesDisponiblesRepositoryPort } from '../../domain/ambiente.disponibles.port';
@@ -404,9 +403,9 @@ export class TypeormAmbientesDisponiblesRepository implements AmbientesDisponibl
     // Transformamos valores que llegan como texto JSON a un objeto.
     const data = this.ensureJsonObject(value);
     // Extraemos el total asegurando un numero.
-    const total = Number((data as Record<string, unknown>).total ?? 0);
+    const total = Number(data.total ?? 0);
     // Extraemos la capacidad de examen asegurando un numero.
-    const examen = Number((data as Record<string, unknown>).examen ?? 0);
+    const examen = Number(data.examen ?? 0);
     // Devolvemos el objeto normalizado.
     return { total, examen };
   }
