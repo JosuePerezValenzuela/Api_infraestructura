@@ -16,6 +16,7 @@ import { ReplaceHorariosUseCase } from '../application/replace-horarios.usecase'
 import { ListAmbienteHorariosUseCase } from '../application/list-ambiente-horarios.usecase';
 import { GetAmbienteCompletoUseCase } from '../application/get-ambiente-completo.usecase';
 import { GetAmbienteCompletoResult } from '../application/get-ambiente-completo.usecase';
+import { BuscarAmbienteHorarioUseCase } from '../application/buscar-ambiente-horario.usecase';
 import { CreateAmbienteDto } from './dto/create-ambiente.dto';
 import { ListAmbientesQueryDto } from './dto/list-ambientes-query.dto';
 import { ListAmbientesDisponiblesQueryDto } from './dto/list-ambientes-disponibles-query.dto';
@@ -48,6 +49,9 @@ type ListHorariosUseCaseMock = {
 type GetAmbienteCompletoUseCaseMock = {
   execute: jest.Mock<Promise<GetAmbienteCompletoResult>, [any]>;
 };
+type BuscarAmbienteHorarioUseCaseMock = {
+  execute: jest.Mock<Promise<any>, [any]>;
+};
 
 describe('AmbienteController', () => {
   let controller: AmbienteController;
@@ -59,6 +63,7 @@ describe('AmbienteController', () => {
   let replaceUseCase: ReplaceUseCaseMock;
   let listHorariosUseCase: ListHorariosUseCaseMock;
   let getAmbienteCompletoUseCase: GetAmbienteCompletoUseCaseMock;
+  let buscarAmbienteHorarioUseCase: BuscarAmbienteHorarioUseCaseMock;
 
   beforeEach(async () => {
     createUseCase = { execute: jest.fn() };
@@ -69,6 +74,7 @@ describe('AmbienteController', () => {
     replaceUseCase = { execute: jest.fn() };
     listHorariosUseCase = { execute: jest.fn() };
     getAmbienteCompletoUseCase = { execute: jest.fn() };
+    buscarAmbienteHorarioUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AmbienteController],
@@ -86,6 +92,10 @@ describe('AmbienteController', () => {
         {
           provide: GetAmbienteCompletoUseCase,
           useValue: getAmbienteCompletoUseCase,
+        },
+        {
+          provide: BuscarAmbienteHorarioUseCase,
+          useValue: buscarAmbienteHorarioUseCase,
         },
       ],
     }).compile();
