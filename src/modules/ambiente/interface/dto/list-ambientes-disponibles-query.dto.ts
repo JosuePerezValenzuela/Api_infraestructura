@@ -80,44 +80,6 @@ class HorarioOrdenValido implements ValidatorConstraintInterface {
   }
 }
 
-@ValidatorConstraint({ name: 'FacultadCampusSubconjunto', async: false })
-class FacultadCampusSubconjunto implements ValidatorConstraintInterface {
-  // Valida que cada facultad pertenezca al conjunto de campus enviado.
-  validate(_value: unknown, args?: ValidationArguments) {
-    // Obtenemos el DTO para revisar ambos arreglos.
-    const dto = args?.object as ListAmbientesDisponiblesQueryDto | undefined;
-    if (!dto) return true;
-    // Si falta alguno de los dos arreglos, no aplicamos la regla (no hay nada que comparar).
-    if (!dto.campus_ids || !dto.facultad_ids) return true;
-    // Confirmamos que cada facultad este incluida en los campus.
-    return dto.facultad_ids.every((id) => dto.campus_ids?.includes(id));
-  }
-
-  // Mensaje de error cuando una facultad no pertenece a los campus enviados.
-  defaultMessage() {
-    return 'facultad_ids debe pertenecer a campus_ids cuando ambos se envian';
-  }
-}
-
-@ValidatorConstraint({ name: 'BloqueFacultadSubconjunto', async: false })
-class BloqueFacultadSubconjunto implements ValidatorConstraintInterface {
-  // Valida que cada bloque pertenezca al conjunto de facultades enviado.
-  validate(_value: unknown, args?: ValidationArguments) {
-    // Obtenemos el DTO para revisar ambos arreglos.
-    const dto = args?.object as ListAmbientesDisponiblesQueryDto | undefined;
-    if (!dto) return true;
-    // Si falta alguno de los dos arreglos, no aplicamos la regla.
-    if (!dto.facultad_ids || !dto.bloque_ids) return true;
-    // Confirmamos que cada bloque este incluido en las facultades.
-    return dto.bloque_ids.every((id) => dto.facultad_ids?.includes(id));
-  }
-
-  // Mensaje de error cuando un bloque no pertenece a las facultades enviadas.
-  defaultMessage() {
-    return 'bloque_ids debe pertenecer a facultad_ids cuando ambos se envian';
-  }
-}
-
 export class ListAmbientesDisponiblesQueryDto {
   @ApiPropertyOptional({
     description: 'Capacidad minima total',
@@ -176,7 +138,6 @@ export class ListAmbientesDisponiblesQueryDto {
     each: true,
     message: 'facultad_ids debe contener enteros positivos',
   })
-  @Validate(FacultadCampusSubconjunto)
   facultad_ids?: number[];
 
   @ApiPropertyOptional({
@@ -190,7 +151,6 @@ export class ListAmbientesDisponiblesQueryDto {
   @ArrayNotEmpty({ message: 'bloque_ids no puede ser vacio' })
   @IsInt({ each: true, message: 'bloque_ids debe contener enteros' })
   @Min(1, { each: true, message: 'bloque_ids debe contener enteros positivos' })
-  @Validate(BloqueFacultadSubconjunto)
   bloque_ids?: number[];
 
   @ApiPropertyOptional({

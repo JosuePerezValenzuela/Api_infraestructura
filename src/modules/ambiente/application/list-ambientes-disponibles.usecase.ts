@@ -99,29 +99,6 @@ export class ListAmbientesDisponiblesUseCase {
       error,
     );
 
-    // Relaciones de subconjunto
-    if (
-      campus_ids &&
-      facultad_ids &&
-      facultad_ids.some((id: number) => !campus_ids.includes(id))
-    ) {
-      error(
-        'facultad_ids',
-        'Debe pertenecer a campus_ids cuando ambos se envian',
-      );
-    }
-
-    if (
-      facultad_ids &&
-      bloque_ids &&
-      bloque_ids.some((id: number) => !facultad_ids.includes(id))
-    ) {
-      error(
-        'bloque_ids',
-        'Debe pertenecer a facultad_ids cuando ambos se envian',
-      );
-    }
-
     const page = input.page ?? 1;
     const take = input.take ?? 10;
     if (!Number.isInteger(page) || page < 1) {
