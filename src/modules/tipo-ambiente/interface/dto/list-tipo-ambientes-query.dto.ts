@@ -35,13 +35,13 @@ export class ListTipoAmbientesQueryDto {
   page = 1;
 
   @ApiPropertyOptional({
-    description: 'Cantidad de registros a devolver (1..50)',
+    description: 'Cantidad de registros a devolver (1..1000)',
     default: 8,
   })
   @Type(() => Number)
   @IsInt({ message: 'El límite debe ser un entero' })
   @Min(1, { message: 'El límite debe ser un entero mayor o igual a 1' })
-  @Max(50, { message: 'El límite máximo permitido es 50 registros' })
+  @Max(1000, { message: 'El límite máximo permitido es 1000 registros' })
   @IsOptional()
   limit = 8;
 

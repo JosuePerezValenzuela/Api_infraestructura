@@ -96,7 +96,7 @@ export class TipoAmbienteController {
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Cantidad de registros por página (1..50). Por defecto 8.',
+    description: 'Cantidad de registros por página (1..1000). Por defecto 8.',
   })
   @ApiQuery({
     name: 'search',

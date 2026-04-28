@@ -58,14 +58,14 @@ export class ListTipoAmbientesUseCase {
   }
 
   private ensureLimitIsValid(limit: number) {
-    if (limit < 1 || limit > 50) {
+    if (limit < 1 || limit > 1000) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
         details: [
           {
             field: 'limit',
-            message: 'El limite debe estar entre 1 y 50 registros',
+            message: 'El limite debe estar entre 1 y 1000 registros',
           },
         ],
       });
