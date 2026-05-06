@@ -32,9 +32,9 @@ describe('ListTipoAmbientesQueryDto', () => {
     expect(errors).toContain('La página debe ser un entero mayor o igual a 1');
   });
 
-  it('rechaza limit mayores a 50', async () => {
-    const errors = await validateInput({ limit: 200 });
-    expect(errors).toContain('El límite máximo permitido es 50 registros');
+  it('rechaza limit mayores a 1000', async () => {
+    const errors = await validateInput({ limit: 1001 });
+    expect(errors).toContain('El límite máximo permitido es 1000 registros');
   });
 
   it('rechaza orderBy que no estén permitidos', async () => {

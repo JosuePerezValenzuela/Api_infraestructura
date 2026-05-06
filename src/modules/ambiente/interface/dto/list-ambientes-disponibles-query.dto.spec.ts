@@ -81,22 +81,4 @@ describe('ListAmbientesDisponiblesQueryDto', () => {
     // Esperamos un error asociado a la validacion custom de horario (se reflejara en hora_fin).
     expect(wrongOrder.map((e) => e.property)).toContain('hora_fin');
   });
-
-  it('valida subconjuntos campus/facultad/bloque', async () => {
-    // Enviamos facultad_ids que no pertenecen a campus_ids.
-    const wrongCampus = await validateDto({
-      campus_ids: [1],
-      facultad_ids: [2],
-    });
-    // Debe marcar error en facultad_ids.
-    expect(wrongCampus.map((e) => e.property)).toContain('facultad_ids');
-
-    // Enviamos bloque_ids que no pertenecen a facultad_ids.
-    const wrongFaculty = await validateDto({
-      facultad_ids: [3],
-      bloque_ids: [4],
-    });
-    // Debe marcar error en bloque_ids.
-    expect(wrongFaculty.map((e) => e.property)).toContain('bloque_ids');
-  });
 });

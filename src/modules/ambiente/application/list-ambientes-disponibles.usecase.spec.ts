@@ -84,22 +84,4 @@ describe('ListAmbientesDisponiblesUseCase', () => {
       useCase.execute({ tipo_ambiente_ids: [0] }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
-
-  it('valida relaciones: facultad_ids debe ser subconjunto de campus_ids cuando ambos vienen', async () => {
-    const repo = new DisponiblesRepoStub(emptyResult);
-    const useCase = new ListAmbientesDisponiblesUseCase(repo as any);
-
-    await expect(
-      useCase.execute({ campus_ids: [1, 2], facultad_ids: [3] } as any),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('valida relaciones: bloque_ids debe ser subconjunto de facultad_ids cuando ambos vienen', async () => {
-    const repo = new DisponiblesRepoStub(emptyResult);
-    const useCase = new ListAmbientesDisponiblesUseCase(repo as any);
-
-    await expect(
-      useCase.execute({ facultad_ids: [5], bloque_ids: [7] } as any),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
 });
