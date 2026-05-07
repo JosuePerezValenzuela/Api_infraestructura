@@ -15,6 +15,9 @@ import {
   IsNumber,
   Validate,
   IsBoolean,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
 } from 'class-validator';
 
 /**
@@ -118,12 +121,14 @@ export class UpdateFacultadesDto {
   activo?: boolean;
 
   @ApiPropertyOptional({
-    description: 'El codigo del campus al que pertenece esta facultad',
-    minimum: 1,
-    example: 7,
+    description: 'Lista de IDs de campus donde estará la facultad',
+    type: [Number],
+    example: [1, 2],
   })
   @IsOptional()
-  @IsNumber({}, { message: 'El campus_id debe ser numerico' })
-  @Min(1, { message: 'El valor minimo para campus_id es 1' })
-  campus_id: number;
+  @IsArray({ message: 'El campo campus_ids debe ser un array' })
+  @ArrayMinSize(1, { message: 'Debe indicar al menos un campus' })
+  @ArrayMaxSize(10, { message: 'No puede tener más de 10 campus' })
+  @IsNumber({}, { message: 'Cada campus_id debe ser numerico', each: true })
+  campus_ids?: number[];
 }

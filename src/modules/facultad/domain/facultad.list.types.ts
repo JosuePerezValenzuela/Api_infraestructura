@@ -58,7 +58,7 @@ export interface UpdateFacultadesInput {
   lat?: number;
   lng?: number;
   activo?: boolean;
-  campus_id?: number;
+  campus_ids?: number[];
 }
 
 export interface UpdateFacultadesInputAndId {

@@ -47,7 +47,7 @@ export class UpdateFacultadUseCase {
       input.lng === undefined &&
       input.lat === undefined &&
       input.activo === undefined &&
-      input.campus_id === undefined
+      input.campus_ids === undefined
     ) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
@@ -86,15 +86,22 @@ export class UpdateFacultadUseCase {
       }
     }
 
-    // Validamos que el nuevo campus_id exista
-    if (input.campus_id !== undefined) {
-      const existCampus = await this.campusRepo.findById(input.campus_id);
-      if (existCampus === null) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'El campus no existe',
-          details: [{ field: 'campus_id', message: 'Campus inexistente' }],
-        });
+    // Validamos que todos los campus_ids existan
+    if (input.campus_ids !== undefined) {
+      for (const campusId of input.campus_ids) {
+        const existCampus = await this.campusRepo.findById(campusId);
+        if (existCampus === null) {
+          throw new BadRequestException({
+            error: 'VALIDATION_ERROR',
+            message: 'El campus no existe',
+            details: [
+              {
+                field: 'campus_ids',
+                message: `El campus con ID ${campusId} no existe`,
+              },
+            ],
+          });
+        }
       }
     }
 

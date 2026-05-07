@@ -285,7 +285,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
         pointLiteral = null;
       }
     } catch (err) {
-      const message = (err as Error).message;
+      const message = err instanceof Error ? err.message : String(err);
       let field: string;
 
       if (message.includes('Latitud')) {
@@ -332,11 +332,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       params.push(input.activo);
     }
 
-    if (input.campus_id !== undefined) {
-      sets.push(`campus_id = $${i++}`);
-      params.push(input.campus_id);
-    }
-
     const sql = `
       UPDATE infraestructura.facultades
       SET ${sets.join(', ')}
@@ -346,6 +341,88 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     params.push(id);
 
     await this.dataSource.query(sql, params);
+
+    // Actualizar relaciones campus_facultades si se proporciona (sync logic)
+    if (input.campus_ids !== undefined) {
+      // Obtener relaciones actuales
+      const currentRelations = await this.dataSource.query<
+        Array<{ campus_id: number }>
+      >(
+        'SELECT campus_id FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND activo = true',
+        [id],
+      );
+      const currentCampusIds = currentRelations.map(
+        (r: { campus_id: number }) => r.campus_id,
+      );
+
+      const newCampusIds = input.campus_ids;
+
+      // Identificar relaciones a eliminar (están en BD pero no en el nuevo array)
+      const toRemove = currentCampusIds.filter(
+        (c: number) => !newCampusIds.includes(c),
+      );
+
+      // Identificar relaciones a crear (están en el nuevo array pero no en BD)
+      const toAdd = newCampusIds.filter(
+        (c: number) => !currentCampusIds.includes(c),
+      );
+
+      // Eliminar relaciones que ya no están (soft delete - marcar activo = false)
+      if (toRemove.length > 0) {
+        // 1. Obtener los IDs de campus_facultades que se inactivarán
+        const relToDeactivate = await this.dataSource.query<
+          Array<{ id: number }>
+        >(
+          'SELECT id FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND campus_id = ANY($2)',
+          [id, toRemove],
+        );
+        const relIds = relToDeactivate.map((r: { id: number }) => r.id);
+
+        // 2. Inactivar la relación
+        await this.dataSource.query(
+          'UPDATE infraestructura.campus_facultades SET activo = false WHERE facultad_id = $1 AND campus_id = ANY($2)',
+          [id, toRemove],
+        );
+
+        // 3. Si hay relaciones a inactivar, cascade: inactivar bloques, ambientes y activos
+        if (relIds.length > 0) {
+          // Inactivar bloques que referencian estas relaciones
+          await this.dataSource.query(
+            'UPDATE infraestructura.bloques SET activo = false WHERE campus_facultad_id = ANY($1)',
+            [relIds],
+          );
+
+          // Inactivar ambientes de esos bloques
+          await this.dataSource.query(
+            `UPDATE infraestructura.ambientes SET activo = false 
+             WHERE bloque_id IN (
+               SELECT id FROM infraestructura.bloques WHERE campus_facultad_id = ANY($1)
+             )`,
+            [relIds],
+          );
+        }
+      }
+
+      // Crear nuevas relaciones
+      if (toAdd.length > 0) {
+        const values: string[] = [];
+        const relParams: (string | number)[] = [];
+        let paramIndex = 1;
+
+        for (const campusId of toAdd) {
+          values.push(`($${paramIndex++}, $${paramIndex++})`);
+          relParams.push(campusId, id);
+        }
+
+        const relSql = `
+          INSERT INTO infraestructura.campus_facultades (campus_id, facultad_id)
+          VALUES ${values.join(', ')}
+        `;
+
+        await this.dataSource.query(relSql, relParams);
+      }
+    }
+
     return { id };
   }
 }

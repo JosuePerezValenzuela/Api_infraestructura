@@ -152,7 +152,21 @@ export class FacultadController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Actualizar una facultad' })
   @ApiParam({ name: 'id', type: Number })
-  @ApiBody({ type: UpdateFacultadesDto })
+  @ApiBody({
+    description: 'Datos para actualizar una facultad',
+    schema: {
+      example: {
+        nombre: 'FACULTAD ACTUALIZADA',
+        nombre_corto: 'FACT',
+        lat: -17.393498,
+        lng: -66.145992,
+        activo: true,
+        // Agregar/eliminar/reemplazar campuses
+        // Ejemplo: eliminar campus 2, agregar campus 3
+        campus_ids: [1, 3],
+      },
+    },
+  })
   @ApiOkResponse({
     description: 'Facultad actualizada',
     schema: {
