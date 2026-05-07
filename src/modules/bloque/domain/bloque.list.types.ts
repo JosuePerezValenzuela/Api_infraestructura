@@ -14,6 +14,7 @@ export interface ListBloquesOptions {
   orderBy: BloqueListOrderBy;
   orderDir: BloqueListOrderDir;
   facultadId: number | null;
+  campusId: number | null;
   tipoBloqueId: number | null;
   activo: boolean | null;
   pisosMin: number | null;
@@ -28,8 +29,16 @@ export interface BloqueListItem {
   pisos: number;
   activo: boolean;
   creado_en: string;
+  // Información de campus-facultad
+  campus_facultad_id: number;
+  campus_id: number;
+  campus_nombre: string;
+  facultad_id: number;
   facultad_nombre: string;
+  // Tipo de bloque
+  tipo_bloque_id: number;
   tipo_bloque_nombre: string;
+  // Coordenadas
   lat: number;
   lng: number;
 }
