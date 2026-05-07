@@ -51,12 +51,18 @@ export class FacultadController {
       example: {
         items: [
           {
-            id: 7,
-            codigo: 'FCYT-01',
-            nombre: 'Facultad de Ciencias y Tecnología',
-            nombre_corto: 'FCyT',
-            campus_nombre: 'Campus Central',
+            id: 10,
+            codigo: '10',
+            nombre: 'CIENCIAS AGRICOLAS Y PECUARIAS',
+            nombre_corto: 'AGR',
+            campus_ids: [3, 5],
+            campuses: [
+              { id: 3, nombre: 'Tamborada' },
+              { id: 5, nombre: 'Temporal' },
+            ],
             activo: true,
+            lat: -17.450068,
+            lng: -66.133971,
             creado_en: '2025-10-10T15:30:00.000Z',
           },
         ],
@@ -100,7 +106,7 @@ export class FacultadController {
   @ApiOperation({ summary: 'Registrar una nueva facultad' })
   @ApiCreatedResponse({
     description: 'Facultad creada',
-    schema: { example: { id: 1 } },
+    schema: { example: { id: 16 } },
   })
   @ApiBadRequestResponse({
     description: 'Datos inválidos o relaciones inexistentes',
@@ -111,6 +117,19 @@ export class FacultadController {
         details: [
           { field: 'campus_ids', message: 'El campus con ID X no existe' },
         ],
+      },
+    },
+  })
+  @ApiBody({
+    description: 'Datos para crear una facultad',
+    schema: {
+      example: {
+        codigo: '30',
+        nombre: 'FACULTAD DE NUEVA',
+        nombre_corto: 'FVN',
+        lat: -17.393498,
+        lng: -66.145992,
+        campus_ids: [1, 2],
       },
     },
   })
@@ -143,13 +162,13 @@ export class FacultadController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'Datos iinvalidos o relaciones inexistentes',
+    description: 'Datos inválidos o relaciones inexistentes',
     schema: {
       example: {
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
         details: [
-          { field: 'campus_id', message: 'El campus indicado no existe' },
+          { field: 'campus_ids', message: 'El campus con ID X no existe' },
         ],
       },
     },

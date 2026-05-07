@@ -8,7 +8,8 @@ export interface facultadCompleta {
   lat: number;
   lng: number;
   activo: boolean;
-  campus_id: number;
+  campus_id: number | null;
+  campus_ids: number[];
 }
 export interface ListFacultadesQuery {
   page: number;
@@ -19,17 +20,22 @@ export interface ListFacultadesQuery {
   activo?: boolean;
 }
 
+export interface CampusInfo {
+  id: number;
+  nombre: string;
+}
+
 export interface ListFacultadesItem {
   id: number;
   codigo: string;
   nombre: string;
   nombre_corto: string | null;
-  campus_nombre: string;
+  campus_ids: number[];
+  campuses: CampusInfo[];
   activo: boolean;
   creado_en: string;
   lat: number;
   lng: number;
-  campus_id: number;
 }
 
 export interface ListFacultadesMeta {

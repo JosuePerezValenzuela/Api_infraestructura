@@ -90,18 +90,33 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       f.coordenadas[1]::float8 AS lat,
       f.coordenadas[0]::float8 AS lng,
       f.activo,
-      f.campus_id
+      (
+        SELECT cf.campus_id
+        FROM infraestructura.campus_facultades cf
+        WHERE cf.facultad_id = f.id AND cf.activo = true
+        ORDER BY cf.campus_id
+        LIMIT 1
+      ) AS campus_id,
+      (
+        SELECT ARRAY_AGG(cf2.campus_id)
+        FROM infraestructura.campus_facultades cf2
+        WHERE cf2.facultad_id = f.id AND cf2.activo = true
+      ) AS campus_ids
     FROM infraestructura.facultades f
     WHERE f.id = $1
     LIMIT 1
     `;
 
-    const row = await this.dataSource.query<facultadCompleta[]>(sql, [id]);
-    if (row.length === 0) {
+    const rows = await this.dataSource.query<facultadCompleta[]>(sql, [id]);
+    if (rows.length === 0) {
       return null;
     }
 
-    return row[0];
+    const row = rows[0];
+    return {
+      ...row,
+      campus_ids: row.campus_ids ?? [],
+    };
   }
 
   async findPaginated(
@@ -128,7 +143,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       filterParams.push(pattern);
 
       whereClauses.push(
-        `(f.codigo ILIKE $${codigoIndex} OR f.nombre ILIKE $${nombreIndex} OR c.nombre ILIKE $${campusIndex})`,
+        `(f.codigo ILIKE $${codigoIndex} OR f.nombre ILIKE $${nombreIndex} OR c.nombre ILIKE $${campusIndex} OR cf.campus_id::text ILIKE $${campusIndex})`,
       );
     }
 
@@ -151,9 +166,10 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
 
     //Construccion de la consulta
     const countSql = `
-      SELECT COUNT(*)::int AS total
+      SELECT COUNT(DISTINCT f.id)::int AS total
       FROM infraestructura.facultades f
-      JOIN infraestructura.campus c ON c.id = f.campus_id
+      LEFT JOIN infraestructura.campus_facultades cf ON cf.facultad_id = f.id
+      LEFT JOIN infraestructura.campus c ON c.id = cf.campus_id
       ${whereSql}
     `;
 
@@ -178,21 +194,34 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
 
     //Consulta principal
     const dataSql = `
-      SELECT
+      SELECT DISTINCT ON (f.id)
         f.id,
         f.codigo,
         f.nombre,
         f.nombre_corto,
-        c.nombre AS campus_nombre,
+        (
+          SELECT ARRAY_AGG(cf4.campus_id)
+          FROM infraestructura.campus_facultades cf4
+          WHERE cf4.facultad_id = f.id AND cf4.activo = true
+        ) AS campus_ids,
+        (
+          SELECT JSON_AGG(
+            JSON_BUILD_OBJECT('id', c5.id, 'nombre', c5.nombre)
+            ORDER BY c5.nombre
+          )
+          FROM infraestructura.campus_facultades cf5
+          JOIN infraestructura.campus c5 ON c5.id = cf5.campus_id
+          WHERE cf5.facultad_id = f.id AND cf5.activo = true
+        ) AS campuses_json,
         f.activo,
         f.creado_en,
         f.coordenadas[1]::float8 AS lat,
-        f.coordenadas[0]::float8 AS lng,
-        f.campus_id
+        f.coordenadas[0]::float8 AS lng
       FROM infraestructura.facultades f
-      JOIN infraestructura.campus c ON c.id = f.campus_id
+      LEFT JOIN infraestructura.campus_facultades cf ON cf.facultad_id = f.id AND cf.activo = true
+      LEFT JOIN infraestructura.campus c ON c.id = cf.campus_id
       ${whereSql}
-      ORDER BY ${orderByMap[opts.orderBy]} ${opts.orderDir.toUpperCase()}
+      ORDER BY f.id, ${orderByMap[opts.orderBy]} ${opts.orderDir.toUpperCase()}
       LIMIT $${limitIndex}
       OFFSET $${offsetIndex}
     `;
@@ -203,12 +232,12 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       codigo: string;
       nombre: string;
       nombre_corto: string | null;
-      campus_nombre: string;
       activo: boolean;
       creado_en: string | Date;
       lng: number;
       lat: number;
-      campus_id: number;
+      campus_ids: number[] | null;
+      campuses_json: Array<{ id: number; nombre: string }> | null;
     }> = await this.dataSource.query(dataSql, dataParams);
 
     const items = rows.map((row) => ({
@@ -216,12 +245,12 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       codigo: row.codigo,
       nombre: row.nombre,
       nombre_corto: row.nombre_corto,
-      campus_nombre: row.campus_nombre,
+      campus_ids: row.campus_ids ?? [],
+      campuses: row.campuses_json ?? [],
       activo: row.activo,
       creado_en: new Date(row.creado_en).toISOString(),
       lat: row.lat,
       lng: row.lng,
-      campus_id: row.campus_id,
     }));
 
     // Calculamos si existe siguiente pagina
