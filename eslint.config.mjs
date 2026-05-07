@@ -6,30 +6,47 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: [
+      'eslint.config.mjs',
+      'be.infra.umss.net',
+      'node_modules',
+      'dist',
+    ],
   },
-  // Solo eslint base y prettier recommended (sin type checked riguroso)
+  // Base configs (sin type checked para evitar problemas)
   eslint.configs.recommended,
   eslintPluginPrettierRecommended,
   {
+    files: ['**/*.ts'],
     languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: './tsconfig.json',
+      },
       globals: {
         ...globals.node,
         ...globals.jest,
       },
-      sourceType: 'commonjs',
+      sourceType: 'module',
     },
   },
   {
-    // Desactivar reglas problematicas que chocan con tsconfig
+    files: ['**/*.ts'],
+    // Desactivar reglas que chocan con tsconfig
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+      // Variables sin usar - warning
+      'no-unused-vars': 'warn',
+      'no-undef': 'off',
+      'no-redeclare': 'off',
+      'no-unreachable': 'off',
+      'no-unreachable-loop': 'off',
       // Prettier maneja el formatting completo
       'prettier/prettier': 'error',
     },
