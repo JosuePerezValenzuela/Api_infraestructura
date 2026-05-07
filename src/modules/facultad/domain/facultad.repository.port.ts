@@ -28,4 +28,12 @@ export interface FacultadRepositoryPort {
   findPaginated(opts: ListFacultadesQuery): Promise<ListFacultadesResult>;
 
   update(id: number, input: UpdateFacultadesInput): Promise<{ id: number }>;
+
+  // Métodos para validar relación campus-facultad (usados por otros módulos)
+  findCampusById(campusId: number): Promise<{ id: number } | null>;
+
+  findCampusFacultadRelationship(
+    facultadId: number,
+    campusId: number,
+  ): Promise<{ id: number } | null>;
 }
