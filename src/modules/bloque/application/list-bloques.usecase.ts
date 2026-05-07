@@ -30,6 +30,7 @@ export class ListBloquesUseCase {
     orderBy?: BloqueListOrderBy;
     orderDir?: BloqueListOrderDir;
     facultadId?: number | null;
+    campusId?: number | null;
     tipoBloqueId?: number | null;
     activo?: boolean | null;
     pisosMin?: number | null;
@@ -44,6 +45,7 @@ export class ListBloquesUseCase {
         ? input.search.trim()
         : null;
     const facultadId = input.facultadId ?? null;
+    const campusId = input.campusId ?? null;
     const tipoBloqueId = input.tipoBloqueId ?? null;
     const activo = input.activo ?? null;
     const pisosMin = input.pisosMin ?? null;
@@ -94,6 +96,15 @@ export class ListBloquesUseCase {
       }
     }
 
+    if (campusId !== null) {
+      if (!Number.isInteger(campusId) || campusId < 1) {
+        validationError(
+          'campusId',
+          'El campusId debe ser un numero entero positivo',
+        );
+      }
+    }
+
     if (tipoBloqueId !== null) {
       if (!Number.isInteger(tipoBloqueId) || tipoBloqueId < 1) {
         validationError(
@@ -139,6 +150,7 @@ export class ListBloquesUseCase {
       orderBy,
       orderDir,
       facultadId,
+      campusId,
       tipoBloqueId,
       activo,
       pisosMin,

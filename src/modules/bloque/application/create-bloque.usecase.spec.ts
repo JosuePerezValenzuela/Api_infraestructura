@@ -20,6 +20,7 @@ interface CreateBloqueCommand {
   pisos: number;
   activo?: boolean;
   facultad_id: number;
+  campus_id: number;
   tipo_bloque_id: number;
 }
 
@@ -45,6 +46,11 @@ interface BloqueRepositoryPort {
 
 interface FacultadRepositoryPort {
   findById: jest.Mock<Promise<{ id: number } | null>, [number]>;
+  findCampusById: jest.Mock<Promise<{ id: number } | null>, [number]>;
+  findCampusFacultadRelationship: jest.Mock<
+    Promise<{ id: number } | null>,
+    [number, number]
+  >;
 }
 
 interface TipoBloqueRepositoryPort {
@@ -61,11 +67,15 @@ describe('CreateBloqueUseCase', () => {
   const buildSystem = (options?: {
     codeTaken?: boolean;
     facultadExists?: boolean;
+    campusExists?: boolean;
+    relationshipExists?: boolean;
     tipoBloqueExists?: boolean;
   }) => {
     // Si no se proporcionan opciones usamos valores por defecto (nombre disponible y relaciones existentes).
     const codeTaken = options?.codeTaken ?? false;
     const facultadExists = options?.facultadExists ?? true;
+    const campusExists = options?.campusExists ?? true;
+    const relationshipExists = options?.relationshipExists ?? true;
     const tipoBloqueExists = options?.tipoBloqueExists ?? true;
 
     // Creamos mocks para cada repositorio que el caso de uso necesita.
@@ -76,6 +86,12 @@ describe('CreateBloqueUseCase', () => {
 
     const facultadRepo: FacultadRepositoryPort = {
       findById: jest.fn().mockResolvedValue(facultadExists ? { id: 7 } : null),
+      findCampusById: jest
+        .fn()
+        .mockResolvedValue(campusExists ? { id: 1 } : null),
+      findCampusFacultadRelationship: jest
+        .fn()
+        .mockResolvedValue(relationshipExists ? { id: 100 } : null),
     };
 
     const tipoBloqueRepo: TipoBloqueRepositoryPort = {
@@ -104,6 +120,7 @@ describe('CreateBloqueUseCase', () => {
     lng: -66.1568,
     pisos: 4,
     facultad_id: 1,
+    campus_id: 1,
     tipo_bloque_id: 2,
   };
 
@@ -127,7 +144,7 @@ describe('CreateBloqueUseCase', () => {
       pointLiteral: expectedPoint,
       pisos: 4,
       activo: true,
-      facultad_id: 1,
+      campus_facultad_id: 100,
       tipo_bloque_id: 2,
     });
     // El caso de uso debe devolver el id que entrega el repositorio.

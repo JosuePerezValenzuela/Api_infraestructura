@@ -30,6 +30,7 @@ export class CreateBloqueUseCase {
     pisos: number;
     activo?: boolean;
     facultad_id: number;
+    campus_id: number;
     tipo_bloque_id: number;
   }): Promise<{ id: number }> {
     //Limpieza de strings
@@ -60,7 +61,39 @@ export class CreateBloqueUseCase {
         error: 'CONFLICT_ERROR',
         message: 'Los datos enviados no son validos',
         details: [
-          { field: 'facultad_ id', message: 'La facultad indicada no existe' },
+          { field: 'facultad_id', message: 'La facultad indicada no existe' },
+        ],
+      });
+    }
+
+    //Validar que el campus exista
+    const takenCampus = await this.facultadRepos.findCampusById(input.campus_id);
+    if (!takenCampus) {
+      throw new BadRequestException({
+        error: 'CONFLICT_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          { field: 'campus_id', message: 'El campus indicado no existe' },
+        ],
+      });
+    }
+
+    //Validar que la relación campus_facultad exista
+    const campusFacultad =
+      await this.facultadRepos.findCampusFacultadRelationship(
+        input.facultad_id,
+        input.campus_id,
+      );
+    if (!campusFacultad) {
+      throw new BadRequestException({
+        error: 'CONFLICT_ERROR',
+        message: 'Los datos enviados no son validos',
+        details: [
+          {
+            field: 'campus_id',
+            message:
+              'La facultad no está asociada a este campus. La relación facultad-campus no existe',
+          },
         ],
       });
     }
@@ -108,7 +141,7 @@ export class CreateBloqueUseCase {
       pointLiteral,
       pisos: input.pisos,
       activo,
-      facultad_id: input.facultad_id,
+      campus_facultad_id: campusFacultad.id,
       tipo_bloque_id: input.tipo_bloque_id,
     };
 
