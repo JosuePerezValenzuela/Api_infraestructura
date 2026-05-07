@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsInt,

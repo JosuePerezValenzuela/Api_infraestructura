@@ -1,5 +1,3 @@
-/* eslint-disable indent */
-
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ValidatorConstraint,

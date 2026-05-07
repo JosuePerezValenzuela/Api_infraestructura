@@ -16,9 +16,7 @@ import {
 import { UpdateTipoAmbienteCommand } from '../../domain/commands/update-tipo-ambiente.command';
 
 @Injectable()
-export class TypeormTipoAmbienteRepository
-  implements TipoAmbienteRepositoryPort
-{
+export class TypeormTipoAmbienteRepository implements TipoAmbienteRepositoryPort {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,

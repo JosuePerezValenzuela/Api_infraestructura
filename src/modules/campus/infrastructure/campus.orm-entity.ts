@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ schema: 'infraestructura', name: 'campus' })

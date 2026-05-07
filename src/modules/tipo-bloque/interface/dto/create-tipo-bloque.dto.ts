@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDefined, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 

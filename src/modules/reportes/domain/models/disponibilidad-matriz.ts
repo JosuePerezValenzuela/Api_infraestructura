@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 // Representa una fila de la matriz de disponibilidad (hora + flags de cada dia).
 export interface DisponibilidadMatrizFila {
   hora: string;

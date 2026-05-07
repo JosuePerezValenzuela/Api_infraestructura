@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 import { Inject, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import type {
@@ -65,9 +64,7 @@ type AmbienteRow = {
  * con KPIs agregadas por nivel.
  */
 @Injectable()
-export class InventarioReporteRepositoryAdapter
-  implements InventarioReporteRepository
-{
+export class InventarioReporteRepositoryAdapter implements InventarioReporteRepository {
   constructor(@Inject(DataSource) private readonly dataSource: DataSource) {}
 
   async obtener_por_campus(
