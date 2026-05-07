@@ -130,7 +130,7 @@ describe('FacultadController - findPaginated', () => {
     // Configuramos el caso de uso para devolver la respuesta vacia.
     listFacultadesUseCase.execute.mockResolvedValue(emptyResponse);
     // Generamos un DTO sin search ni ordenamiento personalizado, usando solo el valor default de limit.
-    const queryDto = Object.assign(new ListFacultadesQueryDto(), {});
+    const queryDto = new ListFacultadesQueryDto();
     // Ejecutamos el metodo del controlador.
     await controller.findPaginated(queryDto);
     // Recuperamos la primera llamada realizada al caso de uso para inspeccionar los parametros.

@@ -25,7 +25,7 @@ export class CreateFacultadUseCase {
       const geoPoint = GeoPoint.create({ lat: cmd.lat, lng: cmd.lng });
       pointLiteral = geoPoint.toPostgresPointLiteral();
     } catch (err) {
-      const message = (err as Error).message;
+      const message = err instanceof Error ? err.message : String(err);
       let field: string;
 
       if (message.includes('Latitud')) {
@@ -43,10 +43,12 @@ export class CreateFacultadUseCase {
       });
     }
 
-    // Verificamos que campus_id exista
-    const campus = await this.campusRepository.findById(cmd.campus_id);
-    if (!campus) {
-      throw new BadRequestException('El campus indicado no existe');
+    // Verificamos que todos los campus_ids existan
+    for (const campusId of cmd.campus_ids) {
+      const campus = await this.campusRepository.findById(Number(campusId));
+      if (!campus) {
+        throw new BadRequestException(`El campus con ID ${campusId} no existe`);
+      }
     }
 
     // verificamos que no exista otra facultadad con el mismo codigo
@@ -60,8 +62,8 @@ export class CreateFacultadUseCase {
       codigo: cmd.codigo,
       nombre: cmd.nombre,
       nombre_corto: cmd.nombre_corto,
-      campus_id: cmd.campus_id,
       pointLiteral,
+      campus_ids: cmd.campus_ids,
     });
 
     return created;

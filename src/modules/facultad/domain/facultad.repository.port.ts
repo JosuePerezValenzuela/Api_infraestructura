@@ -13,7 +13,7 @@ export interface CreateFacultadData {
   nombre: string;
   nombre_corto: string | null;
   pointLiteral: string;
-  campus_id: number;
+  campus_ids: number[];
 }
 
 export const FacultadRepositoryPort = Symbol('FacultadRepositoryPort');

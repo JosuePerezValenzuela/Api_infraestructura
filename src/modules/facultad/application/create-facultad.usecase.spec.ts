@@ -16,7 +16,7 @@ interface FakeFacultadRepositoryPort {
         codigo: string;
         nombre: string;
         nombre_corto: string | null;
-        campus_id: number;
+        campus_ids: number[];
         pointLiteral: string;
       },
     ]
@@ -73,7 +73,7 @@ describe('CreateFacultadUseCase', () => {
   };
 
   // Este caso cubre el registro exitoso de una nueva facultad cumpliendo el escenario principal de la HU.
-  it('crea una facultad cuando los datos son validos y el campus existe', async () => {
+  it('crea una facultad cuando los datos son validos y los campus existen', async () => {
     // Construimos el sistema con el campus existente y el codigo disponible.
     const { useCase, facultadRepo, campusRepo } = buildSystem();
     // Definimos los datos de entrada que simulan la peticion del administrador.
@@ -83,13 +83,16 @@ describe('CreateFacultadUseCase', () => {
       nombre_corto: 'FCyT',
       lat: -17.3939,
       lng: -66.15,
-      campus_id: 1,
+      campus_ids: [1, 2],
     };
     // Ejecutamos el caso de uso con los datos de entrada.
     const resultado = await useCase.execute(comando);
-    // Verificamos que el repositorio de campus haya sido consultado para asegurar que el campus existe.
+    // Verificamos que el repositorio de campus haya sido consultado para cada campus
     expect((campusRepo.findById as unknown as jest.Mock).mock.calls[0][0]).toBe(
       1,
+    );
+    expect((campusRepo.findById as unknown as jest.Mock).mock.calls[1][0]).toBe(
+      2,
     );
     // Confirmamos que se verifico la unicidad del codigo antes de crear la facultad.
     expect(facultadRepo.isCodeTaken).toHaveBeenCalledWith('FCYT-01');
@@ -98,7 +101,7 @@ describe('CreateFacultadUseCase', () => {
       codigo: 'FCYT-01',
       nombre: 'Facultad de Ciencias y Tecnologia',
       nombre_corto: 'FCyT',
-      campus_id: 1,
+      campus_ids: [1, 2],
       pointLiteral: '-66.15,-17.3939',
     });
     // Verificamos que el caso de uso devuelva el identificador proporcionado por el repositorio.
@@ -116,7 +119,7 @@ describe('CreateFacultadUseCase', () => {
       nombre_corto: 'FCyT',
       lat: -17.3939,
       lng: -66.15,
-      campus_id: 1,
+      campus_ids: [1],
     };
     // Ejecutamos el caso de uso y esperamos que se rechace con una ConflictException.
     await expect(useCase.execute(comando)).rejects.toBeInstanceOf(
@@ -125,7 +128,7 @@ describe('CreateFacultadUseCase', () => {
   });
 
   // Este caso cubre el escenario donde el campus solicitado no existe (criterio de aceptacion 6).
-  it('lanza BadRequestException cuando el campus indicado no existe', async () => {
+  it('lanza BadRequestException cuando uno de los campus no existe', async () => {
     // Construimos el sistema indicando que el campus no se encuentra.
     const { useCase } = buildSystem({ campusExists: false });
     // Definimos los datos validos de entrada.
@@ -135,7 +138,7 @@ describe('CreateFacultadUseCase', () => {
       nombre_corto: 'FCyT',
       lat: -17.3939,
       lng: -66.15,
-      campus_id: 999,
+      campus_ids: [1, 999],
     };
     // Ejecutamos el caso de uso y esperamos un rechazo con BadRequestException.
     await expect(useCase.execute(comando)).rejects.toBeInstanceOf(

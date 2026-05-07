@@ -6,6 +6,9 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -48,9 +51,15 @@ export class CreateFacultadDto {
   @IsNumber({}, { message: 'La longitud debe ser numerico' })
   lng!: number;
 
-  @ApiProperty({ example: 1, description: 'Codigo asociado a un campus' })
-  @IsDefined({ message: 'No se ingreso el campus_id' })
-  @IsNotEmpty({ message: 'El campus_id no puede estar vacio' })
-  @IsNumber({}, { message: 'El campus_id debe ser numerico' })
-  campus_id!: number;
+  @ApiProperty({
+    description: 'Lista de IDs de campus donde estará la facultad',
+    type: [Number],
+    example: [1, 2],
+  })
+  @IsDefined({ message: 'No se ingreso el campo campus_ids' })
+  @IsArray({ message: 'El campo campus_ids debe ser un array' })
+  @ArrayMinSize(1, { message: 'Debe indicar al menos un campus' })
+  @ArrayMaxSize(10, { message: 'No puede tener más de 10 campus' })
+  @IsNumber({}, { message: 'Cada campus_id debe ser numerico', each: true })
+  campus_ids!: number[];
 }

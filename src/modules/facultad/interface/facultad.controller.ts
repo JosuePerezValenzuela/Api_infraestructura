@@ -103,13 +103,13 @@ export class FacultadController {
     schema: { example: { id: 1 } },
   })
   @ApiBadRequestResponse({
-    description: 'Datos iinvalidos o relaciones inexistentes',
+    description: 'Datos inválidos o relaciones inexistentes',
     schema: {
       example: {
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son validos',
         details: [
-          { field: 'campus_id', message: 'El campus indicado no existe' },
+          { field: 'campus_ids', message: 'El campus con ID X no existe' },
         ],
       },
     },
@@ -121,7 +121,7 @@ export class FacultadController {
       nombre_corto: dto.nombre_corto ?? null,
       lat: dto.lat,
       lng: dto.lng,
-      campus_id: dto.campus_id,
+      campus_ids: dto.campus_ids,
     });
 
     const { id } = await this.createFacultad.execute(command);

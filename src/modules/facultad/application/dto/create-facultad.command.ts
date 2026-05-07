@@ -4,7 +4,7 @@ export class CreateFacultadCommand {
   readonly nombre_corto: string | null;
   readonly lat: number;
   readonly lng: number;
-  readonly campus_id: number;
+  readonly campus_ids: number[];
 
   constructor(params: {
     codigo: string;
@@ -12,13 +12,13 @@ export class CreateFacultadCommand {
     nombre_corto: string | null;
     lat: number;
     lng: number;
-    campus_id: number;
+    campus_ids: number[];
   }) {
     this.codigo = params.codigo;
     this.nombre = params.nombre;
     this.nombre_corto = params.nombre_corto;
     this.lat = params.lat;
     this.lng = params.lng;
-    this.campus_id = params.campus_id;
+    this.campus_ids = params.campus_ids;
   }
 }

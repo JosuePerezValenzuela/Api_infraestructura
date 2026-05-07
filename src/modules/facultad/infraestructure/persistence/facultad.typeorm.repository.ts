@@ -36,9 +36,10 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
   }
 
   async create(data: CreateFacultadData): Promise<{ id: number }> {
+    // Insertar facultad sin campus_id (ahora es M:M)
     const sql = `
-      INSERT INTO infraestructura.facultades (codigo, nombre, nombre_corto, coordenadas, campus_id)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO infraestructura.facultades (codigo, nombre, nombre_corto, coordenadas)
+      VALUES ($1, $2, $3, $4)
       RETURNING id
     `;
 
@@ -47,7 +48,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       data.nombre,
       data.nombre_corto,
       data.pointLiteral,
-      data.campus_id,
     ];
 
     const rows: Array<{ id: string }> = await this.dataSource.query(
@@ -56,8 +56,28 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     );
 
     const [row] = rows;
+    const facultadId = Number(row.id);
 
-    return { id: Number(row.id) };
+    // Insertar relaciones en campus_facultades
+    if (data.campus_ids && data.campus_ids.length > 0) {
+      const values: string[] = [];
+      const relParams: (string | number)[] = [];
+      let paramIndex = 1;
+
+      for (const campusId of data.campus_ids) {
+        values.push(`($${paramIndex++}, $${paramIndex++})`);
+        relParams.push(campusId, facultadId);
+      }
+
+      const relSql = `
+        INSERT INTO infraestructura.campus_facultades (campus_id, facultad_id)
+        VALUES ${values.join(', ')}
+      `;
+
+      await this.dataSource.query(relSql, relParams);
+    }
+
+    return { id: facultadId };
   }
 
   async findById(id: number): Promise<facultadCompleta | null> {
