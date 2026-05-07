@@ -53,84 +53,87 @@ describe('TypeormRelationshipRepository.deleteCampusCascade', () => {
 
   // Esta prueba representa el escenario feliz: borrar un campus con dependencias.
   it('elimina un campus y todas sus dependencias en el orden correcto', async () => {
-    // Configuramos la respuesta de la primera consulta: obtener facultades del campus.
-    queryRunner.query.mockResolvedValueOnce([{ id: 100 }, { id: 200 }]);
-    // Configuramos la respuesta de la segunda consulta: obtener bloques de esas facultades.
+    // Configuramos la respuesta de la primera consulta: soft delete campus_facultades (devuelve id y facultad_id).
+    queryRunner.query.mockResolvedValueOnce([
+      { id: 100, facultad_id: 42 },
+      { id: 200, facultad_id: 42 },
+    ]);
+    // Configuramos la respuesta de la segunda consulta: inactivar bloques.
     queryRunner.query.mockResolvedValueOnce([{ id: 300 }, { id: 400 }]);
-    // Configuramos la tercera consulta: eliminación de ambientes que pertenecen a los bloques.
+    // Configuramos la tercera consulta: obtener IDs de bloques para inactivar ambientes.
+    queryRunner.query.mockResolvedValueOnce([{ id: 300 }, { id: 400 }]);
+    // Configuramos la cuarta consulta: inactivar ambientes (sin activos activos).
     queryRunner.query.mockResolvedValueOnce([]);
-    // Configuramos la cuarta consulta: eliminación de los bloques.
+    // Configuramos la quinta consulta: inactivar las facultades.
     queryRunner.query.mockResolvedValueOnce([]);
-    // Configuramos la quinta consulta: eliminación de las facultades.
-    queryRunner.query.mockResolvedValueOnce([]);
-    // Configuramos la sexta consulta: eliminación final del campus.
+    // Configuramos la sexta consulta: inactivar el campus.
     queryRunner.query.mockResolvedValueOnce([]);
 
-    // Ejecutamos la funcionalidad que queremos validar. Esta línea fallará ahora porque el método aún no existe.
+    // Ejecutamos la funcionalidad que queremos validar.
     await (repository as any).deleteCampusCascade(campusId);
 
     // Verificamos que la transacción inició una sola vez.
     expect(queryRunner.startTransaction).toHaveBeenCalledTimes(1);
-    // Confirmamos que la primera consulta busca las facultades del campus recibido.
+    // Confirmamos que la primera consulta hace soft delete de campus_facultades.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining('FROM infraestructura.facultades'),
+      expect.stringContaining('UPDATE infraestructura.campus_facultades'),
       [campusId],
     );
-    // Confirmamos que la segunda consulta recupere los bloques asociados.
+    // Confirmamos que la segunda consulta hace soft delete de bloques.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('FROM infraestructura.bloques'),
+      expect.stringContaining('UPDATE infraestructura.bloques'),
       [[100, 200]],
     );
-    // Revisamos que la tercera consulta elimine los ambientes por medio de los bloques.
+    // Revisamos que la tercera consulta obtiene los IDs de bloques.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       3,
-      expect.stringContaining('DELETE FROM infraestructura.ambientes'),
-      [[300, 400]],
-    );
-    // Revisamos que la cuarta consulta elimine los bloques.
-    expect(queryRunner.query).toHaveBeenNthCalledWith(
-      4,
-      expect.stringContaining('DELETE FROM infraestructura.bloques'),
-      [[300, 400]],
-    );
-    // Revisamos que la quinta consulta elimine las facultades.
-    expect(queryRunner.query).toHaveBeenNthCalledWith(
-      5,
-      expect.stringContaining('DELETE FROM infraestructura.facultades'),
+      expect.stringContaining('SELECT id FROM infraestructura.bloques'),
       [[100, 200]],
     );
-    // Finalmente verificamos que se elimine el registro principal del campus.
+    // Revisamos que la cuarta consulta inactiva los ambientes (recibe IDs de bloques del SELECT).
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining('UPDATE infraestructura.ambientes'),
+      [[300, 400]],
+    );
+    // Revisamos que la quinta consulta inactiva las facultades.
+    expect(queryRunner.query).toHaveBeenNthCalledWith(
+      5,
+      expect.stringContaining('UPDATE infraestructura.facultades'),
+      [[42]],
+    );
+    // Finalmente verificamos que se inactiva el campus.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       6,
-      expect.stringContaining('DELETE FROM infraestructura.campus'),
+      expect.stringContaining('UPDATE infraestructura.campus'),
       [campusId],
     );
     // Confirmamos que la transacción finalizó correctamente.
     expect(queryRunner.commitTransaction).toHaveBeenCalledTimes(1);
   });
 
-  // Esta prueba asegura que cuando el campus no tiene dependencias, solo se elimina el campus.
+  // Esta prueba asegura que cuando el campus no tiene dependencias, solo se inactiva el campus.
   it('elimina únicamente el campus cuando no existen dependencias registradas', async () => {
-    // Configuramos la primera consulta para indicar que no hay facultades asociadas.
+    // Configuramos la primera consulta: no hay relaciones campus_facultades.
     queryRunner.query.mockResolvedValueOnce([]);
-    // Configuramos la segunda consulta para la eliminación del campus en sí.
+    // Configuramos la segunda consulta: inactivar el campus en sí.
     queryRunner.query.mockResolvedValueOnce([]);
 
-    // Ejecutamos la función bajo prueba, lo que evidenciará la ausencia del método.
+    // Ejecutamos la función bajo prueba.
     await (repository as any).deleteCampusCascade(campusId);
 
-    // Verificamos que la primera consulta consultó las facultades.
+    // Verificamos que la primera consulta inactivó campus_facultades (sin resultados).
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining('FROM infraestructura.facultades'),
+      expect.stringContaining('UPDATE infraestructura.campus_facultades'),
       [campusId],
     );
-    // Confirmamos que la segunda consulta borró directamente el campus al no haber dependencias.
+    // Confirmamos que la segunda consulta inactivó el campus al no haber dependencias.
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('DELETE FROM infraestructura.campus'),
+      expect.stringContaining('UPDATE infraestructura.campus'),
       [campusId],
     );
     // Verificamos que no se hayan hecho más consultas innecesarias.
@@ -199,58 +202,64 @@ describe('TypeormRelationshipRepository.deleteFacultadCascade', () => {
   });
 
   it('elimina ambientes, bloques y la facultad cuando existen dependencias', async () => {
-    // 1) Seleccionamos los bloques dependientes de la facultad.
+    // 1) Soft delete de campus_facultades (devuelve ids de relaciones).
     queryRunner.query.mockResolvedValueOnce([{ id: 501 }, { id: 502 }]);
-    // 2) Eliminamos ambientes de los bloques seleccionados.
+    // 2) Soft delete de bloques que dependen de esas relaciones.
+    queryRunner.query.mockResolvedValueOnce([{ id: 301 }, { id: 302 }]);
+    // 3) Soft delete de ambientes (sin activos activos).
     queryRunner.query.mockResolvedValueOnce([]);
-    // 3) Eliminamos los bloques asociados.
-    queryRunner.query.mockResolvedValueOnce([]);
-    // 4) Eliminamos la facultad en si misma.
+    // 4) Soft delete de la facultad.
     queryRunner.query.mockResolvedValueOnce([]);
 
     await repository.deleteFacultadCascade(facultadId);
 
     expect(queryRunner.startTransaction).toHaveBeenCalledTimes(1);
+    // Primera consulta: soft delete de campus_facultades (recibe array de facultad IDs)
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining('FROM infraestructura.bloques'),
+      expect.stringContaining('UPDATE infraestructura.campus_facultades'),
       [[facultadId]],
     );
+    // Segunda consulta: soft delete de bloques
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('DELETE FROM infraestructura.ambientes'),
+      expect.stringContaining('UPDATE infraestructura.bloques'),
       [[501, 502]],
     );
+    // Tercera consulta: soft delete de ambientes
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       3,
-      expect.stringContaining('DELETE FROM infraestructura.bloques'),
-      [[501, 502]],
+      expect.stringContaining('UPDATE infraestructura.ambientes'),
+      [[301, 302]],
     );
+    // Cuarta consulta: soft delete de la facultad
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       4,
-      expect.stringContaining('DELETE FROM infraestructura.facultades'),
-      [[facultadId]],
+      expect.stringContaining('UPDATE infraestructura.facultades'),
+      [facultadId],
     );
     expect(queryRunner.commitTransaction).toHaveBeenCalledTimes(1);
   });
 
   it('elimina la facultad aun cuando no encuentra bloques relacionados', async () => {
-    // 1) No se encontraron bloques para esta facultad.
+    // 1) No se encontraron relaciones campus_facultades.
     queryRunner.query.mockResolvedValueOnce([]);
-    // 2) Se debe eliminar la facultad directamente.
+    // 2) Se debe inactivar la facultad directamente.
     queryRunner.query.mockResolvedValueOnce([]);
 
     await repository.deleteFacultadCascade(facultadId);
 
+    // Primera consulta: soft delete de campus_facultades (recibe array)
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       1,
-      expect.stringContaining('FROM infraestructura.bloques'),
+      expect.stringContaining('UPDATE infraestructura.campus_facultades'),
       [[facultadId]],
     );
+    // Segunda consulta: soft delete de la facultad
     expect(queryRunner.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('DELETE FROM infraestructura.facultades'),
-      [[facultadId]],
+      expect.stringContaining('UPDATE infraestructura.facultades'),
+      [facultadId],
     );
     expect(queryRunner.query).toHaveBeenCalledTimes(2);
   });

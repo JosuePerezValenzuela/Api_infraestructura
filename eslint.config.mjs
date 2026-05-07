@@ -41,8 +41,8 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
-      // Variables sin usar - warning
-      'no-unused-vars': 'warn',
+      // Parámetros de callback en TypeScript (falso positivo del linter)
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-undef': 'off',
       'no-redeclare': 'off',
       'no-unreachable': 'off',

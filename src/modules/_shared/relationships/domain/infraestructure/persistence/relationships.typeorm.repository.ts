@@ -64,9 +64,10 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
     facultadIds: number[],
     runner: QueryRunner,
   ): Promise<void> {
-    const rawBlocksRows: unknown = await runner.query(
+    // 1. Obtener las relaciones campus_facultades de estas facultades
+    const rawRelRows: unknown = await runner.query(
       `
-        UPDATE infraestructura.bloques
+        UPDATE infraestructura.campus_facultades
         SET activo = FALSE
         WHERE facultad_id = ANY($1)
         RETURNING id
@@ -74,13 +75,31 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
       [facultadIds],
     );
 
-    const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
-    const blocksIds = blockRows.map((row) => Number(row.id));
-    if (blocksIds.length === 0) {
+    const relRows = this.mapRowsWithId(rawRelRows, 'campus_facultades');
+    const relIds = relRows.map((row) => Number(row.id));
+
+    if (relIds.length === 0) {
       return;
     }
 
-    await this.markBloquesDependenciesInactive(blocksIds, runner);
+    // 2. Inactivar bloques que dependen de estas relaciones
+    const rawBlocksRows: unknown = await runner.query(
+      `
+        UPDATE infraestructura.bloques
+        SET activo = FALSE
+        WHERE campus_facultad_id = ANY($1)
+        RETURNING id
+      `,
+      [relIds],
+    );
+
+    const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
+    const blocksIds = blockRows.map((row) => Number(row.id));
+
+    if (blocksIds.length > 0) {
+      // 3. Inactivar ambientes de esos bloques (pero NO activos)
+      await this.markBloquesDependenciesInactive(blocksIds, runner);
+    }
   }
 
   private async markBloquesDependenciesInactive(
@@ -91,6 +110,7 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
       return;
     }
 
+    // Inactivar TODOS los ambientes de los bloques (sin importar si tienen activos)
     await runner.query(
       `
         UPDATE infraestructura.ambientes
@@ -105,32 +125,80 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
 
   async deleteCampusCascade(campusId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
-      const rawFacultyRows: unknown = await runner.query(
+      // 1. Obtener las relaciones campus_facultades de este campus
+      const rawRelRows: unknown = await runner.query(
         `
-          SELECT id
-          FROM infraestructura.facultades
+          UPDATE infraestructura.campus_facultades
+          SET activo = FALSE
           WHERE campus_id = $1
+          RETURNING id, facultad_id
         `,
         [campusId],
       );
 
-      const facultyRows = this.mapRowsWithId(rawFacultyRows, 'facultades');
-      const facultyIds = facultyRows.map((row) => Number(row.id));
-      if (facultyIds.length > 0) {
-        await this.deleteFacultiesDependencies(facultyIds, runner);
+      // Normalizar y extraer todos los campos necesarios
+      const normalizedRows = this.normalizeRows(
+        rawRelRows,
+        'campus_facultades',
+      );
+      const relIds: number[] = [];
+      const facultyIdsSet = new Set<number>();
 
+      for (const row of normalizedRows) {
+        const r = row as { id?: unknown; facultad_id?: unknown };
+        if ('id' in r && typeof r.id === 'number') {
+          relIds.push(r.id);
+        }
+        if ('facultad_id' in r && typeof r.facultad_id === 'number') {
+          facultyIdsSet.add(r.facultad_id);
+        }
+      }
+      const facultyIds = Array.from(facultyIdsSet);
+
+      // 2. Inactivar bloques y ambientes de esas relaciones
+      if (relIds.length > 0) {
+        // Inactivar bloques
         await runner.query(
           `
-            DELETE FROM infraestructura.facultades
+            UPDATE infraestructura.bloques
+            SET activo = FALSE
+            WHERE campus_facultad_id = ANY($1)
+          `,
+          [relIds],
+        );
+
+        // Obtener IDs de bloques para inactivar ambientes
+        const rawBlocksRows: unknown = await runner.query(
+          `
+            SELECT id FROM infraestructura.bloques
+            WHERE campus_facultad_id = ANY($1)
+          `,
+          [relIds],
+        );
+        const blockRows = this.mapRowsWithId(rawBlocksRows, 'Bloques');
+        const blocksIds = blockRows.map((row) => Number(row.id));
+
+        // Usar función compartida para inactivar ambientes
+        await this.markBloquesDependenciesInactive(blocksIds, runner);
+      }
+
+      // 3. Inactivar las facultades
+      if (facultyIds.length > 0) {
+        await runner.query(
+          `
+            UPDATE infraestructura.facultades
+            SET activo = FALSE
             WHERE id = ANY($1)
           `,
           [facultyIds],
         );
       }
 
+      // 4. Soft delete del campus
       await runner.query(
         `
-          DELETE FROM infraestructura.campus
+          UPDATE infraestructura.campus
+          SET activo = FALSE
           WHERE id = $1
         `,
         [campusId],
@@ -140,13 +208,16 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
 
   async deleteFacultadCascade(facultadId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
-      await this.deleteFacultiesDependencies([facultadId], runner);
+      // 1. Soft delete de relaciones, bloques y ambientes
+      await this.markFacultadesDependenciesInactive([facultadId], runner);
+      // 2. Soft delete de la facultad
       await runner.query(
         `
-          DELETE FROM infraestructura.facultades
-          WHERE id = ANY($1)
+          UPDATE infraestructura.facultades
+          SET activo = FALSE
+          WHERE id = $1
         `,
-        [[facultadId]],
+        [facultadId],
       );
     });
   }
