@@ -262,25 +262,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION infraestructura.tg_validar_hora_inicio_multiplo_periodo()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  v_periodo_minutos int;
-  v_inicio_minutos int;
-BEGIN
-  v_periodo_minutos := NEW.periodo;
-  v_inicio_minutos := EXTRACT(HOUR FROM NEW.hora_inicio) * 60 + EXTRACT(MINUTE FROM NEW.hora_inicio);
-
-  IF v_inicio_minutos % v_periodo_minutos != 0 THEN
-    RAISE EXCEPTION 'hora_inicio debe ser múltiplo del periodo. periodo=% minutos, hora_inicio=% minutos', v_periodo_minutos, v_inicio_minutos;
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
-
 -- =====================================================
 -- TRIGGERS
 -- =====================================================
@@ -294,11 +275,6 @@ DROP TRIGGER IF EXISTS tr_horarios_operacion_touch_actualizado_en ON infraestruc
 CREATE TRIGGER tr_horarios_operacion_touch_actualizado_en
 BEFORE INSERT OR UPDATE ON infraestructura.horarios_operacion
 FOR EACH ROW EXECUTE FUNCTION infraestructura.tg_touch_actualizado_en();
-
-DROP TRIGGER IF EXISTS tr_horarios_operacion_biu_validar_hora_periodo ON infraestructura.horarios_operacion;
-CREATE TRIGGER tr_horarios_operacion_biu_validar_hora_periodo
-BEFORE INSERT OR UPDATE ON infraestructura.horarios_operacion
-FOR EACH ROW EXECUTE FUNCTION infraestructura.tg_validar_hora_inicio_multiplo_periodo();
 
 DROP TRIGGER IF EXISTS tr_ambientes_biu_validar_capacidad ON infraestructura.ambientes;
 CREATE TRIGGER tr_ambientes_biu_validar_capacidad
