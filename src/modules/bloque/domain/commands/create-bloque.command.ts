@@ -7,6 +7,6 @@ export interface CreateBloqueCommand {
   pointLiteral: string;
   pisos: number;
   activo: boolean;
-  facultad_id: number;
+  campus_facultad_id: number;
   tipo_bloque_id: number;
 }

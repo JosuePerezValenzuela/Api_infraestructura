@@ -86,7 +86,7 @@ describe('TypeormBloqueRepository', () => {
         pointLiteral: '-66.1568,-17.3937',
         pisos: 4,
         activo: true,
-        facultad_id: 1,
+        campus_facultad_id: 100,
         tipo_bloque_id: 2,
       };
 
@@ -95,7 +95,7 @@ describe('TypeormBloqueRepository', () => {
       expect(dataSource.query).toHaveBeenCalledTimes(1);
       const [sql, params] = dataSource.query.mock.calls[0];
       expect(sql).toContain(
-        'INSERT INTO infraestructura.bloques (codigo, nombre, nombre_corto, pisos, coordenadas, activo, facultad_id, tipo_bloque_id)',
+        'INSERT INTO infraestructura.bloques (codigo, nombre, nombre_corto, pisos, coordenadas, activo, campus_facultad_id, tipo_bloque_id)',
       );
       expect(params).toEqual([
         'BLOQUE-101',
@@ -104,7 +104,7 @@ describe('TypeormBloqueRepository', () => {
         4,
         '-66.1568,-17.3937',
         true,
-        1,
+        100,
         2,
       ]);
       expect(result).toEqual({ id: 42 });
@@ -130,7 +130,7 @@ describe('TypeormBloqueRepository', () => {
         pointLiteral: '-66.1568,-17.3937',
         pisos: 4,
         activo: true,
-        facultad_id: 1,
+        campus_facultad_id: 1,
         tipo_bloque_id: 2,
       };
 
@@ -235,7 +235,12 @@ describe('TypeormBloqueRepository', () => {
             pisos: 3,
             activo: true,
             creado_en: new Date('2025-10-01T12:00:00.000Z'),
+            campus_facultad_id: 1,
+            campus_id: 1,
+            campus_nombre: 'Campus Principal',
+            facultad_id: 1,
             facultad_nombre: 'Facultad Central',
+            tipo_bloque_id: 1,
             tipo_bloque_nombre: 'Acad?mico',
             lat: -17.39,
             lng: -66.15,
@@ -254,6 +259,7 @@ describe('TypeormBloqueRepository', () => {
         orderBy: 'nombre',
         orderDir: 'asc',
         facultadId: null,
+        campusId: null,
         tipoBloqueId: null,
         activo: null,
         pisosMin: null,
@@ -269,7 +275,12 @@ describe('TypeormBloqueRepository', () => {
           pisos: 3,
           activo: true,
           creado_en: '2025-10-01T12:00:00.000Z',
+          campus_facultad_id: 1,
+          campus_id: 1,
+          campus_nombre: 'Campus Principal',
+          facultad_id: 1,
           facultad_nombre: 'Facultad Central',
+          tipo_bloque_id: 1,
           tipo_bloque_nombre: 'Acad?mico',
           lat: -17.39,
           lng: -66.15,
@@ -301,6 +312,7 @@ describe('TypeormBloqueRepository', () => {
         orderBy: 'codigo',
         orderDir: 'desc',
         facultadId: 7,
+        campusId: null,
         tipoBloqueId: 3,
         activo: false,
         pisosMin: 2,
@@ -311,6 +323,8 @@ describe('TypeormBloqueRepository', () => {
 
       const [dataSql, dataParams] = dataSource.query.mock.calls[0];
       expect(dataSql).toContain('FROM infraestructura.bloques b');
+      expect(dataSql).toContain('JOIN infraestructura.campus_facultades cf');
+      expect(dataSql).toContain('JOIN infraestructura.campus c');
       expect(dataSql).toContain('JOIN infraestructura.facultades f');
       expect(dataSql).toContain('JOIN infraestructura.tipo_bloques tb');
       expect(dataSql).toContain('b.codigo ILIKE $1');

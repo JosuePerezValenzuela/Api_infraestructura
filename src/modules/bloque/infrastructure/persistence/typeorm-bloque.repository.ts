@@ -26,7 +26,7 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
 
   async create(command: CreateBloqueCommand): Promise<{ id: number }> {
     const sql = `
-      INSERT INTO infraestructura.bloques (codigo, nombre, nombre_corto, pisos, coordenadas, activo, facultad_id, tipo_bloque_id)
+      INSERT INTO infraestructura.bloques (codigo, nombre, nombre_corto, pisos, coordenadas, activo, campus_facultad_id, tipo_bloque_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id
     `;
@@ -38,7 +38,7 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
       command.pisos,
       command.pointLiteral,
       command.activo,
-      command.facultad_id,
+      command.campus_facultad_id,
       command.tipo_bloque_id,
     ];
 
@@ -123,8 +123,15 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
 
     if (options.facultadId !== null) {
       pushCondition(
-        (start) => `b.facultad_id = $${start}`,
+        (start) => `f.id = $${start}`,
         [options.facultadId],
+      );
+    }
+
+    if (options.campusId !== null) {
+      pushCondition(
+        (start) => `c.id = $${start}`,
+        [options.campusId],
       );
     }
 
@@ -159,12 +166,19 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
         b.pisos,
         b.activo,
         b.creado_en,
+        cf.id AS campus_facultad_id,
+        cf.campus_id,
+        c.nombre AS campus_nombre,
+        f.id AS facultad_id,
         f.nombre AS facultad_nombre,
+        tb.id AS tipo_bloque_id,
         tb.nombre AS tipo_bloque_nombre,
         (b.coordenadas)[1]:: float AS lat,
         (b.coordenadas)[0]:: float AS lng
       FROM infraestructura.bloques b
-      JOIN infraestructura.facultades f ON f.id = b.facultad_id
+      JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true
+      JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true
+      JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true
       JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
     `;
 
@@ -191,7 +205,9 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
     const countSql = `
       SELECT COUNT(*)::int AS total
       FROM infraestructura.bloques b
-      JOIN infraestructura.facultades f ON f.id = b.facultad_id
+      JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true
+      JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true
+      JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true
       JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
       ${whereClause}
     `;
@@ -205,7 +221,12 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
         pisos: number | string;
         activo: boolean;
         creado_en: Date | string;
+        campus_facultad_id: number | string;
+        campus_id: number | string;
+        campus_nombre: string;
+        facultad_id: number | string;
         facultad_nombre: string;
+        tipo_bloque_id: number | string;
         tipo_bloque_nombre: string;
         lat: number | string | null;
         lng: number | string | null;
@@ -227,7 +248,12 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
       pisos: Number(row.pisos),
       activo: row.activo,
       creado_en: new Date(row.creado_en).toISOString(),
+      campus_facultad_id: Number(row.campus_facultad_id),
+      campus_id: Number(row.campus_id),
+      campus_nombre: row.campus_nombre,
+      facultad_id: Number(row.facultad_id),
       facultad_nombre: row.facultad_nombre,
+      tipo_bloque_id: Number(row.tipo_bloque_id),
       tipo_bloque_nombre: row.tipo_bloque_nombre,
       lat: Number(row.lat),
       lng: Number(row.lng),
