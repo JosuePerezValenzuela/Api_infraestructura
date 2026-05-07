@@ -30,6 +30,7 @@ describe('CreateBloqueDto', () => {
       pisos: 4,
       activo: true,
       facultad_id: 1,
+      campus_id: 1,
       tipo_bloque_id: 2,
     };
     // Ejecutamos la validación del DTO con el payload creado.
@@ -49,6 +50,7 @@ describe('CreateBloqueDto', () => {
       pisos: 4,
       activo: true,
       facultad_id: 1,
+      campus_id: 1,
       tipo_bloque_id: 2,
     };
     // Validamos el payload incompleto para obtener los mensajes del DTO.

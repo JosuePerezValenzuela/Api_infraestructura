@@ -78,6 +78,17 @@ export class CreateBloqueDto {
   @ApiProperty({ example: 1 })
   @Type(() => Number)
   @IsDefined({
+    message: 'El campus asociado debe ser un numero entero positivo',
+  })
+  @IsInt({ message: 'El campus asociado debe ser un numero entero positivo' })
+  @Min(1, {
+    message: 'El campus asociado debe ser un numero entero positivo',
+  })
+  campus_id!: number;
+
+  @ApiProperty({ example: 1 })
+  @Type(() => Number)
+  @IsDefined({
     message: 'El tipo de bloque asociado debe ser un numero entero positivo',
   })
   @IsInt({

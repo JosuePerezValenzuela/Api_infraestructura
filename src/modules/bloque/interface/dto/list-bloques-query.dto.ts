@@ -75,6 +75,13 @@ export class ListBloquesQueryDto {
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)
+  @IsInt({ message: 'El campusId debe ser un numero entero positivo' })
+  @Min(1, { message: 'El campusId debe ser un numero entero positivo' })
+  campusId?: number;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
   @IsInt({ message: 'El tipoBloqueId debe ser un numero entero positivo' })
   @Min(1, { message: 'El tipoBloqueId debe ser un numero entero positivo' })
   tipoBloqueId?: number;
