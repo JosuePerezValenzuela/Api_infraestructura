@@ -127,6 +127,21 @@ export class UpdateBloqueDto {
   facultad_id?: number;
 
   @ApiPropertyOptional({
+    description: 'Campus donde se ubica el bloque',
+    minimum: 1,
+    example: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({
+    message: 'El campus debe ser un numero entero positivo',
+  })
+  @Min(1, {
+    message: 'El campus debe ser un numero entero positivo',
+  })
+  campus_id?: number;
+
+  @ApiPropertyOptional({
     description: 'Tipo de bloque asociado (entero positivo)',
     minimum: 1,
     example: 1,

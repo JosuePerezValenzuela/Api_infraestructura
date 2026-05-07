@@ -39,6 +39,7 @@ export class UpdateBloqueUseCase {
       lng?: number;
       activo?: boolean;
       facultad_id?: number;
+      campus_id?: number;
       tipo_bloque_id?: number;
     };
   }): Promise<{ id: number }> {
@@ -209,6 +210,53 @@ export class UpdateBloqueUseCase {
       }
     }
 
+    // Validar campus_id si se proporciona
+    if (input.campus_id !== undefined) {
+      const campus = await this.facultadRepo.findCampusById(input.campus_id);
+      if (!campus) {
+        throw new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Los datos enviados no son validos',
+          details: [
+            {
+              field: 'campus_id',
+              message: 'El campus indicado no existe',
+            },
+          ],
+        });
+      }
+    }
+
+    // Validar la relación campus_facultad si se proporciona alguno de los dos
+    if (
+      input.facultad_id !== undefined ||
+      input.campus_id !== undefined
+    ) {
+      const current = await this.bloqueRepo.findById(id);
+      const facultadId = input.facultad_id ?? current?.facultad_id;
+      const campusId = input.campus_id ?? current?.campus_id;
+
+      if (facultadId && campusId) {
+        const rel = await this.facultadRepo.findCampusFacultadRelationship(
+          facultadId,
+          campusId,
+        );
+        if (!rel) {
+          throw new BadRequestException({
+            error: 'VALIDATION_ERROR',
+            message: 'Los datos enviados no son validos',
+            details: [
+              {
+                field: input.campus_id ? 'campus_id' : 'facultad_id',
+                message:
+                  'La relación entre el campus y la facultad no existe o no está activa',
+              },
+            ],
+          });
+        }
+      }
+    }
+
     if (input.tipo_bloque_id !== undefined) {
       const tipoBloque = await this.tipoBloqueRepo.findById(
         input.tipo_bloque_id,
@@ -227,6 +275,23 @@ export class UpdateBloqueUseCase {
       }
     }
 
+    // Construir campus_facultad_id si se cambió facultad_id o campus_id
+    let campus_facultad_id: number | undefined = undefined;
+    if (input.facultad_id !== undefined || input.campus_id !== undefined) {
+      const currentBloque = await this.bloqueRepo.findById(id);
+      if (currentBloque) {
+        const facultadId = input.facultad_id ?? currentBloque.facultad_id;
+        const campusId = input.campus_id ?? currentBloque.campus_id;
+        const rel = await this.facultadRepo.findCampusFacultadRelationship(
+          facultadId,
+          campusId,
+        );
+        if (rel) {
+          campus_facultad_id = rel.id;
+        }
+      }
+    }
+
     const command: UpdateBloqueCommand = {
       id,
       ...(codigo !== undefined ? { codigo } : {}),
@@ -237,8 +302,8 @@ export class UpdateBloqueUseCase {
       ...(input.pisos !== undefined ? { pisos: input.pisos } : {}),
       ...(pointLiteral !== undefined ? { coordinates: { pointLiteral } } : {}),
       ...(input.activo !== undefined ? { activo: input.activo } : {}),
-      ...(input.facultad_id !== undefined
-        ? { facultad_id: input.facultad_id }
+      ...(campus_facultad_id !== undefined
+        ? { campus_facultad_id }
         : {}),
       ...(input.tipo_bloque_id !== undefined
         ? { tipo_bloque_id: input.tipo_bloque_id }

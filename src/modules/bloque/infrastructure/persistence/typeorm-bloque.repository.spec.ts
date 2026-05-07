@@ -27,7 +27,9 @@ describe('TypeormBloqueRepository', () => {
           nombre_corto: 'Central',
           pisos: 4,
           activo: true,
+          campus_facultad_id: 1,
           facultad_id: 2,
+          campus_id: 1,
           tipo_bloque_id: 3,
           lat: -17.39,
           lng: -66.15,
@@ -41,7 +43,7 @@ describe('TypeormBloqueRepository', () => {
       const snapshot = await repository.findById(10);
 
       expect(dataSource.query).toHaveBeenCalledWith(
-        expect.stringContaining('FROM infraestructura.bloques'),
+        expect.stringContaining('JOIN infraestructura.campus_facultades cf'),
         [10],
       );
       expect(snapshot).toEqual({
@@ -51,7 +53,9 @@ describe('TypeormBloqueRepository', () => {
         nombre_corto: 'Central',
         pisos: 4,
         activo: true,
+        campus_facultad_id: 1,
         facultad_id: 2,
+        campus_id: 1,
         tipo_bloque_id: 3,
         coordenadas: { lat: -17.39, lng: -66.15 },
       });

@@ -26,6 +26,11 @@ interface FakeBloqueRepositoryPort {
 // Interfaces auxiliares para los otros puertos.
 interface FakeFacultadRepositoryPort {
   findById: jest.Mock<Promise<{ id: number } | null>, [number]>;
+  findCampusById: jest.Mock<Promise<{ id: number } | null>, [number]>;
+  findCampusFacultadRelationship: jest.Mock<
+    Promise<{ id: number } | null>,
+    [number, number]
+  >;
 }
 
 interface FakeTipoBloqueRepositoryPort {
@@ -44,7 +49,9 @@ const existingBloque: BloqueSnapshot = {
   nombre_corto: 'Antiguo',
   pisos: 3,
   activo: true,
+  campus_facultad_id: 1,
   facultad_id: 7,
+  campus_id: 1,
   tipo_bloque_id: 5,
   coordenadas: { lat: -17.4, lng: -66.15 },
 };
@@ -60,6 +67,8 @@ describe('UpdateBloqueUseCase', () => {
 
     const facultadRepo: FakeFacultadRepositoryPort = {
       findById: jest.fn(),
+      findCampusById: jest.fn(),
+      findCampusFacultadRelationship: jest.fn(),
     };
 
     const tipoBloqueRepo: FakeTipoBloqueRepositoryPort = {
@@ -171,6 +180,8 @@ describe('UpdateBloqueUseCase', () => {
     bloqueRepo.findById.mockResolvedValue(existingBloque);
     bloqueRepo.isCodeTaken.mockResolvedValue(false);
     facultadRepo.findById.mockResolvedValue({ id: 9 });
+    facultadRepo.findCampusById.mockResolvedValue({ id: 1 });
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 1 });
     tipoBloqueRepo.findById.mockResolvedValue({ id: 3 });
     bloqueRepo.update.mockResolvedValue({ id: 42 });
 
@@ -197,7 +208,7 @@ describe('UpdateBloqueUseCase', () => {
       pisos: 6,
       coordinates: { pointLiteral: '-66.1568,-17.3937' },
       activo: true,
-      facultad_id: 9,
+      campus_facultad_id: 1,
       tipo_bloque_id: 3,
     });
   });

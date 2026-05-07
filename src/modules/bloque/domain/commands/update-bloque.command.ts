@@ -8,6 +8,6 @@ export interface UpdateBloqueCommand {
     pointLiteral: string;
   };
   activo?: boolean;
-  facultad_id?: number;
+  campus_facultad_id?: number;
   tipo_bloque_id?: number;
 }

@@ -11,7 +11,9 @@ export interface BloqueSnapshot {
   nombre_corto: string | null;
   pisos: number;
   activo: boolean;
+  campus_facultad_id: number;
   facultad_id: number;
+  campus_id: number;
   tipo_bloque_id: number;
   coordenadas: {
     lat: number;

@@ -283,11 +283,14 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
         b.nombre_corto,
         b.pisos,
         b.activo,
-        b.facultad_id,
+        b.campus_facultad_id,
+        cf.facultad_id,
+        cf.campus_id,
         b.tipo_bloque_id,
         (b.coordenadas)[1]:: float AS lng,
         (b.coordenadas)[2]:: float AS lat
       FROM infraestructura.bloques b
+      JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id
       WHERE b.id = $1
       LIMIT 1
     `;
@@ -299,7 +302,9 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
         nombre_corto: string | null;
         pisos: number;
         activo: boolean;
+        campus_facultad_id: number;
         facultad_id: number;
+        campus_id: number;
         tipo_bloque_id: number;
         lat: number | null;
         lng: number | null;
@@ -318,7 +323,9 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
       nombre_corto: row.nombre_corto,
       pisos: Number(row.pisos),
       activo: row.activo,
+      campus_facultad_id: Number(row.campus_facultad_id),
       facultad_id: Number(row.facultad_id),
+      campus_id: Number(row.campus_id),
       tipo_bloque_id: Number(row.tipo_bloque_id),
       coordenadas:
         row.lat !== null && row.lng !== null
@@ -364,8 +371,8 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
       pushUpdate('activo', command.activo);
     }
 
-    if (command.facultad_id !== undefined) {
-      pushUpdate('facultad_id', command.facultad_id);
+    if (command.campus_facultad_id !== undefined) {
+      pushUpdate('campus_facultad_id', command.campus_facultad_id);
     }
 
     if (command.tipo_bloque_id !== undefined) {

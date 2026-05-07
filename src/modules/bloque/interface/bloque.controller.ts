@@ -197,7 +197,31 @@ export class BloqueController {
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Editar parcialmente un bloque existente' })
-  @ApiBody({ type: UpdateBloqueDto })
+  @ApiBody({
+    type: UpdateBloqueDto,
+    examples: {
+      actualizacionBasica: {
+        summary: 'Actualización básica',
+        value: {
+          nombre: 'Bloque Central Actualizado',
+          nombre_corto: 'Central',
+        },
+      },
+      cambioCampus: {
+        summary: 'Cambiar de campus',
+        value: {
+          facultad_id: 1,
+          campus_id: 2,
+        },
+      },
+      desactivarBloque: {
+        summary: 'Desactivar bloque (desactiva todos sus ambientes)',
+        value: {
+          activo: false,
+        },
+      },
+    },
+  })
   @ApiOkResponse({
     description: 'Bloque actualizado correctamente',
     schema: { example: { id: 42 } },
