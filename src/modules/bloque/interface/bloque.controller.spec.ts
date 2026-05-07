@@ -83,6 +83,7 @@ describe('BloqueController', () => {
         orderBy: 'nombre',
         orderDir: 'asc',
         facultadId: null,
+        campusId: null,
         tipoBloqueId: null,
         activo: null,
         pisosMin: null,
@@ -118,6 +119,7 @@ describe('BloqueController', () => {
         pisos: 4,
         activo: true,
         facultad_id: 1,
+        campus_id: 1,
         tipo_bloque_id: 2,
       };
 
@@ -132,6 +134,7 @@ describe('BloqueController', () => {
         pisos: 4,
         activo: true,
         facultad_id: 1,
+        campus_id: 1,
         tipo_bloque_id: 2,
       });
       expect(result).toEqual({ id: 55 });
@@ -150,6 +153,7 @@ describe('BloqueController', () => {
         pisos: 4,
         activo: true,
         facultad_id: 1,
+        campus_id: 1,
         tipo_bloque_id: 2,
       };
 
@@ -177,6 +181,7 @@ describe('BloqueController', () => {
         pisos: 4,
         activo: true,
         facultad_id: 999,
+        campus_id: 1,
         tipo_bloque_id: 2,
       };
 

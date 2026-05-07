@@ -59,11 +59,19 @@ export class BloqueController {
             nombre_corto: 'Central',
             pisos: 4,
             activo: true,
+            creado_en: '2025-10-01T12:00:00.000Z',
+            // Información de campus-facultad
+            campus_facultad_id: 1,
+            campus_id: 1,
+            campus_nombre: 'Campus Principal',
+            facultad_id: 1,
+            facultad_nombre: 'Facultad de Ingeniería',
+            // Tipo de bloque
+            tipo_bloque_id: 1,
+            tipo_bloque_nombre: 'Académico',
+            // Coordenadas
             lat: -17.39,
             lng: -66.15,
-            creado_en: '2025-10-01T12:00:00.000Z',
-            facultad_nombre: 'Facultad Central',
-            tipo_bloque_nombre: 'Académico',
           },
         ],
         meta: {
@@ -100,6 +108,7 @@ export class BloqueController {
       orderBy: (query.orderBy ?? 'nombre') as BloqueListOrderBy,
       orderDir: (query.orderDir ?? 'asc') as BloqueListOrderDir,
       facultadId: query.facultadId ?? null,
+      campusId: query.campusId ?? null,
       tipoBloqueId: query.tipoBloqueId ?? null,
       activo: query.activo ?? null,
       pisosMin: query.pisosMin ?? null,
@@ -112,7 +121,25 @@ export class BloqueController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registrar un nuevo bloque' })
-  @ApiBody({ type: CreateBloqueDto })
+  @ApiBody({
+    type: CreateBloqueDto,
+    examples: {
+      ejemplo: {
+        value: {
+          codigo: 'BLOQUE-101',
+          nombre: 'Bloque Central de Ingenieria',
+          nombre_corto: 'Ing Central',
+          lat: -17.3937,
+          lng: -66.1568,
+          pisos: 4,
+          activo: true,
+          facultad_id: 1,
+          campus_id: 1,
+          tipo_bloque_id: 2,
+        },
+      },
+    },
+  })
   @ApiCreatedResponse({
     description: 'Bloque creado correctamente',
     schema: { example: { id: 1 } },
@@ -125,12 +152,18 @@ export class BloqueController {
         message: 'Los datos enviados no son validos',
         details: [
           { field: 'facultad_id', message: 'La facultad indicada no existe' },
+          { field: 'campus_id', message: 'El campus indicado no existe' },
+          {
+            field: 'campus_id',
+            message:
+              'La facultad no está asociada a este campus. La relación facultad-campus no existe',
+          },
         ],
       },
     },
   })
   @ApiConflictResponse({
-    description: 'Conflicto por codigo duplicado',
+    description: 'Conflicto por codigo duplicado o relacion invalida',
     schema: {
       example: {
         error: 'CONFLICT_ERROR',
@@ -154,6 +187,7 @@ export class BloqueController {
       pisos: dto.pisos,
       activo: dto.activo,
       facultad_id: dto.facultad_id,
+      campus_id: dto.campus_id,
       tipo_bloque_id: dto.tipo_bloque_id,
     });
 
