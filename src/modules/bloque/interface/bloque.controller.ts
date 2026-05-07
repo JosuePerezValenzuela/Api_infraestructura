@@ -280,8 +280,19 @@ export class BloqueController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un bloque por identificador' })
-  @ApiNoContentResponse({ description: 'Bloque eliminado correctamente' })
+  @ApiOperation({
+    summary: 'Eliminar (soft delete) un bloque por identificador',
+    description:
+      'Desactiva el bloque y todos sus ambientes asociados. No elimina registros de la base de datos.',
+  })
+  @ApiNoContentResponse({
+    description: 'Bloque eliminado correctamente',
+    schema: {
+      example: {
+        message: 'Bloque desactivado correctamente',
+      },
+    },
+  })
   @ApiNotFoundResponse({
     description: 'No existe un bloque con el id indicado',
     schema: {
@@ -291,7 +302,8 @@ export class BloqueController {
       },
     },
   })
-  async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.deleteBloque.execute({ id });
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    const { id: deletedId } = await this.deleteBloque.execute({ id });
+    return { id: deletedId };
   }
 }

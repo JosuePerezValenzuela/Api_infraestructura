@@ -56,6 +56,12 @@ export class TypeormRelationshipRepository implements RelationshipsPort {
 
   async markBloquesCascadeInactive(bloqueId: number): Promise<void> {
     await this.runInTransaction(async (runner) => {
+      // 1. Desactivar el bloque
+      await runner.query(
+        `UPDATE infraestructura.bloques SET activo = false WHERE id = $1`,
+        [bloqueId],
+      );
+      // 2. Desactivar todos sus ambientes
       await this.markBloquesDependenciesInactive([bloqueId], runner);
     });
   }

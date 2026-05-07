@@ -20,7 +20,9 @@ export class DeleteBloqueUseCase {
       });
     }
 
-    await this.relationshipsRepo.deleteBloqueCascade(id);
+    // Soft delete: desactivamos el bloque y todos sus ambientes
+    // (usamos la misma lógica que cuando se desactiva un bloque desde update)
+    await this.relationshipsRepo.markBloquesCascadeInactive(id);
 
     return { id };
   }
