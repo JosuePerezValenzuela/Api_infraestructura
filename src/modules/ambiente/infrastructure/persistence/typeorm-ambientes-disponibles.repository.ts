@@ -41,7 +41,7 @@ export class TypeormAmbientesDisponiblesRepository implements AmbientesDisponibl
     // Filtro por campus usando los ids enviados.
     if (query.campus_ids && query.campus_ids.length > 0) {
       params.push(query.campus_ids);
-      conditions.push(`f.campus_id = ANY($${params.length})`);
+      conditions.push(`c.id = ANY($${params.length})`);
     }
 
     // Filtro por facultad cuando se indican ids.
@@ -115,13 +115,14 @@ export class TypeormAmbientesDisponiblesRepository implements AmbientesDisponibl
         tb.nombre AS tipo_bloque_nombre,
         f.id AS facultad_id,
         f.nombre AS facultad_nombre,
-        f.campus_id,
+        c.id AS campus_id,
         c.nombre AS campus_nombre
       FROM infraestructura.ambientes a
       JOIN infraestructura.bloques b ON b.id = a.bloque_id
-      JOIN infraestructura.facultades f ON f.id = b.facultad_id
+      JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true
+      JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true
+      JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true
       JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
-      JOIN infraestructura.campus c ON c.id = f.campus_id
       JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
       ${whereClause}
       ORDER BY ${orderColumn} ${orderDirection}
