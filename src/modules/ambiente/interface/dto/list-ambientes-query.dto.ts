@@ -112,6 +112,17 @@ export class ListAmbientesQueryDto {
   bloqueId?: number;
 
   @ApiPropertyOptional({
+    description: 'Filtro por campus',
+    example: 1,
+    minimum: 1,
+  })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt({ message: 'campusId debe ser un entero positivo' })
+  @Min(1, { message: 'campusId debe ser un entero positivo' })
+  campusId?: number;
+
+  @ApiPropertyOptional({
     description: 'Filtro por facultad (vía bloque)',
     example: 5,
     minimum: 1,

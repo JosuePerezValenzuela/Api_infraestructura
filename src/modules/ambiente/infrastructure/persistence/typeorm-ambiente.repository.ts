@@ -267,9 +267,13 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
       pushCondition((start) => `a.bloque_id = $${start}`, [options.bloqueId]);
     }
 
+    if (options.campusId !== null) {
+      pushCondition((start) => `c.id = $${start}`, [options.campusId]);
+    }
+
     if (options.facultadId !== null) {
       pushCondition(
-        (start) => `b.facultad_id = $${start}`,
+        (start) => `f.id = $${start}`,
         [options.facultadId],
       );
     }
@@ -315,12 +319,19 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
         a.clases,
         a.activo,
         a.creado_en,
+        b.id AS bloque_id,
         b.nombre AS bloque_nombre,
-        f.nombre AS facultad_nombre,
-        ta.nombre AS tipo_ambiente_nombre
+        ta.id AS tipo_ambiente_id,
+        ta.nombre AS tipo_ambiente_nombre,
+        c.id AS campus_id,
+        c.nombre AS campus_nombre,
+        f.id AS facultad_id,
+        f.nombre AS facultad_nombre
       FROM infraestructura.ambientes a
       JOIN infraestructura.bloques b ON b.id = a.bloque_id
-      JOIN infraestructura.facultades f ON f.id = b.facultad_id
+      JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true
+      JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true
+      JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true
       JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
       ${whereClause}
       ORDER BY ${orderColumn} ${orderDirection}
@@ -334,7 +345,9 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
       SELECT COUNT(*)::int AS total
       FROM infraestructura.ambientes a
       JOIN infraestructura.bloques b ON b.id = a.bloque_id
-      JOIN infraestructura.facultades f ON f.id = b.facultad_id
+      JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true
+      JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true
+      JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true
       JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
       ${whereClause}
     `;

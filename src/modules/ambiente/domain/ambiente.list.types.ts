@@ -14,6 +14,7 @@ export interface ListAmbientesOptions {
   orderBy: AmbienteListOrderBy;
   orderDir: AmbienteListOrderDir;
   bloqueId: number | null;
+  campusId: number | null;
   facultadId: number | null;
   tipoAmbienteId: number | null;
   activo: boolean | null;
@@ -33,9 +34,17 @@ export interface AmbienteListItem {
   clases: boolean;
   activo: boolean;
   creado_en: string;
+  // Bloque
+  bloque_id: number;
   bloque_nombre: string;
-  facultad_nombre: string;
+  // Tipo de ambiente
+  tipo_ambiente_id: number;
   tipo_ambiente_nombre: string;
+  // Campus-Facultad
+  campus_id: number;
+  campus_nombre: string;
+  facultad_id: number;
+  facultad_nombre: string;
 }
 
 export interface AmbientItem {

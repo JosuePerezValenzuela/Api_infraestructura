@@ -34,6 +34,7 @@ export class ListAmbientesUseCase {
     orderBy?: AmbienteListOrderBy;
     orderDir?: AmbienteListOrderDir;
     bloqueId?: number | null;
+    campusId?: number | null;
     facultadId?: number | null;
     tipoAmbienteId?: number | null;
     activo?: boolean | null;
@@ -48,6 +49,7 @@ export class ListAmbientesUseCase {
     const orderBy = input.orderBy ?? 'nombre';
     const orderDir = input.orderDir ?? 'asc';
     const bloqueId = input.bloqueId ?? null;
+    const campusId = input.campusId ?? null;
     const facultadId = input.facultadId ?? null;
     const tipoAmbienteId = input.tipoAmbienteId ?? null;
     const activo = input.activo ?? null;
@@ -146,6 +148,7 @@ export class ListAmbientesUseCase {
       orderBy,
       orderDir,
       bloqueId,
+      campusId,
       facultadId,
       tipoAmbienteId,
       activo,

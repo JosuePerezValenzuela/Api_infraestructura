@@ -275,6 +275,7 @@ describe('TypeormAmbienteRepository', () => {
         orderBy: 'codigo',
         orderDir: 'desc',
         bloqueId: 5,
+        campusId: 1,
         facultadId: 3,
         tipoAmbienteId: 2,
         activo: true,
@@ -292,7 +293,13 @@ describe('TypeormAmbienteRepository', () => {
         'JOIN infraestructura.bloques b ON b.id = a.bloque_id',
       );
       expect(normalizedSql).toContain(
-        'JOIN infraestructura.facultades f ON f.id = b.facultad_id',
+        'JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true',
+      );
+      expect(normalizedSql).toContain(
+        'JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true',
+      );
+      expect(normalizedSql).toContain(
+        'JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true',
       );
       expect(normalizedSql).toContain(
         'JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id',
@@ -304,7 +311,8 @@ describe('TypeormAmbienteRepository', () => {
         '%Lab%',
         '%Lab%',
         5,
-        3,
+        1, // campusId
+        3, // facultadId
         2,
         true,
         true,
@@ -321,7 +329,8 @@ describe('TypeormAmbienteRepository', () => {
         '%Lab%',
         '%Lab%',
         5,
-        3,
+        1, // campusId
+        3, // facultadId
         2,
         true,
         true,

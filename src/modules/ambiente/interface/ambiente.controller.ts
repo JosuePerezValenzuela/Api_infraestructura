@@ -77,9 +77,18 @@ export class AmbienteController {
             },
             clases: true,
             activo: true,
+            creado_en: '2025-01-15T10:00:00.000Z',
+            // Bloque
+            bloque_id: 10,
             bloque_nombre: 'Bloque Central',
-            facultad_nombre: 'Facultad de Ingenieria',
+            // Tipo de ambiente
+            tipo_ambiente_id: 1,
             tipo_ambiente_nombre: 'Aula',
+            // Campus-Facultad
+            campus_id: 1,
+            campus_nombre: 'Campus Principal',
+            facultad_id: 1,
+            facultad_nombre: 'Facultad de Ingenieria',
           },
         ],
         meta: {
@@ -110,6 +119,7 @@ export class AmbienteController {
       orderBy: query.orderBy,
       orderDir: query.orderDir,
       bloqueId: query.bloqueId,
+      campusId: query.campusId,
       facultadId: query.facultadId,
       tipoAmbienteId: query.tipoAmbienteId,
       activo: query.activo,
