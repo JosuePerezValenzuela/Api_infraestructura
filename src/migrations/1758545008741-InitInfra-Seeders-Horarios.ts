@@ -16,7 +16,7 @@ SELECT
   a.id AS ambiente_id,
   d.dia,
   '06:30:00'::time AS hora_inicio,
-  '10:30:00'::time AS hora_fin,
+  '22:30:00'::time AS hora_fin,
   30 AS periodo
 FROM infraestructura.ambientes a
 CROSS JOIN (VALUES (0), (1), (2), (3), (4)) AS d(dia)
