@@ -43,7 +43,7 @@ type ActivoRow = { nia: string; nombre: string; descripcion?: string | null };
 export class AmbienteReporteRepositoryAdapter implements AmbienteReporteRepository {
   constructor(@Inject(DataSource) private readonly dataSource: DataSource) {}
 
-  async obtenerPorId(id: number): Promise<AmbienteDetalleViewModel | null> {
+  async obtenerPorCodigo(codigo: string): Promise<AmbienteDetalleViewModel | null> {
     // Consulta principal para traer el ambiente y su jerarquia relacionada.
     const headerRows: HeaderRow[] = await this.dataSource.query(
       `
@@ -74,15 +74,16 @@ export class AmbienteReporteRepositoryAdapter implements AmbienteReporteReposito
           ta.id AS tipo_ambiente_id,
           ta.nombre AS tipo_ambiente_nombre
         FROM infraestructura.ambientes a
-        JOIN infraestructura.bloques b ON b.id = a.bloque_id
+        JOIN infraestructura.bloques b ON b.id = a.bloque_id AND b.activo = true
+        JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true
+        JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true
+        JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true
         JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
-        JOIN infraestructura.facultades f ON f.id = b.facultad_id
-        JOIN infraestructura.campus c ON c.id = f.campus_id
         JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
-        WHERE a.id = $1
+        WHERE a.codigo = $1 AND a.activo = true
         LIMIT 1
       `,
-      [id],
+      [codigo],
     );
 
     const header = headerRows[0];

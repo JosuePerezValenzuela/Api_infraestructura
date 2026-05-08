@@ -80,10 +80,10 @@ export class ReportesController {
 
   @Get('ambiente')
   @ApiQuery({
-    name: 'id',
+    name: 'codigo',
     required: true,
-    description: 'ID del ambiente',
-    type: Number,
+    description: 'Código del ambiente (varchar 16)',
+    example: 'AULA-101',
   })
   @ApiQuery({
     name: 'formato',

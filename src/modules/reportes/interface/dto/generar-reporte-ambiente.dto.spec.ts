@@ -8,7 +8,7 @@ import {
 describe('GenerarReporteAmbienteDto', () => {
   it('acepta un payload valido', async () => {
     const payload = {
-      id: 1,
+      codigo: 'AULA-101',
       formato: ReporteAmbienteFormato.PDF,
     };
     const dto = plainToInstance(GenerarReporteAmbienteDto, payload);
@@ -16,19 +16,19 @@ describe('GenerarReporteAmbienteDto', () => {
     expect(errors).toHaveLength(0);
   });
 
-  it('rechaza cuando falta el id', async () => {
+  it('rechaza cuando falta el codigo', async () => {
     const payload = {
       formato: ReporteAmbienteFormato.EXCEL,
     };
     const dto = plainToInstance(GenerarReporteAmbienteDto, payload);
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
-    expect(errors[0].property).toBe('id');
+    expect(errors[0].property).toBe('codigo');
   });
 
   it('rechaza un formato no permitido', async () => {
     const payload = {
-      id: 1,
+      codigo: 'AULA-101',
       formato: 'docx',
     };
     const dto = plainToInstance(GenerarReporteAmbienteDto, payload);

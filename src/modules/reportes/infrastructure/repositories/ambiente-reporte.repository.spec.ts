@@ -46,7 +46,7 @@ describe('AmbienteReporteRepositoryAdapter', () => {
     const dataSource = { query: jest.fn().mockResolvedValueOnce([]) };
     const repo = new AmbienteReporteRepositoryAdapter(dataSource as any);
 
-    const result = await repo.obtenerPorId(999);
+    const result = await repo.obtenerPorCodigo('NO-EXISTE');
     expect(result).toBeNull();
     expect(dataSource.query).toHaveBeenCalledTimes(1);
   });
@@ -61,12 +61,12 @@ describe('AmbienteReporteRepositoryAdapter', () => {
     };
     const repo = new AmbienteReporteRepositoryAdapter(dataSource as any);
 
-    const result = await repo.obtenerPorId(1);
+    const result = await repo.obtenerPorCodigo('AULA-101');
 
     expect(dataSource.query).toHaveBeenNthCalledWith(
       1,
       expect.stringContaining('FROM infraestructura.ambientes'),
-      [1],
+      ['AULA-101'],
     );
     expect(dataSource.query).toHaveBeenNthCalledWith(
       2,

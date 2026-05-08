@@ -55,7 +55,7 @@ describe('GenerarReporteAmbienteService', () => {
 
   beforeEach(async () => {
     const repoMock: jest.Mocked<AmbienteReporteRepository> = {
-      obtenerPorId: jest.fn(),
+      obtenerPorCodigo: jest.fn(),
     };
     const generadorMock: jest.Mocked<ReporteAmbienteGeneradorPort> = {
       generar_pdf: jest.fn(),
@@ -78,7 +78,7 @@ describe('GenerarReporteAmbienteService', () => {
   });
 
   it('genera PDF y calcula la matriz de disponibilidad', async () => {
-    repo.obtenerPorId.mockResolvedValue(makeViewModel());
+    repo.obtenerPorCodigo.mockResolvedValue(makeViewModel());
     generador.generar_pdf.mockResolvedValue({
       stream: makeStream(),
       filename: 'reporte.pdf',
@@ -86,11 +86,11 @@ describe('GenerarReporteAmbienteService', () => {
     });
 
     await service.ejecutar({
-      id: 1,
+      codigo: 'AULA-101',
       formato: ReporteAmbienteFormato.PDF,
     });
 
-    expect(repo.obtenerPorId).toHaveBeenCalledWith(1);
+    expect(repo.obtenerPorCodigo).toHaveBeenCalledWith('AULA-101');
     expect(generador.generar_pdf).toHaveBeenCalledTimes(1);
     const vm = generador.generar_pdf.mock.calls[0][0];
     expect(vm.disponibilidadMatriz).toHaveLength(3);
@@ -99,7 +99,7 @@ describe('GenerarReporteAmbienteService', () => {
   });
 
   it('genera Excel cuando se solicita formato excel', async () => {
-    repo.obtenerPorId.mockResolvedValue(makeViewModel());
+    repo.obtenerPorCodigo.mockResolvedValue(makeViewModel());
     generador.generar_excel.mockResolvedValue({
       stream: makeStream(),
       filename: 'reporte.xlsx',
@@ -108,7 +108,7 @@ describe('GenerarReporteAmbienteService', () => {
     });
 
     await service.ejecutar({
-      id: 1,
+      codigo: 'AULA-101',
       formato: ReporteAmbienteFormato.EXCEL,
     });
 
@@ -116,11 +116,11 @@ describe('GenerarReporteAmbienteService', () => {
   });
 
   it('lanza NotFoundException si el ambiente no existe', async () => {
-    repo.obtenerPorId.mockResolvedValue(null);
+    repo.obtenerPorCodigo.mockResolvedValue(null);
 
     await expect(
       service.ejecutar({
-        id: 999,
+        codigo: 'NO-EXISTE',
         formato: ReporteAmbienteFormato.PDF,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
