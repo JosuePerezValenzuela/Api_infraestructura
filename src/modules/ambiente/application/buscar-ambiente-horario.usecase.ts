@@ -158,7 +158,7 @@ export class BuscarAmbienteHorarioUseCase {
     const sql = `
       SELECT id, codigo, nombre
       FROM infraestructura.facultades
-      WHERE codigo = $1
+      WHERE codigo = $1 AND activo = true
       LIMIT 1
     `;
     const rows = await this.dataSource.query<
@@ -200,12 +200,15 @@ export class BuscarAmbienteHorarioUseCase {
         c.nombre AS campus_nombre
       FROM infraestructura.ambientes a
       INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
+      INNER JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true
+      INNER JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true
+      INNER JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true
       INNER JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
-      INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
-      INNER JOIN infraestructura.campus c ON c.id = f.campus_id
       WHERE f.codigo = $1
         AND a.codigo = $2
         AND a.piso = $3
+        AND a.activo = true
+        AND b.activo = true
       LIMIT 2
     `;
     return this.dataSource.query<AmbienteEncontradoRow[]>(sql, [
