@@ -132,13 +132,16 @@ describe('DashboardCampusTypeormRepository.getDetailDashboard', () => {
     expect(result).toBeNull();
   });
 
-  it('mapea el detalle del campus con KPIs, charts y tabla de facultades', async () => {
+  it('mapea el detalle del campus con KPIs, charts y porFacultad', async () => {
     const dataSource = makeMockDataSource();
     // 1) Campus base
     (dataSource.query as jest.Mock).mockResolvedValueOnce([{ id: 10, nombre: 'Campus X', activo: true }]);
-    // 2) Resumen/KPIs del campus
+    // 2) Resumen/KPIs desde MV
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       {
+        campus_id: 10,
+        campus_nombre: 'Campus X',
+        campus_activo: true,
         facultades_total: 2,
         facultades_activos: 2,
         facultades_inactivos: 0,
@@ -153,26 +156,28 @@ describe('DashboardCampusTypeormRepository.getDetailDashboard', () => {
         activos_asignados: 40,
       },
     ]);
-    // 3) Chart tipos de bloque
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([{ tipo_bloque_id: 1, tipo_bloque_nombre: 'Acad', cantidad: 2 }]);
-    // 4) Chart tipos de ambiente
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([{ tipo_ambiente_id: 5, tipo_ambiente_nombre: 'Aula', cantidad: 4 }]);
-    // 5) Tabla de facultades
+    // 3) Tipos de bloque desde MV
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([
+      { campus_id: 10, campus_nombre: 'Campus X', tipo_bloque_id: 1, tipo_bloque_nombre: 'Acad', cantidad: 2 },
+    ]);
+    // 4) Tipos de ambiente desde MV
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([
+      { campus_id: 10, campus_nombre: 'Campus X', tipo_ambiente_id: 5, tipo_ambiente_nombre: 'Aula', cantidad: 4 },
+    ]);
+    // 5) Por facultad (query directo)
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       {
         facultad_id: 1,
         facultad_nombre: 'FCE',
         bloques: 2,
-        tipos_bloque: 1,
         ambientes: 4,
-        tipos_ambiente: 2,
         capacidad_total: 200,
         capacidad_examen: 120,
         activos_asignados: 10,
       },
     ]);
-    // 6) Activos no asignados globales
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([{ no_asignados: 3 }]);
+    // 6) Activos no asignados globales (desde MV)
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([{ cantidad: 3 }]);
 
     const repo = new DashboardCampusTypeormRepository(dataSource as unknown as DataSource);
 
@@ -184,6 +189,14 @@ describe('DashboardCampusTypeormRepository.getDetailDashboard', () => {
     expect(result?.data.kpis.activos).toEqual({ asignados: 40, noAsignadosGlobal: 3 });
     expect(result?.data.charts.tiposBloque[0]).toEqual({ tipoBloqueId: 1, tipoBloqueNombre: 'Acad', cantidad: 2 });
     expect(result?.data.charts.tiposAmbiente[0]).toEqual({ tipoAmbienteId: 5, tipoAmbienteNombre: 'Aula', cantidad: 4 });
-    expect(result?.data.tables.facultadesResumen).toHaveLength(1);
+    expect(result?.data.porFacultad).toHaveLength(1);
+    expect(result?.data.porFacultad[0]).toMatchObject({
+      id: 1,
+      nombre: 'FCE',
+      bloques: 2,
+      ambientes: 4,
+      capacidad: { total: 200, examen: 120 },
+      activos: { asignados: 10 },
+    });
   });
 });

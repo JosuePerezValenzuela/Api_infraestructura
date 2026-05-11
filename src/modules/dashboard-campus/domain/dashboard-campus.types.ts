@@ -85,18 +85,13 @@ export type DashboardDetailResult = {
         cantidad: number;
       }[];
     };
-    tables: {
-      facultadesResumen: {
-        facultadId: number;
-        facultadNombre: string;
-        bloques: number;
-        tiposBloque: number;
-        ambientes: number;
-        tiposAmbiente: number;
-        capacidadTotal: number;
-        capacidadExamen: number;
-        activosAsignados: number;
-      }[];
-    };
+    porFacultad: {
+      id: number;
+      nombre: string;
+      bloques: number;
+      ambientes: number;
+      capacidad: { total: number; examen: number };
+      activos: { asignados: number };
+    }[];
   };
 };

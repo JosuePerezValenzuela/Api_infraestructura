@@ -33,6 +33,7 @@ type CampusSummaryRow = {
 type TipoBloqueRow = {
   campus_id: number;
   campus_nombre: string;
+  tipo_bloque_id: number;
   tipo_bloque_nombre: string;
   cantidad: number;
 };
@@ -40,6 +41,7 @@ type TipoBloqueRow = {
 type TipoAmbienteRow = {
   campus_id: number;
   campus_nombre: string;
+  tipo_ambiente_id: number;
   tipo_ambiente_nombre: string;
   cantidad: number;
 };
@@ -252,49 +254,37 @@ export class DashboardCampusTypeormRepository
   }
 
   // ------------------------------------------------------------
-  // DASHBOARD DETALLE - Código existente (JOINTS aún por corregir)
+  // DASHBOARD DETALLE - Por campus específico
   // ------------------------------------------------------------
   async getDetailDashboard(
     filters: DashboardDetailFilters,
   ): Promise<DashboardDetailResult | null> {
     const { campusId, includeInactive } = filters;
 
-    const activeCampusFilter = includeInactive ? '' : 'AND c.activo = TRUE';
+    const activoFilter = includeInactive ? '' : 'AND c.activo = TRUE';
 
     // 1) Verificar existencia del campus
     const campusRows = await this.dataSource.query(
-      `SELECT c.id, c.nombre, c.activo FROM infraestructura.campus c WHERE c.id = $1 ${activeCampusFilter}`,
+      `SELECT c.id, c.nombre, c.activo FROM infraestructura.campus c WHERE c.id = $1 ${activoFilter}`,
       [campusId],
     );
 
     if (!campusRows.length) return null;
     const campus = campusRows[0];
 
-    // 2) KPIs y sumatorias (JOINs viejos -有待修复)
-    const summaryRows = await this.dataSource.query(
-      `
-      SELECT
-        COUNT(DISTINCT f.id) FILTER (WHERE f.id IS NOT NULL) AS facultades_total,
-        COUNT(DISTINCT f.id) FILTER (WHERE f.activo = TRUE) AS facultades_activos,
-        COUNT(DISTINCT f.id) FILTER (WHERE f.activo = FALSE) AS facultades_inactivos,
-        COUNT(DISTINCT b.id) FILTER (WHERE b.id IS NOT NULL) AS bloques_total,
-        COUNT(DISTINCT b.id) FILTER (WHERE b.activo = TRUE) AS bloques_activos,
-        COUNT(DISTINCT b.id) FILTER (WHERE b.activo = FALSE) AS bloques_inactivos,
-        COUNT(DISTINCT a.id) FILTER (WHERE a.id IS NOT NULL) AS ambientes_total,
-        COUNT(DISTINCT a.id) FILTER (WHERE a.activo = TRUE) AS ambientes_activos,
-        COUNT(DISTINCT a.id) FILTER (WHERE a.activo = FALSE) AS ambientes_inactivos,
-        COALESCE(SUM((a.capacidad->>'total')::int), 0) AS capacidad_total,
-        COALESCE(SUM((a.capacidad->>'examen')::int), 0) AS capacidad_examen,
-        COUNT(act.id) FILTER (WHERE act.id IS NOT NULL) AS activos_asignados
-      FROM infraestructura.campus c
-      LEFT JOIN infraestructura.facultades f ON f.campus_id = c.id
-      LEFT JOIN infraestructura.bloques b ON b.facultad_id = f.id
-      LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id
-      LEFT JOIN infraestructura.activos act ON act.ambiente_id = a.id
-      WHERE c.id = $1 ${includeInactive ? '' : 'AND f.activo = TRUE AND b.activo = TRUE AND a.activo = TRUE'}
-      `,
-      [campusId],
+    // 2) KPIs desde MV (filtrado por campusId en memoria)
+    const summaryRaw = await this.dataSource.query(
+      `SELECT * FROM mv_dashboard_campus_resumen`,
     );
+    let summaryRows = mapCampusSummaryRows(summaryRaw);
+    
+    // Filtrar por el campus específico
+    summaryRows = summaryRows.filter(r => r.campus_id === campusId);
+
+    // Si no incluye inactivos, filtrar solo activos
+    if (!includeInactive) {
+      summaryRows = summaryRows.filter(r => r.campus_activo);
+    }
 
     const summary = summaryRows[0] ?? {
       facultades_total: 0,
@@ -311,61 +301,53 @@ export class DashboardCampusTypeormRepository
       activos_asignados: 0,
     };
 
-    // 3) Tipos de bloque
-    const tiposBloqueRows = await this.dataSource.query(
-      `
-      SELECT tb.id AS tipo_bloque_id, tb.nombre AS tipo_bloque_nombre, COUNT(*)::int AS cantidad
-      FROM infraestructura.bloques b
-      INNER JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
-      INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
-      WHERE f.campus_id = $1 ${includeInactive ? '' : 'AND b.activo = TRUE'}
-      GROUP BY tb.id, tb.nombre
-      ORDER BY cantidad DESC
-      `,
-      [campusId],
+    // 3) Tipos de bloque desde MV (filtrado por campusId)
+    const tiposBloqueRaw = await this.dataSource.query(
+      `SELECT * FROM mv_dashboard_tipos_bloque`,
     );
+    let tiposBloqueRows = (tiposBloqueRaw as TipoBloqueRow[]).filter(r => r.campus_id === campusId);
 
-    // 4) Tipos de ambiente
-    const tiposAmbienteRows = await this.dataSource.query(
-      `
-      SELECT ta.id AS tipo_ambiente_id, ta.nombre AS tipo_ambiente_nombre, COUNT(*)::int AS cantidad
-      FROM infraestructura.ambientes a
-      INNER JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
-      INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
-      INNER JOIN infraestructura.facultades f ON f.id = b.facultad_id
-      WHERE f.campus_id = $1 ${includeInactive ? '' : 'AND a.activo = TRUE'}
-      GROUP BY ta.id, ta.nombre
-      ORDER BY cantidad DESC
-      `,
-      [campusId],
+    // 4) Tipos de ambiente desde MV (filtrado por campusId)
+    const tiposAmbienteRaw = await this.dataSource.query(
+      `SELECT * FROM mv_dashboard_tipos_ambiente`,
     );
+    let tiposAmbienteRows = (tiposAmbienteRaw as TipoAmbienteRow[]).filter(r => r.campus_id === campusId);
 
-    // 5) Tabla de facultades
+    // Si no incluye inactivos, filtrar los tipos según los campuses activos
+    if (!includeInactive) {
+      const activeCampusIds = summaryRows.map(r => r.campus_id);
+      tiposBloqueRows = tiposBloqueRows.filter(r => activeCampusIds.includes(r.campus_id));
+      tiposAmbienteRows = tiposAmbienteRows.filter(r => activeCampusIds.includes(r.campus_id));
+    }
+
+    // 5) Por facultad (no está en MV, requiere query directo)
     const facultadesRows = await this.dataSource.query(
       `
       SELECT
         f.id AS facultad_id, f.nombre AS facultad_nombre,
-        COUNT(DISTINCT b.id) AS bloques, COUNT(DISTINCT b.tipo_bloque_id) AS tipos_bloque,
-        COUNT(DISTINCT a.id) AS ambientes, COUNT(DISTINCT a.tipo_ambiente_id) AS tipos_ambiente,
+        COUNT(DISTINCT b.id) AS bloques,
+        COUNT(DISTINCT a.id) AS ambientes,
         COALESCE(SUM((a.capacidad->>'total')::int), 0) AS capacidad_total,
         COALESCE(SUM((a.capacidad->>'examen')::int), 0) AS capacidad_examen,
         COUNT(act.id) FILTER (WHERE act.id IS NOT NULL) AS activos_asignados
-      FROM infraestructura.facultades f
-      LEFT JOIN infraestructura.bloques b ON b.facultad_id = f.id
-      LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id
+      FROM infraestructura.campus c
+      LEFT JOIN infraestructura.campus_facultades cf ON cf.campus_id = c.id
+      LEFT JOIN infraestructura.facultades f ON f.id = cf.facultad_id ${includeInactive ? '' : 'AND f.activo = TRUE'}
+      LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id ${includeInactive ? '' : 'AND b.activo = TRUE'}
+      LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id ${includeInactive ? '' : 'AND a.activo = TRUE'}
       LEFT JOIN infraestructura.activos act ON act.ambiente_id = a.id
-      WHERE f.campus_id = $1 ${includeInactive ? '' : 'AND f.activo = TRUE AND b.activo = TRUE AND a.activo = TRUE'}
+      WHERE c.id = $1
       GROUP BY f.id, f.nombre
       ORDER BY f.nombre ASC
       `,
       [campusId],
     );
 
-    // 6) Activos no asignados
+    // 6) Activos no asignados globales
     const unassignedRows = await this.dataSource.query(
-      `SELECT COUNT(*)::int AS no_asignados FROM infraestructura.activos act WHERE act.ambiente_id IS NULL`,
+      `SELECT cantidad FROM mv_dashboard_activos_no_asignados`,
     );
-    const noAsignados = unassignedRows[0]?.no_asignados ?? 0;
+    const noAsignados = unassignedRows[0]?.cantidad ?? 0;
 
     return {
       schemaVersion: 1,
@@ -392,19 +374,17 @@ export class DashboardCampusTypeormRepository
             cantidad: Number(row.cantidad ?? 0),
           })),
         },
-        tables: {
-          facultadesResumen: facultadesRows.map((row) => ({
-            facultadId: Number(row.facultad_id),
-            facultadNombre: row.facultad_nombre,
-            bloques: Number(row.bloques ?? 0),
-            tiposBloque: Number(row.tipos_bloque ?? 0),
-            ambientes: Number(row.ambientes ?? 0),
-            tiposAmbiente: Number(row.tipos_ambiente ?? 0),
-            capacidadTotal: Number(row.capacidad_total ?? 0),
-            capacidadExamen: Number(row.capacidad_examen ?? 0),
-            activosAsignados: Number(row.activos_asignados ?? 0),
-          })),
-        },
+        porFacultad: facultadesRows.map((row) => ({
+          id: Number(row.facultad_id),
+          nombre: row.facultad_nombre,
+          bloques: Number(row.bloques ?? 0),
+          ambientes: Number(row.ambientes ?? 0),
+          capacidad: {
+            total: Number(row.capacidad_total ?? 0),
+            examen: Number(row.capacidad_examen ?? 0),
+          },
+          activos: { asignados: Number(row.activos_asignados ?? 0) },
+        })),
       },
     };
   }

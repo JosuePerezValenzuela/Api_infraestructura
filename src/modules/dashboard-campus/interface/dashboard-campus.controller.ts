@@ -179,7 +179,7 @@ export class DashboardCampusController {
   })
   @ApiOkResponse({
     description:
-      'Dashboard detalle de un campus con KPIs, charts y tabla de facultades',
+      'Dashboard detalle de un campus con KPIs, charts y lista de facultades',
     schema: {
       example: {
         schemaVersion: 1,
@@ -187,7 +187,7 @@ export class DashboardCampusController {
           campusId: 10,
           includeInactive: true,
         },
-        layout: { mode: 'global' },
+        layout: { mode: 'detail' },
         data: {
           campus: { id: 10, nombre: 'Campus A', activo: true },
           kpis: {
@@ -200,26 +200,32 @@ export class DashboardCampusController {
           charts: {
             tiposBloque: [
               { tipoBloqueId: 1, tipoBloqueNombre: 'Academico', cantidad: 8 },
+              { tipoBloqueId: 2, tipoBloqueNombre: 'Administrativo', cantidad: 4 },
             ],
             tiposAmbiente: [
               { tipoAmbienteId: 3, tipoAmbienteNombre: 'Aula', cantidad: 25 },
+              { tipoAmbienteId: 5, tipoAmbienteNombre: 'Laboratorio', cantidad: 10 },
+              { tipoAmbienteId: 7, tipoAmbienteNombre: 'Auditorio', cantidad: 5 },
             ],
           },
-          tables: {
-            facultadesResumen: [
-              {
-                facultadId: 10,
-                facultadNombre: 'FCE',
-                bloques: 5,
-                tiposBloque: 2,
-                ambientes: 20,
-                tiposAmbiente: 4,
-                capacidadTotal: 600,
-                capacidadExamen: 420,
-                activosAsignados: 200,
-              },
-            ],
-          },
+          porFacultad: [
+            {
+              id: 1,
+              nombre: 'Facultad de Ciencias Económicas',
+              bloques: 5,
+              ambientes: 20,
+              capacidad: { total: 600, examen: 420 },
+              activos: { asignados: 150 },
+            },
+            {
+              id: 2,
+              nombre: 'Facultad de Ingeniería',
+              bloques: 7,
+              ambientes: 20,
+              capacidad: { total: 600, examen: 380 },
+              activos: { asignados: 250 },
+            },
+          ],
         },
       },
     },
