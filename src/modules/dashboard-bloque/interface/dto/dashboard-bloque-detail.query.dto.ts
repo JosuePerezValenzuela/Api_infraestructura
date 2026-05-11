@@ -1,14 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class DashboardBloqueDetailQueryDto {
   @ApiPropertyOptional({
     description: 'Indica si se incluyen registros inactivos (true por defecto)',
     type: Boolean,
-    enum: ['true', 'false'],
+    enum: [true, false],
     example: true,
+    default: true,
   })
   @IsOptional()
-  @IsBoolean()
-  includeInactive?: boolean = true;
+  @IsString()
+  includeInactive?: string | boolean;
 }
