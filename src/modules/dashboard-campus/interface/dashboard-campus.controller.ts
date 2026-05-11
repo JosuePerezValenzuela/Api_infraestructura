@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Post,
   Query,
 } from '@nestjs/common';
 import {
@@ -49,7 +50,7 @@ export class DashboardCampusController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Dashboard global con KPIs, charts y tabla resumen',
+    description: 'Dashboard global con KPIs, rankings, distribuciones y lista por campus',
     schema: {
       example: {
         schemaVersion: 1,
@@ -60,79 +61,71 @@ export class DashboardCampusController {
         layout: { mode: 'global' },
         data: {
           kpis: {
-            campus: { activos: 1, inactivos: 0 },
-            facultades: { activos: 3, inactivos: 0 },
-            bloques: { activos: 12, inactivos: 0 },
-            ambientes: { activos: 40, inactivos: 2 },
-            capacidad: { total: 1200, examen: 800 },
-            activos: { total: 435, asignados: 400, noAsignadosGlobal: 35 },
+            campus: { total: 2, activos: 1, inactivos: 1 },
+            facultades: { total: 5, activos: 4, inactivos: 1 },
+            bloques: { total: 15, activos: 12, inactivos: 3 },
+            ambientes: { total: 50, activos: 45, inactivos: 5 },
+            capacidad: { total: 1500, examen: 1000 },
+            activos: { asignados: 400, sinAsignar: 35 },
           },
-          charts: {
-            rankingAmbientesPorCampus: [
+          rankings: {
+            porCantidadAmbientes: [
+              { campusId: 1, nombre: 'Campus Central', cantidad: 35 },
+              { campusId: 2, nombre: 'Campus Norte', cantidad: 15 },
+            ],
+            porCapacidadTotal: [
+              { campusId: 1, nombre: 'Campus Central', capacidad: 1000 },
+              { campusId: 2, nombre: 'Campus Norte', capacidad: 500 },
+            ],
+          },
+          distribuciones: {
+            tiposBloquePorCampus: [
               {
-                campusId: 1,
-                campusNombre: 'Campus A',
-                ambientes: 40,
-                pctGlobal: 55.5,
+                nombre: 'Campus Central',
+                cantidadTotal: 12,
+                tipos: [
+                  { tipo: 'Academico', cantidad: 8 },
+                  { tipo: 'Administrativo', cantidad: 4 },
+                ],
+              },
+              {
+                nombre: 'Campus Norte',
+                cantidadTotal: 3,
+                tipos: [{ tipo: 'Academico', cantidad: 3 }],
               },
             ],
-            capacidadTotalPorCampus: [
+            tiposAmbientePorCampus: [
               {
-                campusId: 1,
-                campusNombre: 'Campus A',
-                capacidadTotal: 1200,
-                pctGlobal: 50,
-              },
-            ],
-            capacidadExamenPorCampus: [
-              {
-                campusId: 1,
-                campusNombre: 'Campus A',
-                capacidadExamen: 800,
-                pctGlobal: 45,
-              },
-            ],
-            activosPorCampus: [
-              {
-                campusId: 1,
-                campusNombre: 'Campus A',
-                asignados: 400,
-                noAsignados: 0,
-                pctGlobal: 92,
-              },
-              {
-                campusId: null,
-                campusNombre: 'Sin asignar',
-                asignados: 0,
-                noAsignados: 35,
-                pctGlobal: 8,
-              },
-            ],
-            ambientesActivosInactivosPorCampus: [
-              {
-                campusId: 1,
-                campusNombre: 'Campus A',
-                activos: 39,
-                inactivos: 1,
+                nombre: 'Campus Central',
+                cantidadTotal: 35,
+                tipos: [
+                  { tipo: 'Aula', cantidad: 20 },
+                  { tipo: 'Laboratorio', cantidad: 10 },
+                  { tipo: 'Auditorio', cantidad: 5 },
+                ],
               },
             ],
           },
-          table: {
-            campusResumen: [
-              {
-                campusId: 1,
-                campusNombre: 'Campus A',
-                facultades: 3,
-                bloques: 12,
-                tiposBloque: 4,
-                ambientes: 40,
-                tiposAmbiente: 6,
-                capacidadTotal: 1200,
-                capacidadExamen: 800,
-                activosAsignados: 400,
-              },
-            ],
-          },
+          porCampus: [
+            {
+              id: 1,
+              nombre: 'Campus Central',
+              facultades: 3,
+              bloques: 12,
+              ambientes: 35,
+              capacidad: { total: 1000, examen: 700 },
+              activos: { asignados: 300, sinAsignar: 0 },
+            },
+            {
+              id: 2,
+              nombre: 'Campus Norte',
+              facultades: 2,
+              bloques: 3,
+              ambientes: 15,
+              capacidad: { total: 500, examen: 300 },
+              activos: { asignados: 100, sinAsignar: 0 },
+            },
+          ],
         },
       },
     },
@@ -261,6 +254,24 @@ export class DashboardCampusController {
     });
     // Retornamos el payload sin modificar.
     return result;
+  }
+
+  @Post('refresh-cache')
+  @ApiOkResponse({
+    description: 'Refresca manualmente las Materialized Views del dashboard',
+    schema: {
+      example: {
+        message: 'Materialized Views actualizadas correctamente',
+        timestamp: '2024-01-15T10:30:00.000Z',
+      },
+    },
+  })
+  async refreshCache(): Promise<{ message: string; timestamp: Date }> {
+    await this.getGlobalDashboardUseCase.refreshMaterializedViews();
+    return {
+      message: 'Materialized Views actualizadas correctamente',
+      timestamp: new Date(),
+    };
   }
 
   private parseCampusIds(

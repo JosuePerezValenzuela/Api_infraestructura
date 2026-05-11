@@ -14,64 +14,46 @@ export type DashboardGlobalResult = {
   layout: { mode: 'global' };
   data: {
     kpis: {
-      campus: { activos: number; inactivos: number };
-      facultades: { activos: number; inactivos: number };
-      bloques: { activos: number; inactivos: number };
-      ambientes: { activos: number; inactivos: number };
+      campus: { total: number; activos: number; inactivos: number };
+      facultades: { total: number; activos: number; inactivos: number };
+      bloques: { total: number; activos: number; inactivos: number };
+      ambientes: { total: number; activos: number; inactivos: number };
       capacidad: { total: number; examen: number };
-      activos: {
-        total: number;
-        asignados: number;
-        noAsignadosGlobal: number;
-      };
+      activos: { asignados: number; sinAsignar: number };
     };
-    charts: {
-      rankingAmbientesPorCampus: {
+    rankings: {
+      porCantidadAmbientes: {
         campusId: number;
-        campusNombre: string;
-        ambientes: number;
-        pctGlobal: number;
+        nombre: string;
+        cantidad: number;
       }[];
-      capacidadTotalPorCampus: {
+      porCapacidadTotal: {
         campusId: number;
-        campusNombre: string;
-        capacidadTotal: number;
-        pctGlobal: number;
-      }[];
-      capacidadExamenPorCampus: {
-        campusId: number;
-        campusNombre: string;
-        capacidadExamen: number;
-        pctGlobal: number;
-      }[];
-      activosPorCampus: {
-        campusId: number | null;
-        campusNombre: string;
-        asignados: number;
-        noAsignados: number;
-        pctGlobal: number;
-      }[];
-      ambientesActivosInactivosPorCampus: {
-        campusId: number;
-        campusNombre: string;
-        activos: number;
-        inactivos: number;
+        nombre: string;
+        capacidad: number;
       }[];
     };
-    table: {
-      campusResumen: {
-        campusId: number;
-        campusNombre: string;
-        facultades: number;
-        bloques: number;
-        tiposBloque: number;
-        ambientes: number;
-        tiposAmbiente: number;
-        capacidadTotal: number;
-        capacidadExamen: number;
-        activosAsignados: number;
+    distribuciones: {
+      tiposBloquePorCampus: {
+        nombre: string;
+        cantidadTotal: number;
+        tipos: { tipo: string; cantidad: number }[];
+      }[];
+      tiposAmbientePorCampus: {
+        nombre: string;
+        cantidadTotal: number;
+        tipos: { tipo: string; cantidad: number }[];
       }[];
     };
+    porCampus: {
+      id: number;
+      nombre: string;
+      facultades: number;
+      bloques: number;
+      ambientes: number;
+      capacidad: { total: number; examen: number };
+      activos: { asignados: number; sinAsignar: number };
+    }[];
   };
 };
 
