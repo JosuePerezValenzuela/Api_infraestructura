@@ -36,7 +36,7 @@ export class DashboardFacultadController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Dashboard detalle de una facultad con KPIs, charts y lista de bloques',
+    description: 'Dashboard detalle de una facultad con KPIs, rankings, distribuciones y lista de bloques',
     schema: {
       example: {
         schemaVersion: 2,
@@ -60,15 +60,34 @@ export class DashboardFacultadController {
             capacidad: { total: 800, examen: 520 },
             activos: { asignados: 120, sinAsignarGlobal: 11 },
           },
-          charts: {
-            tiposBloque: [
-              { tipo: 'Académico', cantidad: 3 },
-              { tipo: 'Administrativo', cantidad: 1 },
+          rankings: {
+            porCantidadAmbientes: [
+              { bloqueId: 102, nombre: 'Bloque B', cantidad: 11 },
+              { bloqueId: 101, nombre: 'Bloque A', cantidad: 9 },
             ],
-            tiposAmbiente: [
-              { tipo: 'Aula', cantidad: 14 },
-              { tipo: 'Laboratorio', cantidad: 4 },
-              { tipo: 'Auditorio', cantidad: 2 },
+            porCapacidadTotal: [
+              { bloqueId: 102, nombre: 'Bloque B', capacidad: 500 },
+              { bloqueId: 101, nombre: 'Bloque A', capacidad: 300 },
+            ],
+          },
+          distribuciones: {
+            tiposAmbientePorBloque: [
+              {
+                nombre: 'Bloque A',
+                cantidadTotal: 9,
+                tipos: [
+                  { tipo: 'Aula', cantidad: 6 },
+                  { tipo: 'Laboratorio', cantidad: 3 },
+                ],
+              },
+              {
+                nombre: 'Bloque B',
+                cantidadTotal: 11,
+                tipos: [
+                  { tipo: 'Aula', cantidad: 8 },
+                  { tipo: 'Auditorio', cantidad: 3 },
+                ],
+              },
             ],
           },
           porBloque: [
@@ -82,16 +101,9 @@ export class DashboardFacultadController {
             {
               id: 102,
               nombre: 'Bloque B',
-              ambientes: 7,
-              capacidad: { total: 280, examen: 160 },
-              activos: { asignados: 40 },
-            },
-            {
-              id: 103,
-              nombre: 'Bloque C',
-              ambientes: 4,
-              capacidad: { total: 220, examen: 180 },
-              activos: { asignados: 20 },
+              ambientes: 11,
+              capacidad: { total: 500, examen: 340 },
+              activos: { asignados: 60 },
             },
           ],
         },

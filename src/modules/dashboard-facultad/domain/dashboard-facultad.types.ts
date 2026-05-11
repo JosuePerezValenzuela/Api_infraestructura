@@ -13,17 +13,33 @@ export type DashboardFacultadKpis = {
   };
 };
 
-export type DashboardFacultadCharts = {
-  tiposBloque: { tipo: string; cantidad: number }[];
-  tiposAmbiente: { tipo: string; cantidad: number }[];
-};
-
 export type DashboardFacultadPorBloque = {
   id: number;
   nombre: string;
   ambientes: number;
   capacidad: { total: number; examen: number };
   activos: { asignados: number };
+};
+
+export type DashboardFacultadRankings = {
+  porCantidadAmbientes: {
+    bloqueId: number;
+    nombre: string;
+    cantidad: number;
+  }[];
+  porCapacidadTotal: {
+    bloqueId: number;
+    nombre: string;
+    capacidad: number;
+  }[];
+};
+
+export type DashboardFacultadDistribuciones = {
+  tiposAmbientePorBloque: {
+    nombre: string;
+    cantidadTotal: number;
+    tipos: { tipo: string; cantidad: number }[];
+  }[];
 };
 
 export type DashboardFacultadDetailResult = {
@@ -40,7 +56,8 @@ export type DashboardFacultadDetailResult = {
       campusNombre: string;
     };
     kpis: DashboardFacultadKpis;
-    charts: DashboardFacultadCharts;
+    rankings: DashboardFacultadRankings;
+    distribuciones: DashboardFacultadDistribuciones;
     porBloque: DashboardFacultadPorBloque[];
   };
 };

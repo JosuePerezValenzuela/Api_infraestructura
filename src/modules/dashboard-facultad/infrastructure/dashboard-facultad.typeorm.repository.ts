@@ -133,33 +133,55 @@ export class DashboardFacultadTypeormRepository
       activos_asignados: 0,
     };
 
-    // 3) Tipos de bloque
-    const tiposBloqueRows = await this.dataSource.query(
+    // 3) Rankings
+    // Por cantidad de ambientes
+    const rankingAmbientesRows = await this.dataSource.query(
       `
-      SELECT tb.id AS tipo_bloque_id, tb.nombre AS tipo_bloque_nombre, COUNT(*)::int AS cantidad
+      SELECT b.id AS bloque_id, b.nombre AS bloque_nombre, COUNT(a.id)::int AS cantidad
       FROM infraestructura.facultades f
       LEFT JOIN infraestructura.campus_facultades cf ON cf.facultad_id = f.id ${cfActivoFilter}
       LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id ${bActivoFilter}
-      INNER JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
+      LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id
       WHERE f.id = $1
-      GROUP BY tb.id, tb.nombre
+      GROUP BY b.id, b.nombre
       ORDER BY cantidad DESC
+      LIMIT 5
       `,
       [facultadId],
     );
 
-    // 4) Tipos de ambiente
-    const tiposAmbienteRows = await this.dataSource.query(
+    // Por capacidad total
+    const rankingCapacidadRows = await this.dataSource.query(
       `
-      SELECT ta.id AS tipo_ambiente_id, ta.nombre AS tipo_ambiente_nombre, COUNT(*)::int AS cantidad
+      SELECT b.id AS bloque_id, b.nombre AS bloque_nombre, COALESCE(SUM((a.capacidad->>'total')::int), 0) AS capacidad
       FROM infraestructura.facultades f
       LEFT JOIN infraestructura.campus_facultades cf ON cf.facultad_id = f.id ${cfActivoFilter}
-      LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id
+      LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id ${bActivoFilter}
+      LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id
+      WHERE f.id = $1
+      GROUP BY b.id, b.nombre
+      ORDER BY capacidad DESC
+      LIMIT 5
+      `,
+      [facultadId],
+    );
+
+    // 4) Distribuciones - tipos de ambiente por bloque
+    const distribucionRows = await this.dataSource.query(
+      `
+      SELECT
+        b.id AS bloque_id,
+        b.nombre AS bloque_nombre,
+        ta.nombre AS tipo_ambiente_nombre,
+        COUNT(a.id)::int AS cantidad
+      FROM infraestructura.facultades f
+      LEFT JOIN infraestructura.campus_facultades cf ON cf.facultad_id = f.id ${cfActivoFilter}
+      LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id ${bActivoFilter}
       LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id ${aActivoFilter}
       INNER JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
       WHERE f.id = $1
-      GROUP BY ta.id, ta.nombre
-      ORDER BY cantidad DESC
+      GROUP BY b.id, b.nombre, ta.nombre
+      ORDER BY b.nombre, cantidad DESC
       `,
       [facultadId],
     );
@@ -195,6 +217,46 @@ export class DashboardFacultadTypeormRepository
     );
     const sinAsignarGlobal = unassignedRows[0]?.cantidad ?? 0;
 
+    // 7) Procesar rankings
+    const porCantidadAmbientes = (rankingAmbientesRows as { bloque_id: string; bloque_nombre: string; cantidad: string }[]).map((row) => ({
+      bloqueId: Number(row.bloque_id),
+      nombre: row.bloque_nombre,
+      cantidad: Number(row.cantidad),
+    }));
+
+    const porCapacidadTotal = (rankingCapacidadRows as { bloque_id: string; bloque_nombre: string; capacidad: string }[]).map((row) => ({
+      bloqueId: Number(row.bloque_id),
+      nombre: row.bloque_nombre,
+      capacidad: Number(row.capacidad),
+    }));
+
+    // 8) Procesar distribuciones - agrupar tipos de ambiente por bloque
+    interface DistribucionRow {
+      bloque_id: string;
+      bloque_nombre: string;
+      tipo_ambiente_nombre: string;
+      cantidad: string;
+    }
+    const distribucionMap = new Map<string, { nombre: string; cantidadTotal: number; tipos: { tipo: string; cantidad: number }[] }>();
+
+    for (const row of distribucionRows as DistribucionRow[]) {
+      const bloqueKey = row.bloque_id;
+      if (!distribucionMap.has(bloqueKey)) {
+        distribucionMap.set(bloqueKey, {
+          nombre: row.bloque_nombre,
+          cantidadTotal: 0,
+          tipos: [],
+        });
+      }
+      const entry = distribucionMap.get(bloqueKey)!;
+      entry.cantidadTotal += Number(row.cantidad);
+      entry.tipos.push({
+        tipo: row.tipo_ambiente_nombre,
+        cantidad: Number(row.cantidad),
+      });
+    }
+    const tiposAmbientePorBloque = Array.from(distribucionMap.values());
+
     return {
       schemaVersion: 2,
       filtersApplied: { facultadId, includeInactive },
@@ -228,15 +290,12 @@ export class DashboardFacultadTypeormRepository
             sinAsignarGlobal,
           },
         },
-        charts: {
-          tiposBloque: (tiposBloqueRows as TipoBloqueRow[]).map((row) => ({
-            tipo: row.tipo_bloque_nombre,
-            cantidad: Number(row.cantidad ?? 0),
-          })),
-          tiposAmbiente: (tiposAmbienteRows as TipoAmbienteRow[]).map((row) => ({
-            tipo: row.tipo_ambiente_nombre,
-            cantidad: Number(row.cantidad ?? 0),
-          })),
+        rankings: {
+          porCantidadAmbientes,
+          porCapacidadTotal,
+        },
+        distribuciones: {
+          tiposAmbientePorBloque,
         },
         porBloque: bloques.map((row) => ({
           id: row.bloque_id,

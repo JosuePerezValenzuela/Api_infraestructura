@@ -53,15 +53,24 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
         activos_asignados: 120,
       },
     ]);
-    // 3) Tipos de bloque
+    // 3) Rankings - por cantidad de ambientes (top 5)
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      { tipo_bloque_id: 1, tipo_bloque_nombre: 'Académico', cantidad: 3 },
+      { bloque_id: '102', bloque_nombre: 'Bloque B', cantidad: '11' },
+      { bloque_id: '101', bloque_nombre: 'Bloque A', cantidad: '9' },
     ]);
-    // 4) Tipos de ambiente
+    // 4) Rankings - por capacidad total (top 5)
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      { tipo_ambiente_id: 5, tipo_ambiente_nombre: 'Aula', cantidad: 14 },
+      { bloque_id: '102', bloque_nombre: 'Bloque B', capacidad: '500' },
+      { bloque_id: '101', bloque_nombre: 'Bloque A', capacidad: '300' },
     ]);
-    // 5) Por bloque
+    // 5) Distribuciones - tipos de ambiente por bloque
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([
+      { bloque_id: '101', bloque_nombre: 'Bloque A', tipo_ambiente_nombre: 'Aula', cantidad: '6' },
+      { bloque_id: '101', bloque_nombre: 'Bloque A', tipo_ambiente_nombre: 'Laboratorio', cantidad: '3' },
+      { bloque_id: '102', bloque_nombre: 'Bloque B', tipo_ambiente_nombre: 'Aula', cantidad: '8' },
+      { bloque_id: '102', bloque_nombre: 'Bloque B', tipo_ambiente_nombre: 'Auditorio', cantidad: '3' },
+    ]);
+    // 6) Por bloque
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       {
         bloque_id: 101,
@@ -113,11 +122,31 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
       capacidad: { total: 800, examen: 520 },
       activos: { asignados: 120, sinAsignarGlobal: 11 },
     });
-    expect(result?.data.charts.tiposBloque).toEqual([
-      { tipo: 'Académico', cantidad: 3 },
+    expect(result?.data.rankings.porCantidadAmbientes).toEqual([
+      { bloqueId: 102, nombre: 'Bloque B', cantidad: 11 },
+      { bloqueId: 101, nombre: 'Bloque A', cantidad: 9 },
     ]);
-    expect(result?.data.charts.tiposAmbiente).toEqual([
-      { tipo: 'Aula', cantidad: 14 },
+    expect(result?.data.rankings.porCapacidadTotal).toEqual([
+      { bloqueId: 102, nombre: 'Bloque B', capacidad: 500 },
+      { bloqueId: 101, nombre: 'Bloque A', capacidad: 300 },
+    ]);
+    expect(result?.data.distribuciones.tiposAmbientePorBloque).toEqual([
+      {
+        nombre: 'Bloque A',
+        cantidadTotal: 9,
+        tipos: [
+          { tipo: 'Aula', cantidad: 6 },
+          { tipo: 'Laboratorio', cantidad: 3 },
+        ],
+      },
+      {
+        nombre: 'Bloque B',
+        cantidadTotal: 11,
+        tipos: [
+          { tipo: 'Aula', cantidad: 8 },
+          { tipo: 'Auditorio', cantidad: 3 },
+        ],
+      },
     ]);
     expect(result?.data.porBloque).toHaveLength(2);
     expect(result?.data.porBloque[0]).toMatchObject({
