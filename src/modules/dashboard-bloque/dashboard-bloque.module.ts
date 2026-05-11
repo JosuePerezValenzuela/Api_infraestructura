@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { GetBloqueDashboardGlobalUseCase } from './application/get-bloque-dashboard-global.usecase';
+import { GetBloqueDashboardDetailUseCase } from './application/get-bloque-dashboard-detail.usecase';
 import { DashboardBloqueRepositoryPort } from './domain/dashboard-bloque.repository.port';
 import { DashboardBloqueTypeormRepository } from './infrastructure/dashboard-bloque.typeorm.repository';
 import { DashboardBloqueController } from './interface/dashboard-bloque.controller';
@@ -7,7 +7,7 @@ import { DashboardBloqueController } from './interface/dashboard-bloque.controll
 @Module({
   controllers: [DashboardBloqueController],
   providers: [
-    GetBloqueDashboardGlobalUseCase,
+    GetBloqueDashboardDetailUseCase,
     {
       provide: DashboardBloqueRepositoryPort,
       useClass: DashboardBloqueTypeormRepository,

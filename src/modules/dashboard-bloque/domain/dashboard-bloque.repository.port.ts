@@ -1,10 +1,10 @@
 import {
-  DashboardBloqueGlobalFilters,
-  DashboardBloqueGlobalResult,
+  DashboardBloqueDetailFilters,
+  DashboardBloqueDetailResult,
 } from './dashboard-bloque.types';
 
 export abstract class DashboardBloqueRepositoryPort {
-  abstract getGlobalDashboard(
-    filters: DashboardBloqueGlobalFilters,
-  ): Promise<DashboardBloqueGlobalResult>;
+  abstract getDetailDashboard(
+    filters: DashboardBloqueDetailFilters,
+  ): Promise<DashboardBloqueDetailResult | null>;
 }
