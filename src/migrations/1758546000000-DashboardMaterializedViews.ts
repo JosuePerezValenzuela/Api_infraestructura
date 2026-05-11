@@ -4,7 +4,7 @@ export class DashboardMaterializedViews1758546000000
   implements MigrationInterface
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Vista materializada para dashboard global de campus (resumen)
+    // Vista materializada para dashboard global de campus (resumen - sin filtro de activo)
     await queryRunner.query(`
       CREATE MATERIALIZED VIEW mv_dashboard_campus_resumen AS
       SELECT
@@ -24,17 +24,16 @@ export class DashboardMaterializedViews1758546000000
         COALESCE(SUM((a.capacidad->>'examen')::int), 0) AS capacidad_examen,
         COUNT(act.id) FILTER (WHERE act.id IS NOT NULL) AS activos_asignados
       FROM infraestructura.campus c
-      LEFT JOIN infraestructura.campus_facultades cf ON cf.campus_id = c.id AND cf.activo = TRUE
-      LEFT JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = TRUE
+      LEFT JOIN infraestructura.campus_facultades cf ON cf.campus_id = c.id
+      LEFT JOIN infraestructura.facultades f ON f.id = cf.facultad_id
       LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id
       LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id
       LEFT JOIN infraestructura.activos act ON act.ambiente_id = a.id
-      WHERE c.activo = TRUE
       GROUP BY c.id, c.nombre, c.activo
       ORDER BY c.nombre ASC;
     `);
 
-    // Vista materializada para tipos de bloque por campus
+    // Vista materializada para tipos de bloque por campus (sin filtro de activo)
     await queryRunner.query(`
       CREATE MATERIALIZED VIEW mv_dashboard_tipos_bloque AS
       SELECT
@@ -44,16 +43,15 @@ export class DashboardMaterializedViews1758546000000
         tb.nombre AS tipo_bloque_nombre,
         COUNT(b.id)::int AS cantidad
       FROM infraestructura.campus c
-      LEFT JOIN infraestructura.campus_facultades cf ON cf.campus_id = c.id AND cf.activo = TRUE
-      LEFT JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = TRUE
-      LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id AND b.activo = TRUE
+      LEFT JOIN infraestructura.campus_facultades cf ON cf.campus_id = c.id
+      LEFT JOIN infraestructura.facultades f ON f.id = cf.facultad_id
+      LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id
       LEFT JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
-      WHERE c.activo = TRUE
       GROUP BY c.id, c.nombre, tb.id, tb.nombre
       ORDER BY c.nombre, cantidad DESC;
     `);
 
-    // Vista materializada para tipos de ambiente por campus
+    // Vista materializada para tipos de ambiente por campus (sin filtro de activo)
     await queryRunner.query(`
       CREATE MATERIALIZED VIEW mv_dashboard_tipos_ambiente AS
       SELECT
@@ -63,12 +61,11 @@ export class DashboardMaterializedViews1758546000000
         ta.nombre AS tipo_ambiente_nombre,
         COUNT(a.id)::int AS cantidad
       FROM infraestructura.campus c
-      LEFT JOIN infraestructura.campus_facultades cf ON cf.campus_id = c.id AND cf.activo = TRUE
-      LEFT JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = TRUE
+      LEFT JOIN infraestructura.campus_facultades cf ON cf.campus_id = c.id
+      LEFT JOIN infraestructura.facultades f ON f.id = cf.facultad_id
       LEFT JOIN infraestructura.bloques b ON b.campus_facultad_id = cf.id
-      LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id AND a.activo = TRUE
+      LEFT JOIN infraestructura.ambientes a ON a.bloque_id = b.id
       LEFT JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
-      WHERE c.activo = TRUE
       GROUP BY c.id, c.nombre, ta.id, ta.nombre
       ORDER BY c.nombre, cantidad DESC;
     `);
