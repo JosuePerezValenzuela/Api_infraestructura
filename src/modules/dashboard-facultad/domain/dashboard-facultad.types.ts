@@ -1,92 +1,29 @@
-export type DashboardFacultadGlobalFilters = {
-  campusIds?: number[];
-  facultadIds?: number[];
-  includeInactive: boolean;
-};
-
 export type DashboardFacultadDetailFilters = {
   facultadId: number;
   includeInactive: boolean;
 };
 
 export type DashboardFacultadKpis = {
-  facultades: { activos: number; inactivos: number };
-  bloques: { activos: number; inactivos: number };
-  ambientes: { activos: number; inactivos: number };
+  bloques: { total: number; activos: number; inactivos: number };
+  ambientes: { total: number; activos: number; inactivos: number };
   capacidad: { total: number; examen: number };
   activos: {
     asignados: number;
-    noAsignadosGlobal: number;
+    sinAsignarGlobal: number;
   };
-};
-
-export type DashboardFacultadTiposBloqueChart = {
-  tipoBloqueId: number;
-  tipoBloqueNombre: string;
-  cantidad: number;
-};
-
-export type DashboardFacultadTiposAmbienteChart = {
-  tipoAmbienteId: number;
-  tipoAmbienteNombre: string;
-  cantidad: number;
-};
-
-export type DashboardFacultadCapacidadPorBloqueChart = {
-  bloqueId: number;
-  bloqueNombre: string;
-  capacidadTotal: number;
-  capacidadExamen: number;
-};
-
-export type DashboardFacultadActivosPorBloqueChart = {
-  bloqueId: number;
-  bloqueNombre: string;
-  activosAsignados: number;
-};
-
-export type DashboardFacultadAmbientesActivosInactivosPorBloqueChart = {
-  bloqueId: number;
-  bloqueNombre: string;
-  activos: number;
-  inactivos: number;
-};
-
-export type DashboardFacultadResumenBloquesRow = {
-  bloqueId: number;
-  bloqueNombre: string;
-  facultadNombre: string;
-  tipoBloqueNombre: string;
-  pisos: number;
-  activo: boolean;
-  ambientes: number;
-  tiposAmbiente: number;
-  capacidadTotal: number;
-  capacidadExamen: number;
-  activosAsignados: number;
 };
 
 export type DashboardFacultadCharts = {
-  tiposBloque: DashboardFacultadTiposBloqueChart[];
-  tiposAmbiente: DashboardFacultadTiposAmbienteChart[];
-  capacidadPorBloque: DashboardFacultadCapacidadPorBloqueChart[];
-  activosPorBloque: DashboardFacultadActivosPorBloqueChart[];
-  ambientesActivosInactivosPorBloque: DashboardFacultadAmbientesActivosInactivosPorBloqueChart[];
+  tiposBloque: { tipo: string; cantidad: number }[];
+  tiposAmbiente: { tipo: string; cantidad: number }[];
 };
 
-export type DashboardFacultadTables = {
-  resumenBloques: DashboardFacultadResumenBloquesRow[];
-};
-
-export type DashboardFacultadGlobalResult = {
-  schemaVersion: 2;
-  filtersApplied: DashboardFacultadGlobalFilters;
-  layout: { mode: 'global' };
-  data: {
-    kpis: DashboardFacultadKpis;
-    charts: DashboardFacultadCharts;
-    tables: DashboardFacultadTables;
-  };
+export type DashboardFacultadPorBloque = {
+  id: number;
+  nombre: string;
+  ambientes: number;
+  capacidad: { total: number; examen: number };
+  activos: { asignados: number };
 };
 
 export type DashboardFacultadDetailResult = {
@@ -104,6 +41,6 @@ export type DashboardFacultadDetailResult = {
     };
     kpis: DashboardFacultadKpis;
     charts: DashboardFacultadCharts;
-    tables: DashboardFacultadTables;
+    porBloque: DashboardFacultadPorBloque[];
   };
 };

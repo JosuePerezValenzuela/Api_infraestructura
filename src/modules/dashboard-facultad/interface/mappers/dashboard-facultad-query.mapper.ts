@@ -1,35 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { DashboardFacultadDetailQueryDto } from '../dto/dashboard-facultad-detail.query.dto';
-import { DashboardFacultadGlobalQueryDto } from '../dto/dashboard-facultad-global.query.dto';
-import {
-  DashboardFacultadDetailFilters,
-  DashboardFacultadGlobalFilters,
-} from '../../domain/dashboard-facultad.types';
+import { DashboardFacultadDetailFilters } from '../../domain/dashboard-facultad.types';
 
 export class DashboardFacultadQueryMapper {
-  // Este metodo convierte los query params del endpoint global en filtros tipados del dominio.
-  toGlobalFilters(
-    query: DashboardFacultadGlobalQueryDto,
-  ): DashboardFacultadGlobalFilters {
-    const campusIds = this.parsePositiveIntegerCsv(
-      query.campusIds,
-      'campusIds',
-      'El parametro campusIds debe ser una lista de enteros separados por coma',
-    );
-    const facultadIds = this.parsePositiveIntegerCsv(
-      query.facultadIds,
-      'facultadIds',
-      'El parametro facultadIds debe ser una lista de enteros separados por coma',
-    );
-    const includeInactive = this.parseIncludeInactive(query.includeInactive);
-
-    return {
-      campusIds,
-      facultadIds,
-      includeInactive,
-    };
-  }
-
   toDetailFilters(
     facultadIdRaw: string | number,
     query: DashboardFacultadDetailQueryDto,
@@ -41,38 +14,6 @@ export class DashboardFacultadQueryMapper {
       facultadId,
       includeInactive,
     };
-  }
-
-  // Convierte un CSV de enteros positivos a arreglo; si no llega parametro, devuelve undefined.
-  private parsePositiveIntegerCsv(
-    raw: string | undefined,
-    field: string,
-    errorMessage: string,
-  ): number[] | undefined {
-    // Si no viene parametro, no aplicamos filtro y devolvemos undefined.
-    if (raw === undefined || raw === null) {
-      return undefined;
-    }
-    // Aseguramos que el dato sea string porque llega desde query params HTTP.
-    if (typeof raw !== 'string') {
-      throw this.buildValidationException(field, errorMessage);
-    }
-    // Partimos por coma y limpiamos espacios de cada segmento.
-    const parts = raw.split(',').map((part) => part.trim());
-    // Ignoramos segmentos vacios causados por comas repetidas.
-    const filtered = parts.filter((part) => part.length > 0);
-    // Convertimos cada segmento a numero.
-    const numbers = filtered.map((part) => Number(part));
-    // Detectamos valores no numericos, no enteros o no positivos.
-    const hasInvalid = numbers.some(
-      (value) => Number.isNaN(value) || !Number.isInteger(value) || value <= 0,
-    );
-    // Si algun valor no cumple, lanzamos error de validacion estandar.
-    if (hasInvalid) {
-      throw this.buildValidationException(field, errorMessage);
-    }
-    // Devolvemos la lista de enteros positivos ya normalizada.
-    return numbers;
   }
 
   // Convierte includeInactive aceptando true/false o 1/0 en texto.

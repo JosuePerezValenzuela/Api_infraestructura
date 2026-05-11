@@ -7,13 +7,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { GetFacultadDashboardDetailUseCase } from '../application/get-facultad-dashboard-detail.usecase';
-import { GetFacultadDashboardGlobalUseCase } from '../application/get-facultad-dashboard-global.usecase';
-import {
-  DashboardFacultadDetailResult,
-  DashboardFacultadGlobalResult,
-} from '../domain/dashboard-facultad.types';
+import { DashboardFacultadDetailResult } from '../domain/dashboard-facultad.types';
 import { DashboardFacultadDetailQueryDto } from './dto/dashboard-facultad-detail.query.dto';
-import { DashboardFacultadGlobalQueryDto } from './dto/dashboard-facultad-global.query.dto';
 import { DashboardFacultadQueryMapper } from './mappers/dashboard-facultad-query.mapper';
 
 @ApiTags('dashboards-facultades')
@@ -22,124 +17,13 @@ export class DashboardFacultadController {
   private readonly queryMapper = new DashboardFacultadQueryMapper();
 
   constructor(
-    private readonly getGlobalDashboardUseCase: GetFacultadDashboardGlobalUseCase,
     private readonly getDetailDashboardUseCase: GetFacultadDashboardDetailUseCase,
   ) {}
-
-  @Get('global')
-  @ApiQuery({
-    name: 'campusIds',
-    required: false,
-    description: 'Ids de campus separados por coma (ej: 1,2,3)',
-    example: '1,2,3',
-  })
-  @ApiQuery({
-    name: 'facultadIds',
-    required: false,
-    description: 'Ids de facultades separados por coma (ej: 10,11)',
-    example: '10,11',
-  })
-  @ApiQuery({
-    name: 'includeInactive',
-    required: false,
-    description: 'Indica si se incluyen registros inactivos (true por defecto)',
-    type: Boolean,
-    enum: ['true', 'false'],
-    example: true,
-    schema: { default: true },
-  })
-  @ApiOkResponse({
-    description: 'Dashboard global de facultades con KPIs, charts y tablas',
-    schema: {
-      example: {
-        schemaVersion: 2,
-        filtersApplied: {
-          campusIds: [1],
-          facultadIds: [10, 11],
-          includeInactive: true,
-        },
-        layout: { mode: 'global' },
-        data: {
-          kpis: {
-            facultades: { activos: 1, inactivos: 1 },
-            bloques: { activos: 3, inactivos: 2 },
-            ambientes: { activos: 7, inactivos: 5 },
-            capacidad: { total: 420, examen: 260 },
-            activos: { asignados: 70, noAsignadosGlobal: 7 },
-          },
-          charts: {
-            tiposBloque: [
-              { tipoBloqueId: 1, tipoBloqueNombre: 'Academico', cantidad: 4 },
-            ],
-            tiposAmbiente: [
-              { tipoAmbienteId: 5, tipoAmbienteNombre: 'Aula', cantidad: 10 },
-            ],
-            capacidadPorBloque: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                capacidadTotal: 250,
-                capacidadExamen: 150,
-              },
-            ],
-            activosPorBloque: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                activosAsignados: 60,
-              },
-            ],
-            ambientesActivosInactivosPorBloque: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                activos: 7,
-                inactivos: 1,
-              },
-            ],
-          },
-          tables: {
-            resumenBloques: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                facultadNombre: 'Facultad de Ingenieria',
-                tipoBloqueNombre: 'Academico',
-                pisos: 4,
-                activo: true,
-                ambientes: 9,
-                tiposAmbiente: 3,
-                capacidadTotal: 250,
-                capacidadExamen: 150,
-                activosAsignados: 60,
-              },
-            ],
-          },
-        },
-      },
-    },
-  })
-  @ApiBadRequestResponse({
-    description: 'Datos invalidos',
-    schema: {
-      example: {
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [{ field: 'facultadIds', message: 'Mensaje de validacion' }],
-      },
-    },
-  })
-  async getGlobalDashboard(
-    @Query() query: DashboardFacultadGlobalQueryDto,
-  ): Promise<DashboardFacultadGlobalResult> {
-    const filters = this.queryMapper.toGlobalFilters(query);
-    return this.getGlobalDashboardUseCase.execute(filters);
-  }
 
   @Get(':facultadId')
   @ApiParam({
     name: 'facultadId',
-    description: 'Identificador numerico de la facultad',
+    description: 'Identificador numérico de la facultad',
     example: 22,
   })
   @ApiQuery({
@@ -152,7 +36,7 @@ export class DashboardFacultadController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Dashboard detalle de una facultad con KPIs, charts y tablas',
+    description: 'Dashboard detalle de una facultad con KPIs, charts y lista de bloques',
     schema: {
       example: {
         schemaVersion: 2,
@@ -164,78 +48,63 @@ export class DashboardFacultadController {
         data: {
           facultad: {
             id: 22,
-            nombre: 'Facultad de Ingenieria',
+            nombre: 'Facultad de Ingeniería',
             nombreCorto: 'FI',
             activo: true,
             campusId: 1,
             campusNombre: 'Campus Central',
           },
           kpis: {
-            facultades: { activos: 1, inactivos: 0 },
-            bloques: { activos: 3, inactivos: 1 },
-            ambientes: { activos: 16, inactivos: 4 },
+            bloques: { total: 4, activos: 3, inactivos: 1 },
+            ambientes: { total: 20, activos: 16, inactivos: 4 },
             capacidad: { total: 800, examen: 520 },
-            activos: { asignados: 120, noAsignadosGlobal: 11 },
+            activos: { asignados: 120, sinAsignarGlobal: 11 },
           },
           charts: {
             tiposBloque: [
-              { tipoBloqueId: 1, tipoBloqueNombre: 'Academico', cantidad: 3 },
+              { tipo: 'Académico', cantidad: 3 },
+              { tipo: 'Administrativo', cantidad: 1 },
             ],
             tiposAmbiente: [
-              { tipoAmbienteId: 5, tipoAmbienteNombre: 'Aula', cantidad: 14 },
-            ],
-            capacidadPorBloque: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                capacidadTotal: 300,
-                capacidadExamen: 180,
-              },
-            ],
-            activosPorBloque: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                activosAsignados: 60,
-              },
-            ],
-            ambientesActivosInactivosPorBloque: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                activos: 8,
-                inactivos: 1,
-              },
+              { tipo: 'Aula', cantidad: 14 },
+              { tipo: 'Laboratorio', cantidad: 4 },
+              { tipo: 'Auditorio', cantidad: 2 },
             ],
           },
-          tables: {
-            resumenBloques: [
-              {
-                bloqueId: 101,
-                bloqueNombre: 'Bloque A',
-                facultadNombre: 'Facultad de Ingenieria',
-                tipoBloqueNombre: 'Academico',
-                pisos: 4,
-                activo: true,
-                ambientes: 9,
-                tiposAmbiente: 3,
-                capacidadTotal: 300,
-                capacidadExamen: 180,
-                activosAsignados: 60,
-              },
-            ],
-          },
+          porBloque: [
+            {
+              id: 101,
+              nombre: 'Bloque A',
+              ambientes: 9,
+              capacidad: { total: 300, examen: 180 },
+              activos: { asignados: 60 },
+            },
+            {
+              id: 102,
+              nombre: 'Bloque B',
+              ambientes: 7,
+              capacidad: { total: 280, examen: 160 },
+              activos: { asignados: 40 },
+            },
+            {
+              id: 103,
+              nombre: 'Bloque C',
+              ambientes: 4,
+              capacidad: { total: 220, examen: 180 },
+              activos: { asignados: 20 },
+            },
+          ],
         },
       },
     },
   })
   @ApiBadRequestResponse({
-    description: 'Datos invalidos',
+    description: 'Datos inválidos',
     schema: {
       example: {
         error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [{ field: 'facultadId', message: 'Mensaje de validacion' }],
+        message: 'Los datos enviados no son válidos',
+        details: [{ field: 'facultadId', message: 'El parámetro facultadId debe ser un entero positivo' }],
       },
     },
   })
