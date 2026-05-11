@@ -7,151 +7,125 @@ const makeMockDataSource = () => {
   } as unknown as jest.Mocked<DataSource>;
 };
 
-describe('DashboardBloqueTypeormRepository.getGlobalDashboard', () => {
-  it('mapea agregaciones por bloque y construye respuesta V2 con KPIs/charts/tables', async () => {
-    const aggregatedRows = [
-      {
-        campus_id: 1,
-        campus_nombre: 'Central',
-        campus_activo: true,
-        facultad_id: 10,
-        facultad_nombre: 'Ingenieria',
-        facultad_activo: true,
-        bloque_id: 100,
-        bloque_nombre: 'Bloque A',
-        bloque_activo: true,
-        ambientes_activos: 5,
-        ambientes_inactivos: 1,
-        capacidad_total: 200,
-        capacidad_examen: 120,
-        activos_asignados: 40,
-      },
-      {
-        campus_id: 2,
-        campus_nombre: 'Sur',
-        campus_activo: false,
-        facultad_id: 20,
-        facultad_nombre: 'Arquitectura',
-        facultad_activo: false,
-        bloque_id: 101,
-        bloque_nombre: 'Bloque B',
-        bloque_activo: false,
-        ambientes_activos: 2,
-        ambientes_inactivos: 3,
-        capacidad_total: 150,
-        capacidad_examen: 80,
-        activos_asignados: 10,
-      },
-    ];
-
-    const unassignedRows = [{ no_asignados: 7 }];
-    const tiposBloqueRows = [
-      { tipo_bloque_id: 1, tipo_bloque_nombre: 'Academico', cantidad: 2 },
-    ];
-    const ambientesPorBloqueRows = [
-      { bloque_id: 100, bloque_nombre: 'Bloque A', ambientes: 6 },
-    ];
-    const capacidadPorBloqueRows = [
-      {
-        bloque_id: 100,
-        bloque_nombre: 'Bloque A',
-        capacidad_total: 200,
-        capacidad_examen: 120,
-      },
-    ];
-    const activosPorBloqueRows = [
-      { bloque_id: 100, bloque_nombre: 'Bloque A', activos_asignados: 40 },
-    ];
-    const resumenBloquesRows = [
-      {
-        bloque_id: 100,
-        bloque_nombre: 'Bloque A',
-        campus_nombre: 'Central',
-        facultad_nombre: 'Ingenieria',
-        tipo_bloque_nombre: 'Academico',
-        pisos: 4,
-        activo: true,
-        ambientes: 6,
-        capacidad_total: 200,
-        capacidad_examen: 120,
-        activos_asignados: 40,
-      },
-    ];
-
+describe('DashboardBloqueTypeormRepository.getDetailDashboard', () => {
+  it('retorna null cuando el bloque no existe según filtros', async () => {
     const dataSource = makeMockDataSource();
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(aggregatedRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(unassignedRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(tiposBloqueRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(
-      ambientesPorBloqueRows,
-    );
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(
-      capacidadPorBloqueRows,
-    );
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(activosPorBloqueRows);
-    (dataSource.query as jest.Mock).mockResolvedValueOnce(resumenBloquesRows);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([]);
 
     const repo = new DashboardBloqueTypeormRepository(
       dataSource as unknown as DataSource,
     );
 
-    const filters = {
-      campusIds: [1, 2],
-      facultadIds: [10, 20],
-      bloqueIds: [100, 101],
-      tipoBloqueIds: [1],
+    const result = await repo.getDetailDashboard({
+      bloqueId: 999,
+      includeInactive: false,
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('mapea el detalle del bloque con estructura V2 (kpis/charts/porAmbiente)', async () => {
+    const dataSource = makeMockDataSource();
+    // 1) Bloque base
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([
+      {
+        id: '101',
+        nombre: 'Bloque A',
+        nombre_corto: 'Bloque A',
+        activo: true,
+        pisos: '4',
+        tipo_bloque_id: '1',
+        tipo_bloque_nombre: 'Académico',
+        facultad_id: '22',
+        facultad_nombre: 'Facultad de Ingeniería',
+        campus_id: '1',
+        campus_nombre: 'Campus Central',
+      },
+    ]);
+    // 2) KPIs y summary
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([
+      {
+        ambientes_total: 12,
+        ambientes_activos: 10,
+        ambientes_inactivos: 2,
+        capacidad_total: 540,
+        capacidad_examen: 300,
+        activos_asignados: 68,
+      },
+    ]);
+    // 3) Chart - tipos de ambiente
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([
+      { tipo_ambiente_nombre: 'Aula', cantidad: '8' },
+      { tipo_ambiente_nombre: 'Laboratorio', cantidad: '3' },
+      { tipo_ambiente_nombre: 'Auditorio', cantidad: '1' },
+    ]);
+    // 4) Por ambiente
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([
+      {
+        ambiente_id: '1001',
+        ambiente_nombre: 'Aula 101',
+        piso: '1',
+        capacidad_total: '40',
+        capacidad_examen: '30',
+        tipo_ambiente_nombre: 'Aula',
+        activos_asignados: '5',
+      },
+      {
+        ambiente_id: '1002',
+        ambiente_nombre: 'Laboratorio 1',
+        piso: '2',
+        capacidad_total: '30',
+        capacidad_examen: '0',
+        tipo_ambiente_nombre: 'Laboratorio',
+        activos_asignados: '8',
+      },
+    ]);
+    // 5) Activos no asignados globales
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([{ cantidad: 11 }]);
+
+    const repo = new DashboardBloqueTypeormRepository(
+      dataSource as unknown as DataSource,
+    );
+
+    const result = await repo.getDetailDashboard({
+      bloqueId: 101,
       includeInactive: true,
-    };
-
-    const result = await repo.getGlobalDashboard(filters);
-
-    expect(result.schemaVersion).toBe(2);
-    expect(result.layout).toEqual({ mode: 'global' });
-    expect(result.filtersApplied).toEqual(filters);
-
-    expect(result.data.kpis.campus).toEqual({ activos: 1, inactivos: 1 });
-    expect(result.data.kpis.facultades).toEqual({ activos: 1, inactivos: 1 });
-    expect(result.data.kpis.bloques).toEqual({ activos: 1, inactivos: 1 });
-    expect(result.data.kpis.ambientes).toEqual({ activos: 7, inactivos: 4 });
-    expect(result.data.kpis.capacidad).toEqual({ total: 350, examen: 200 });
-    expect(result.data.kpis.activos).toEqual({
-      asignados: 50,
-      noAsignadosGlobal: 7,
     });
 
-    expect(result.data.charts.tiposBloque[0]).toEqual({
-      tipoBloqueId: 1,
-      tipoBloqueNombre: 'Academico',
-      cantidad: 2,
-    });
-    expect(result.data.charts.ambientesPorBloque[0]).toEqual({
-      bloqueId: 100,
-      bloqueNombre: 'Bloque A',
-      ambientes: 6,
-    });
-    expect(result.data.charts.capacidadPorBloque[0]).toEqual({
-      bloqueId: 100,
-      bloqueNombre: 'Bloque A',
-      capacidadTotal: 200,
-      capacidadExamen: 120,
-    });
-    expect(result.data.charts.activosPorBloque[0]).toEqual({
-      bloqueId: 100,
-      bloqueNombre: 'Bloque A',
-      activosAsignados: 40,
-    });
-    expect(result.data.tables.resumenBloques[0]).toMatchObject({
-      bloqueId: 100,
-      bloqueNombre: 'Bloque A',
-      campusNombre: 'Central',
-      facultadNombre: 'Ingenieria',
-      tipoBloqueNombre: 'Academico',
-      pisos: 4,
+    expect(result?.schemaVersion).toBe(2);
+    expect(result?.layout).toEqual({ mode: 'detail' });
+    expect(result?.filtersApplied).toEqual({ bloqueId: 101, includeInactive: true });
+    expect(result?.data.bloque).toEqual({
+      id: 101,
+      nombre: 'Bloque A',
+      nombreCorto: 'Bloque A',
       activo: true,
-      ambientes: 6,
-      capacidadTotal: 200,
-      capacidadExamen: 120,
-      activosAsignados: 40,
+      pisos: 4,
+      tipoBloqueId: 1,
+      tipoBloqueNombre: 'Académico',
+      facultadId: 22,
+      facultadNombre: 'Facultad de Ingeniería',
+      campusId: 1,
+      campusNombre: 'Campus Central',
+    });
+    expect(result?.data.kpis).toEqual({
+      ambientes: { total: 12, activos: 10, inactivos: 2 },
+      capacidad: { total: 540, examen: 300 },
+      activos: { asignados: 68, sinAsignarGlobal: 11 },
+    });
+    expect(result?.data.charts.tiposAmbiente).toEqual([
+      { tipo: 'Aula', cantidad: 8 },
+      { tipo: 'Laboratorio', cantidad: 3 },
+      { tipo: 'Auditorio', cantidad: 1 },
+    ]);
+    expect(result?.data.porAmbiente).toHaveLength(2);
+    expect(result?.data.porAmbiente[0]).toMatchObject({
+      id: 1001,
+      nombre: 'Aula 101',
+      piso: 1,
+      capacidad: { total: 40, examen: 30 },
+      tipoAmbiente: 'Aula',
+      activos: { asignados: 5 },
     });
   });
 });

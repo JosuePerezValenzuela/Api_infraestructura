@@ -1,13 +1,14 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiOkResponse,
+  ApiParam,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { GetBloqueDashboardGlobalUseCase } from '../application/get-bloque-dashboard-global.usecase';
-import { DashboardBloqueGlobalResult } from '../domain/dashboard-bloque.types';
-import { DashboardBloqueGlobalQueryDto } from './dto/dashboard-bloque-global.query.dto';
+import { GetBloqueDashboardDetailUseCase } from '../application/get-bloque-dashboard-detail.usecase';
+import { DashboardBloqueDetailResult } from '../domain/dashboard-bloque.types';
+import { DashboardBloqueDetailQueryDto } from './dto/dashboard-bloque-detail.query.dto';
 import { DashboardBloqueQueryMapper } from './mappers/dashboard-bloque-query.mapper';
 
 @ApiTags('dashboards-bloques')
@@ -16,33 +17,14 @@ export class DashboardBloqueController {
   private readonly queryMapper = new DashboardBloqueQueryMapper();
 
   constructor(
-    private readonly getGlobalDashboardUseCase: GetBloqueDashboardGlobalUseCase,
+    private readonly getDetailDashboardUseCase: GetBloqueDashboardDetailUseCase,
   ) {}
 
-  @Get('global')
-  @ApiQuery({
-    name: 'campusIds',
-    required: false,
-    description: 'Ids de campus separados por coma (ej: 1,2,3)',
-    example: '1,2,3',
-  })
-  @ApiQuery({
-    name: 'facultadIds',
-    required: false,
-    description: 'Ids de facultades separados por coma (ej: 10,11)',
-    example: '10,11',
-  })
-  @ApiQuery({
-    name: 'bloqueIds',
-    required: false,
-    description: 'Ids de bloques separados por coma (ej: 100,101)',
-    example: '100,101',
-  })
-  @ApiQuery({
-    name: 'tipoBloqueIds',
-    required: false,
-    description: 'Ids de tipos de bloque separados por coma (ej: 1,2)',
-    example: '1,2',
+  @Get(':bloqueId')
+  @ApiParam({
+    name: 'bloqueId',
+    description: 'Identificador numérico del bloque',
+    example: 101,
   })
   @ApiQuery({
     name: 'includeInactive',
@@ -54,85 +36,85 @@ export class DashboardBloqueController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Dashboard global de bloques con KPIs, charts y tablas',
+    description: 'Dashboard detalle de un bloque con KPIs, charts y lista de ambientes',
     schema: {
       example: {
         schemaVersion: 2,
         filtersApplied: {
-          campusIds: [1],
-          facultadIds: [10],
-          bloqueIds: [100, 101],
-          tipoBloqueIds: [2],
+          bloqueId: 101,
           includeInactive: true,
         },
-        layout: { mode: 'global' },
+        layout: { mode: 'detail' },
         data: {
+          bloque: {
+            id: 101,
+            nombre: 'Bloque A',
+            nombreCorto: 'Bloque A',
+            activo: true,
+            pisos: 4,
+            tipoBloqueId: 1,
+            tipoBloqueNombre: 'Académico',
+            facultadId: 22,
+            facultadNombre: 'Facultad de Ingeniería',
+            campusId: 1,
+            campusNombre: 'Campus Central',
+          },
           kpis: {
-            campus: { activos: 1, inactivos: 0 },
-            facultades: { activos: 2, inactivos: 0 },
-            bloques: { activos: 8, inactivos: 1 },
-            ambientes: { activos: 42, inactivos: 5 },
-            capacidad: { total: 2200, examen: 1260 },
-            activos: { asignados: 280, noAsignadosGlobal: 17 },
+            ambientes: { total: 12, activos: 10, inactivos: 2 },
+            capacidad: { total: 540, examen: 300 },
+            activos: { asignados: 68, sinAsignarGlobal: 11 },
           },
           charts: {
-            tiposBloque: [
-              { tipoBloqueId: 2, tipoBloqueNombre: 'Academico', cantidad: 6 },
-            ],
-            ambientesPorBloque: [
-              { bloqueId: 100, bloqueNombre: 'Bloque A', ambientes: 12 },
-            ],
-            capacidadPorBloque: [
-              {
-                bloqueId: 100,
-                bloqueNombre: 'Bloque A',
-                capacidadTotal: 540,
-                capacidadExamen: 300,
-              },
-            ],
-            activosPorBloque: [
-              {
-                bloqueId: 100,
-                bloqueNombre: 'Bloque A',
-                activosAsignados: 68,
-              },
+            tiposAmbiente: [
+              { tipo: 'Aula', cantidad: 8 },
+              { tipo: 'Laboratorio', cantidad: 3 },
+              { tipo: 'Auditorio', cantidad: 1 },
             ],
           },
-          tables: {
-            resumenBloques: [
-              {
-                bloqueId: 100,
-                bloqueNombre: 'Bloque A',
-                campusNombre: 'Campus Central',
-                facultadNombre: 'Facultad de Ingenieria',
-                tipoBloqueNombre: 'Academico',
-                pisos: 4,
-                activo: true,
-                ambientes: 12,
-                capacidadTotal: 540,
-                capacidadExamen: 300,
-                activosAsignados: 68,
-              },
-            ],
-          },
+          porAmbiente: [
+            {
+              id: 1001,
+              nombre: 'Aula 101',
+              piso: 1,
+              capacidad: { total: 40, examen: 30 },
+              tipoAmbiente: 'Aula',
+              activos: { asignados: 5 },
+            },
+            {
+              id: 1002,
+              nombre: 'Laboratorio 1',
+              piso: 2,
+              capacidad: { total: 30, examen: 0 },
+              tipoAmbiente: 'Laboratorio',
+              activos: { asignados: 8 },
+            },
+          ],
         },
       },
     },
   })
   @ApiBadRequestResponse({
-    description: 'Datos invalidos',
+    description: 'Datos inválidos',
     schema: {
       example: {
         error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [{ field: 'bloqueIds', message: 'Mensaje de validacion' }],
+        message: 'Los datos enviados no son válidos',
+        details: [{ field: 'bloqueId', message: 'El parámetro bloqueId debe ser un entero positivo' }],
       },
     },
   })
-  async getGlobalDashboard(
-    @Query() query: DashboardBloqueGlobalQueryDto,
-  ): Promise<DashboardBloqueGlobalResult> {
-    const filters = this.queryMapper.toGlobalFilters(query);
-    return this.getGlobalDashboardUseCase.execute(filters);
+  async getDetailDashboard(
+    @Param('bloqueId') bloqueIdRaw: string,
+    @Query() query: DashboardBloqueDetailQueryDto,
+  ): Promise<DashboardBloqueDetailResult> {
+    const filters = this.queryMapper.toDetailFilters(bloqueIdRaw, query);
+    const result = await this.getDetailDashboardUseCase.execute(filters);
+    if (!result) {
+      throw new NotFoundException({
+        error: 'NOT_FOUND',
+        message: `No se encontró el bloque con ID ${filters.bloqueId}`,
+      });
+    }
+    return result;
   }
 }

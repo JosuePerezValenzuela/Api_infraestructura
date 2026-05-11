@@ -1,54 +1,66 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DashboardBloqueController } from './dashboard-bloque.controller';
-import { GetBloqueDashboardGlobalUseCase } from '../application/get-bloque-dashboard-global.usecase';
+import { GetBloqueDashboardDetailUseCase } from '../application/get-bloque-dashboard-detail.usecase';
 
-type GlobalUseCaseMock = { execute: jest.Mock };
+type DetailUseCaseMock = { execute: jest.Mock };
 
 describe('DashboardBloqueController', () => {
   let controller: DashboardBloqueController;
-  let globalUseCase: GlobalUseCaseMock;
+  let detailUseCase: DetailUseCaseMock;
 
   beforeEach(async () => {
-    globalUseCase = { execute: jest.fn() };
+    detailUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DashboardBloqueController],
       providers: [
-        { provide: GetBloqueDashboardGlobalUseCase, useValue: globalUseCase },
+        { provide: GetBloqueDashboardDetailUseCase, useValue: detailUseCase },
       ],
     }).compile();
 
     controller = module.get(DashboardBloqueController);
   });
 
-  it('parsea query CSV, aplica defaults y delega al caso de uso global', async () => {
+  it('parsea params y query, y delega al caso de uso detail', async () => {
     const mockResult = {
       schemaVersion: 2,
       filtersApplied: {
-        campusIds: [1],
-        facultadIds: [10],
-        bloqueIds: [100, 101],
-        tipoBloqueIds: [2],
+        bloqueId: 101,
         includeInactive: true,
       },
-      layout: { mode: 'global' as const },
-      data: { kpis: {}, charts: {}, tables: {} },
+      layout: { mode: 'detail' as const },
+      data: {
+        bloque: {
+          id: 101,
+          nombre: 'Bloque A',
+          nombreCorto: 'Bloque A',
+          activo: true,
+          pisos: 4,
+          tipoBloqueId: 1,
+          tipoBloqueNombre: 'Académico',
+          facultadId: 22,
+          facultadNombre: 'Facultad de Ingeniería',
+          campusId: 1,
+          campusNombre: 'Campus Central',
+        },
+        kpis: {
+          ambientes: { total: 12, activos: 10, inactivos: 2 },
+          capacidad: { total: 540, examen: 300 },
+          activos: { asignados: 68, sinAsignarGlobal: 11 },
+        },
+        charts: { tiposAmbiente: [] },
+        porAmbiente: [],
+      },
     };
 
-    globalUseCase.execute.mockResolvedValue(mockResult);
+    detailUseCase.execute.mockResolvedValue(mockResult);
 
-    const response = await controller.getGlobalDashboard({
-      campusIds: '1',
-      facultadIds: '10',
-      bloqueIds: '100,101',
-      tipoBloqueIds: '2',
+    const response = await controller.getDetailDashboard('101', {
+      includeInactive: true,
     });
 
-    expect(globalUseCase.execute).toHaveBeenCalledWith({
-      campusIds: [1],
-      facultadIds: [10],
-      bloqueIds: [100, 101],
-      tipoBloqueIds: [2],
+    expect(detailUseCase.execute).toHaveBeenCalledWith({
+      bloqueId: 101,
       includeInactive: true,
     });
     expect(response).toEqual(mockResult);

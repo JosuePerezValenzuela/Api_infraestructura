@@ -1,66 +1,26 @@
 import { BadRequestException } from '@nestjs/common';
-import { DashboardBloqueGlobalQueryDto } from '../dto/dashboard-bloque-global.query.dto';
-import { DashboardBloqueGlobalFilters } from '../../domain/dashboard-bloque.types';
+import { DashboardBloqueDetailQueryDto } from '../dto/dashboard-bloque-detail.query.dto';
+import { DashboardBloqueDetailFilters } from '../../domain/dashboard-bloque.types';
 
 export class DashboardBloqueQueryMapper {
-  toGlobalFilters(
-    query: DashboardBloqueGlobalQueryDto,
-  ): DashboardBloqueGlobalFilters {
-    const campusIds = this.parsePositiveIntegerCsv(
-      query.campusIds,
-      'campusIds',
-      'El parametro campusIds debe ser una lista de enteros separados por coma',
-    );
-    const facultadIds = this.parsePositiveIntegerCsv(
-      query.facultadIds,
-      'facultadIds',
-      'El parametro facultadIds debe ser una lista de enteros separados por coma',
-    );
-    const bloqueIds = this.parsePositiveIntegerCsv(
-      query.bloqueIds,
-      'bloqueIds',
-      'El parametro bloqueIds debe ser una lista de enteros separados por coma',
-    );
-    const tipoBloqueIds = this.parsePositiveIntegerCsv(
-      query.tipoBloqueIds,
-      'tipoBloqueIds',
-      'El parametro tipoBloqueIds debe ser una lista de enteros separados por coma',
-    );
+  toDetailFilters(
+    bloqueIdRaw: string,
+    query: DashboardBloqueDetailQueryDto,
+  ): DashboardBloqueDetailFilters {
+    const bloqueId = Number(bloqueIdRaw);
+    if (Number.isNaN(bloqueId) || !Number.isInteger(bloqueId) || bloqueId <= 0) {
+      throw this.buildValidationException(
+        'bloqueId',
+        'El parámetro bloqueId debe ser un entero positivo',
+      );
+    }
+
     const includeInactive = this.parseIncludeInactive(query.includeInactive);
 
     return {
-      campusIds,
-      facultadIds,
-      bloqueIds,
-      tipoBloqueIds,
+      bloqueId,
       includeInactive,
     };
-  }
-
-  private parsePositiveIntegerCsv(
-    raw: string | undefined,
-    field: string,
-    errorMessage: string,
-  ): number[] | undefined {
-    if (raw === undefined || raw === null) {
-      return undefined;
-    }
-    if (typeof raw !== 'string') {
-      throw this.buildValidationException(field, errorMessage);
-    }
-
-    const parts = raw.split(',').map((part) => part.trim());
-    const filtered = parts.filter((part) => part.length > 0);
-    const numbers = filtered.map((part) => Number(part));
-    const hasInvalid = numbers.some(
-      (value) => Number.isNaN(value) || !Number.isInteger(value) || value <= 0,
-    );
-
-    if (hasInvalid) {
-      throw this.buildValidationException(field, errorMessage);
-    }
-
-    return numbers;
   }
 
   private parseIncludeInactive(raw: string | boolean | undefined): boolean {
