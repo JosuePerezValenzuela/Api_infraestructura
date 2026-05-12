@@ -30,9 +30,11 @@ export class DashboardCacheService {
 
   /**
    * Refresca manualmente las Materialized Views.
-   * Útil para forcing un update fuera del schedule.
+   * Las que tienen índice único usan CONCURRENTLY (no bloquea).
+   * Las que no tienen índice usan REFRESH sin CONCURRENTLY.
    */
   async refreshMaterializedViews(): Promise<void> {
+    // Estas tienen índice único → CONCURRENTLY
     await this.dataSource.query(
       `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_dashboard_campus_resumen`,
     );
@@ -42,8 +44,9 @@ export class DashboardCacheService {
     await this.dataSource.query(
       `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_dashboard_tipos_ambiente`,
     );
+    // Esta NO tiene índice único → sin CONCURRENTLY (es solo 1 fila de todos modos)
     await this.dataSource.query(
-      `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_dashboard_activos_no_asignados`,
+      `REFRESH MATERIALIZED VIEW mv_dashboard_activos_no_asignados`,
     );
   }
 
