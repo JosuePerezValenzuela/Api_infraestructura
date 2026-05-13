@@ -4,12 +4,15 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Query,
+  ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,6 +24,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiParam,
 } from '@nestjs/swagger';
 import { CreateBloqueUseCase } from '../application/create-bloque.usecase';
 import { CreateBloqueDto } from './dto/create-bloque.dto';
@@ -280,30 +284,68 @@ export class BloqueController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Eliminar (soft delete) un bloque por identificador',
-    description:
-      'Desactiva el bloque y todos sus ambientes asociados. No elimina registros de la base de datos.',
-  })
+  @ApiOperation({ summary: 'Elimina un bloque por ID (delete físico)' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID del bloque a eliminar' })
   @ApiNoContentResponse({
-    description: 'Bloque eliminado correctamente',
-    schema: {
-      example: {
-        message: 'Bloque desactivado correctamente',
-      },
-    },
+    description: 'El bloque fue eliminado físicamente (sin cuerpo en respuesta)',
   })
   @ApiNotFoundResponse({
-    description: 'No existe un bloque con el id indicado',
+    description: 'Bloque no encontrado',
     schema: {
       example: {
         error: 'NOT_FOUND',
         message: 'No se encontro el bloque',
+        details: [{ field: 'id', message: 'Bloque inexistente' }],
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'No se puede eliminar - tiene ambientes dependientes',
+    schema: {
+      example: {
+        error: 'CONFLICT_ERROR',
+        message: 'No se puede eliminar el bloque porque tiene ambientes dependientes',
+        details: [
+          {
+            field: 'ambientes',
+            message: 'Ambiente "Aula 101" (AUL-101) de tipo "Aula"',
+            ambiente: {
+              id: 1,
+              codigo: 'AUL-101',
+              nombre: 'Aula 101',
+              nombre_corto: 'A101',
+              tipo_ambiente_nombre: 'Aula',
+              activo: true,
+            },
+          },
+          {
+            field: 'ambientes',
+            message: 'Ambiente "Laboratorio Q1" (LAB-Q1) de tipo "Laboratorio"',
+            ambiente: {
+              id: 2,
+              codigo: 'LAB-Q1',
+              nombre: 'Laboratorio Q1',
+              nombre_corto: 'LQ1',
+              tipo_ambiente_nombre: 'Laboratorio',
+              activo: true,
+            },
+          },
+        ],
       },
     },
   })
   async delete(@Param('id', ParseIntPipe) id: number) {
-    const { id: deletedId } = await this.deleteBloque.execute({ id });
-    return { id: deletedId };
+    try {
+      const { id: deletedId } = await this.deleteBloque.execute({ id });
+      return { id: deletedId };
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new HttpException(err.getResponse(), HttpStatus.NOT_FOUND);
+      }
+      if (err instanceof ConflictException) {
+        throw new HttpException(err.getResponse(), HttpStatus.CONFLICT);
+      }
+      throw new HttpException('Error interno', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }

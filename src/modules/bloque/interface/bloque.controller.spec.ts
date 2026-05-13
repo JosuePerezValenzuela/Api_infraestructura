@@ -257,14 +257,50 @@ describe('BloqueController', () => {
       expect(deleteUseCase.execute).toHaveBeenCalledWith({ id: 77 });
     });
 
-    it('propaga NotFoundException cuando el caso de uso indica que el bloque no existe', async () => {
-      deleteUseCase.execute.mockRejectedValue(
-        new NotFoundException('No se encontro el bloque'),
-      );
+    it('lanza HttpException 404 cuando el caso de uso lanza NotFoundException', async () => {
+      const notFoundException = new NotFoundException({
+        error: 'NOT_FOUND',
+        message: 'No se encontro el bloque',
+        details: [{ field: 'id', message: 'Bloque inexistente' }],
+      });
+      deleteUseCase.execute.mockRejectedValue(notFoundException);
 
-      await expect(controller.delete(123)).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      try {
+        await controller.delete(123);
+        fail('Expected HttpException to be thrown');
+      } catch (err) {
+        expect(err.constructor.name).toBe('HttpException');
+        expect((err as any).getStatus()).toBe(404);
+      }
+    });
+
+    it('lanza HttpException 409 cuando hay ambientes dependientes', async () => {
+      const conflictException = new ConflictException({
+        error: 'CONFLICT_ERROR',
+        message: 'No se puede eliminar el bloque porque tiene ambientes dependientes',
+        details: [],
+      });
+      deleteUseCase.execute.mockRejectedValue(conflictException);
+
+      try {
+        await controller.delete(123);
+        fail('Expected HttpException to be thrown');
+      } catch (err) {
+        expect(err.constructor.name).toBe('HttpException');
+        expect((err as any).getStatus()).toBe(409);
+      }
+    });
+
+    it('lanza HttpException 500 cuando hay error desconocido', async () => {
+      deleteUseCase.execute.mockRejectedValue(new Error('Unknown error'));
+
+      try {
+        await controller.delete(123);
+        fail('Expected HttpException to be thrown');
+      } catch (err) {
+        expect(err.constructor.name).toBe('HttpException');
+        expect((err as any).getStatus()).toBe(500);
+      }
     });
   });
 });

@@ -6,6 +6,7 @@ import {
 import {
   BloqueRepositoryPort,
   BloqueSnapshot,
+  RelatedAmbiente,
 } from '../../domain/bloque.repository.port';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { CreateBloqueCommand } from '../../domain/commands/create-bloque.command';
@@ -416,5 +417,32 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
         });
       }
     }
+  }
+
+  // Busca ambientes que dependen de este bloque
+  async findRelatedAmbientes(bloqueId: number): Promise<RelatedAmbiente[]> {
+    const sql = `
+      SELECT
+        a.id,
+        a.codigo,
+        a.nombre,
+        a.nombre_corto,
+        ta.nombre AS tipo_ambiente_nombre,
+        a.activo
+      FROM infraestructura.ambientes a
+      INNER JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
+      WHERE a.bloque_id = $1
+    `;
+    const rows = await this.dataSource.query<RelatedAmbiente[]>(sql, [bloqueId]);
+    return rows;
+  }
+
+  // Elimina el bloque físicamente
+  async delete(bloqueId: number): Promise<{ id: number }> {
+    await this.dataSource.query(
+      `DELETE FROM infraestructura.bloques WHERE id = $1`,
+      [bloqueId],
+    );
+    return { id: bloqueId };
   }
 }

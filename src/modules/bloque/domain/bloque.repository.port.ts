@@ -20,6 +20,15 @@ export interface BloqueSnapshot {
     lng: number;
   };
 }
+export interface RelatedAmbiente {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  tipo_ambiente_nombre: string;
+  activo: boolean;
+}
+
 export interface BloqueRepositoryPort {
   create(command: CreateBloqueCommand): Promise<{ id: number }>;
 
@@ -30,4 +39,9 @@ export interface BloqueRepositoryPort {
   update(command: UpdateBloqueCommand): Promise<{ id: number }>;
 
   findById(id: number): Promise<BloqueSnapshot | null>;
+
+  // Métodos para delete
+  findRelatedAmbientes(bloqueId: number): Promise<RelatedAmbiente[]>;
+
+  delete(bloqueId: number): Promise<{ id: number }>;
 }
