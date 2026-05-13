@@ -1,53 +1,43 @@
-// Este archivo contiene las pruebas del caso de uso DeleteCampusUseCase y explica cada paso en detalle.
+// Este archivo contiene las pruebas del caso de uso DeleteCampusUseCase.
 
-import { NotFoundException } from '@nestjs/common'; // Traemos la excepción que representa el campus no encontrado.
-import { DeleteCampusUseCase } from './delete-campus.usecase'; // Importamos el caso de uso que vamos a probar.
+import { ConflictException, NotFoundException } from '@nestjs/common';
+import { DeleteCampusUseCase } from './delete-campus.usecase';
 import type {
   CampusListItem,
   CampusRepositoryPort,
-} from '../domain/campus.repository.port'; // Importamos los tipos del puerto del dominio para reutilizarlos en los mocks.
-import type { RelationshipsPort as RelationshipsPortContract } from '../../_shared/relationships/domain/relationships.port'; // Traemos el contrato del puerto global de relaciones.
+  RelatedFaculty,
+} from '../domain/campus.repository.port';
 
 // Definimos la forma del repositorio falso que utilizaremos en las pruebas.
 interface FakeCampusRepositoryPort {
-  // Método que busca un campus por su identificador y devuelve información básica o null si no existe.
   findById: jest.Mock<Promise<CampusListItem | null>, [number]>;
-}
-
-// Definimos la forma del puerto de relaciones falso para simular la eliminación en cascada.
-interface FakeRelationshipsPort {
-  // Método que eliminará el campus y todas sus dependencias.
-  deleteCampusCascade: jest.Mock<Promise<void>, [number]>;
+  findRelatedFaculties: jest.Mock<Promise<RelatedFaculty[]>, [number]>;
+  delete: jest.Mock<Promise<{ id: number }>, [number]>;
 }
 
 describe('DeleteCampusUseCase', () => {
   // Función auxiliar que construye el sistema bajo prueba con dependencias simuladas.
   const buildSystem = () => {
-    // Creamos un repositorio falso que nos permite controlar la respuesta de findById.
+    // Creamos un repositorio falso con todos los métodos necesarios.
     const campusRepo: FakeCampusRepositoryPort = {
       findById: jest.fn(),
+      findRelatedFaculties: jest.fn(),
+      delete: jest.fn(),
     };
 
-    // Creamos el puerto de relaciones falso con la función que ejecuta la cascada de eliminación.
-    const relationships: FakeRelationshipsPort = {
-      deleteCampusCascade: jest.fn(),
-    };
-
-    // Instanciamos el caso de uso real inyectando los mocks como si fueran las dependencias verdaderas.
+    // Instanciamos el caso de uso real inyectando el mock.
     const useCase = new (DeleteCampusUseCase as any)(
       campusRepo as unknown as CampusRepositoryPort,
-      relationships as unknown as RelationshipsPortContract,
     );
 
-    // Retornamos todas las piezas para reutilizarlas en cada prueba.
-    return { campusRepo, relationships, useCase };
+    return { campusRepo, useCase };
   };
 
-  // Esta prueba cubre el flujo feliz: el campus existe y se elimina correctamente.
-  it('invoca deleteCampusCascade cuando el campus existe', async () => {
-    // Construimos el sistema con mocks controlados.
-    const { campusRepo, relationships, useCase } = buildSystem();
-    // Simulamos que el campus existe devolviendo un objeto con toda su información.
+  // Esta prueba cubre el flujo feliz: el campus existe, no tiene facultades relacionadas y se elimina físicamente.
+  it('hace delete físico cuando el campus existe y no tiene facultades relacionadas', async () => {
+    const { campusRepo, useCase } = buildSystem();
+
+    // Simulamos que el campus existe.
     campusRepo.findById.mockResolvedValue({
       id: 25,
       codigo: 'CAMP-025',
@@ -59,37 +49,104 @@ describe('DeleteCampusUseCase', () => {
       creado_en: new Date('2025-01-01T10:00:00Z'),
       actualizado_en: new Date('2025-01-10T12:00:00Z'),
     });
-    // Indicamos que la eliminación en cascada se resuelve sin errores.
-    relationships.deleteCampusCascade.mockResolvedValue(undefined);
-    // Ejecutamos el caso de uso y esperamos recibir el identificador del campus eliminado.
+
+    // Simulamos que no hay facultades relacionadas.
+    campusRepo.findRelatedFaculties.mockResolvedValue([]);
+
+    // Ejecutamos el caso de uso y esperamos el id del campus eliminado.
     await expect(useCase.execute({ id: 25 })).resolves.toEqual({ id: 25 });
-    // Verificamos que se consultó al repositorio con el identificador recibido.
+
+    // Verificamos que se consultó el campus.
     expect(campusRepo.findById).toHaveBeenCalledTimes(1);
     expect(campusRepo.findById).toHaveBeenCalledWith(25);
-    // Comprobamos que el puerto global fue invocado para eliminar el campus y sus dependencias.
-    expect(relationships.deleteCampusCascade).toHaveBeenCalledTimes(1);
-    expect(relationships.deleteCampusCascade).toHaveBeenCalledWith(25);
+
+    // Verificamos que se consultó las facultades relacionadas.
+    expect(campusRepo.findRelatedFaculties).toHaveBeenCalledTimes(1);
+    expect(campusRepo.findRelatedFaculties).toHaveBeenCalledWith(25);
+
+    // Verificamos que se ejecutó el delete físico.
+    expect(campusRepo.delete).toHaveBeenCalledTimes(1);
+    expect(campusRepo.delete).toHaveBeenCalledWith(25);
   });
 
-  // Esta prueba valida que cuando el campus no existe se lanza una NotFoundException y no se intenta eliminar nada.
+  // Esta prueba valida que cuando el campus no existe se lanza NotFoundException.
   it('lanza NotFoundException cuando el campus no existe', async () => {
-    // Construimos el sistema bajo prueba.
-    const { campusRepo, relationships, useCase } = buildSystem();
-    // Configuramos el repositorio para devolver null indicando que el campus no se encontró.
+    const { campusRepo, useCase } = buildSystem();
+
+    // Configuramos el repositorio para devolver null.
     campusRepo.findById.mockResolvedValue(null);
+
     // Ejecutamos el caso de uso y confirmamos que recibe la excepción esperada.
     await expect(useCase.execute({ id: 404 })).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    // Validamos que en este escenario no se llama al puerto de eliminación en cascada.
-    expect(relationships.deleteCampusCascade).not.toHaveBeenCalled();
+
+    // Validamos que no se llama a findRelatedFaculties ni delete.
+    expect(campusRepo.findRelatedFaculties).not.toHaveBeenCalled();
+    expect(campusRepo.delete).not.toHaveBeenCalled();
   });
 
-  // Esta prueba demuestra que si el puerto global falla, el error se propaga hacia el exterior.
-  it('propaga el error cuando deleteCampusCascade falla', async () => {
-    // Armamos el sistema con los mocks.
-    const { campusRepo, relationships, useCase } = buildSystem();
-    // Simulamos que el campus existe para que se intente eliminar.
+  // Esta prueba valida que cuando el campus tiene facultades relacionadas se lanza ConflictException.
+  it('lanza ConflictException cuando el campus tiene facultades relacionadas', async () => {
+    const { campusRepo, useCase } = buildSystem();
+
+    // Simulamos que el campus existe.
+    campusRepo.findById.mockResolvedValue({
+      id: 25,
+      codigo: 'CAMP-025',
+      nombre: 'Campus Central',
+      direccion: 'Av. Principal 123',
+      lat: -17.38,
+      lng: -66.16,
+      activo: true,
+      creado_en: new Date('2025-01-01T10:00:00Z'),
+      actualizado_en: new Date('2025-01-10T12:00:00Z'),
+    });
+
+    // Simulamos que el campus tiene facultades relacionadas.
+    const relatedFaculties: RelatedFaculty[] = [
+      {
+        id: 1,
+        codigo: 'FAC-001',
+        nombre: 'Facultad de Ingeniería',
+        nombre_corto: 'Ing.',
+        activo: true,
+      },
+      {
+        id: 2,
+        codigo: 'FAC-002',
+        nombre: 'Facultad de Medicina',
+        nombre_corto: 'Med.',
+        activo: false,
+      },
+    ];
+    campusRepo.findRelatedFaculties.mockResolvedValue(relatedFaculties);
+
+    // Ejecutamos el caso de uso y verificamos que recibe ConflictException.
+    await expect(useCase.execute({ id: 25 })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+
+    // Verificamos el formato del error.
+    const error = await useCase.execute({ id: 25 }).catch((e) => e);
+    const response = error.getResponse() as any;
+    expect(response.error).toBe('CONFLICT_ERROR');
+    expect(response.message).toBe(
+      'No se puede eliminar el campus porque tiene facultades relacionadas',
+    );
+    expect(response.details).toHaveLength(2);
+    expect(response.details[0].faculty.id).toBe(1);
+    expect(response.details[1].faculty.id).toBe(2);
+
+    // Verificamos que NO se llama al delete.
+    expect(campusRepo.delete).not.toHaveBeenCalled();
+  });
+
+  // Esta prueba demuestra que si el delete falla, el error se propaga.
+  it('propaga el error cuando el delete falla', async () => {
+    const { campusRepo, useCase } = buildSystem();
+
+    // Simulamos que el campus existe.
     campusRepo.findById.mockResolvedValue({
       id: 88,
       codigo: 'CAMP-088',
@@ -97,16 +154,22 @@ describe('DeleteCampusUseCase', () => {
       direccion: 'Calle Falsa 456',
       lat: -17.4,
       lng: -66.2,
-      activo: false,
+      activo: true,
       creado_en: new Date('2024-05-01T08:00:00Z'),
       actualizado_en: new Date('2024-06-01T09:30:00Z'),
     });
-    // Configuramos el puerto de relaciones para que lance un error simulando un fallo en la base de datos.
-    const failure = new Error('Fallo en cascada');
-    relationships.deleteCampusCascade.mockRejectedValue(failure);
-    // Ejecutamos el caso de uso y verificamos que recibimos el mismo error.
+
+    // Simulamos que no tiene facultades relacionadas.
+    campusRepo.findRelatedFaculties.mockResolvedValue([]);
+
+    // Configuramos el delete para que lance un error.
+    const failure = new Error('Fallo en la base de datos');
+    campusRepo.delete.mockRejectedValue(failure);
+
+    // Ejecutamos el caso de uso y verificamos que recibe el mismo error.
     await expect(useCase.execute({ id: 88 })).rejects.toThrow(failure);
-    // Corroboramos que se intentó ejecutar la cascada con el identificador correcto.
-    expect(relationships.deleteCampusCascade).toHaveBeenCalledWith(88);
+
+    // Verificamos que se intentó ejecutar el delete.
+    expect(campusRepo.delete).toHaveBeenCalledWith(88);
   });
 });

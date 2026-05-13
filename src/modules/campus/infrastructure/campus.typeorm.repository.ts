@@ -4,6 +4,7 @@ import {
   CampusListItem,
   CampusRepositoryPort,
   ListOptions,
+  RelatedFaculty,
   UpdateCampusInput,
 } from '../domain/campus.repository.port';
 import { CampusOrmEntity } from './campus.orm-entity';
@@ -205,6 +206,30 @@ export class TypeormCampusRepository implements CampusRepositoryPort {
     params.push(id);
 
     await this.dataSource.query(sql, params);
+    return { id };
+  }
+
+  async findRelatedFaculties(campusId: number): Promise<RelatedFaculty[]> {
+    const sql = `
+      SELECT
+        f.id,
+        f.codigo,
+        f.nombre,
+        f.nombre_corto,
+        f.activo
+      FROM infraestructura.campus_facultades cf
+      INNER JOIN infraestructura.facultades f ON f.id = cf.facultad_id
+      WHERE cf.campus_id = $1
+    `;
+    const rows = await this.dataSource.query<RelatedFaculty[]>(sql, [campusId]);
+    return rows;
+  }
+
+  async delete(id: number): Promise<{ id: number }> {
+    await this.dataSource.query(
+      `DELETE FROM infraestructura.campus WHERE id = $1`,
+      [id],
+    );
     return { id };
   }
 }

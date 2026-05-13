@@ -1,14 +1,16 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CampusRepositoryPort } from '../domain/campus.repository.port';
-import { RelationshipsPort } from '../../_shared/relationships/domain/relationships.port';
 
 @Injectable()
 export class DeleteCampusUseCase {
   constructor(
     @Inject(CampusRepositoryPort)
     private readonly campusPort: CampusRepositoryPort,
-    @Inject(RelationshipsPort)
-    private readonly relationPort: RelationshipsPort,
   ) {}
 
   async execute({ id }: { id: number }): Promise<{ id: number }> {
@@ -17,7 +19,28 @@ export class DeleteCampusUseCase {
       throw new NotFoundException('No se encontro el campus');
     }
 
-    await this.relationPort.deleteCampusCascade(id);
+    // Verificar si existen relaciones con facultades (activas o inactivas)
+    const relatedFaculties = await this.campusPort.findRelatedFaculties(id);
+    if (relatedFaculties.length > 0) {
+      throw new ConflictException({
+        error: 'CONFLICT_ERROR',
+        message: 'No se puede eliminar el campus porque tiene facultades relacionadas',
+        details: relatedFaculties.map((f) => ({
+          field: 'facultades',
+          message: `Facultad "${f.nombre}" (${f.codigo}) está relacionada con este campus`,
+          faculty: {
+            id: f.id,
+            codigo: f.codigo,
+            nombre: f.nombre,
+            nombre_corto: f.nombre_corto,
+            activo: f.activo,
+          },
+        })),
+      });
+    }
+
+    // Delete físico del campus
+    await this.campusPort.delete(id);
     return { id };
   }
 }

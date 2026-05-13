@@ -30,6 +30,14 @@ export interface UpdateCampusInput {
 }
 
 export const CampusRepositoryPort = Symbol('CampusRepositoryPort');
+export interface RelatedFaculty {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  activo: boolean;
+}
+
 export interface CampusRepositoryPort {
   create(input: {
     nombre: string;
@@ -49,5 +57,9 @@ export interface CampusRepositoryPort {
   isCodeTaken(codigo: string, excludeId?: number): Promise<boolean>;
 
   update(id: number, input: UpdateCampusInput): Promise<{ id: number }>;
+
+  findRelatedFaculties(campusId: number): Promise<RelatedFaculty[]>;
+
+  delete(id: number): Promise<{ id: number }>;
 }
 //Los dominios definen lo que necesita un 'puerto'

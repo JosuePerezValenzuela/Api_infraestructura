@@ -21,6 +21,8 @@ import {
   ApiBody,
   ApiOkResponse,
   ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import { CreateCampusUseCase } from '../application/create-campus.usecase';
 import { CreateCampusDto } from './dto/create-campus.dto';
@@ -169,19 +171,66 @@ export class CampusController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminaicon de un campus por id' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiNoContentResponse({ description: 'El campus fue eliminado' })
+  @ApiOperation({ summary: 'Elimina un campus por ID (delete físico)' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID del campus a eliminar' })
+  @ApiNoContentResponse({
+    description: 'El campus fue eliminado físicamente (sin cuerpo en respuesta)',
+  })
+  @ApiNotFoundResponse({
+    description: 'Campus no encontrado',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'No se encontro el campus',
+        error: 'Not Found',
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'No se puede eliminar - tiene facultades relacionadas',
+    schema: {
+      example: {
+        error: 'CONFLICT_ERROR',
+        message: 'No se puede eliminar el campus porque tiene facultades relacionadas',
+        details: [
+          {
+            field: 'facultades',
+            message:
+              'Facultad "Facultad de Ingeniería" (FAC-001) está relacionada con este campus',
+            faculty: {
+              id: 1,
+              codigo: 'FAC-001',
+              nombre: 'Facultad de Ingeniería',
+              nombre_corto: 'FI',
+              activo: true,
+            },
+          },
+          {
+            field: 'facultades',
+            message:
+              'Facultad "Facultad de Medicina" (FAC-002) está relacionada con este campus',
+            faculty: {
+              id: 2,
+              codigo: 'FAC-002',
+              nombre: 'Facultad de Medicina',
+              nombre_corto: 'FM',
+              activo: false,
+            },
+          },
+        ],
+      },
+    },
+  })
   @ApiBadRequestResponse({
-    description: 'Datos invalidos ',
+    description: 'Datos inválidos',
     schema: {
       example: {
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son válidos',
         details: [
           {
-            field: 'codigo',
-            message: 'El codigo debe ser una cadena',
+            field: 'id',
+            message: 'El id debe ser un número',
           },
         ],
       },
@@ -194,6 +243,9 @@ export class CampusController {
     } catch (err) {
       if (err instanceof NotFoundException) {
         throw new HttpException(err.message, HttpStatus.NOT_FOUND);
+      }
+      if (err instanceof ConflictException) {
+        throw new HttpException(err.getResponse(), HttpStatus.CONFLICT);
       }
       throw new HttpException('Eror interno', HttpStatus.INTERNAL_SERVER_ERROR);
     }
