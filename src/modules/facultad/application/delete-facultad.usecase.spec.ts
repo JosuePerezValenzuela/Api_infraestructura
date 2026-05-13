@@ -1,104 +1,315 @@
 // Archivo de pruebas para DeleteFacultadUseCase.
 
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { DeleteFacultadUseCase } from '../application/delete-facultad.usecase';
 import type { facultadCompleta } from '../domain/facultad.list.types';
-import type { FacultadRepositoryPort } from '../domain/facultad.repository.port';
-import type { RelationshipsPort } from '../../_shared/relationships/domain/relationships.port';
+import type {
+  FacultadRepositoryPort,
+  RelatedBlock,
+} from '../domain/facultad.repository.port';
 
-// Definimos la forma del repositorio simulado que usan las pruebas.
+// Definimos la forma del repositorio simulado.
 interface FakeFacultadRepository {
-  // Metodo para buscar una facultad por su identificador numerico.
   findById: jest.Mock<Promise<facultadCompleta | null>, [number]>;
-}
-
-// Definimos la forma del puerto de relaciones simulado.
-interface FakeRelationshipsPort {
-  // Metodo que elimina la facultad y todo lo que dependa de ella.
-  deleteFacultadCascade: jest.Mock<Promise<void>, [number]>;
+  findCampusById: jest.Mock<Promise<{ id: number } | null>, [number]>;
+  findCampusFacultadRelationship: jest.Mock<Promise<{ id: number } | null>, [number, number]>;
+  findBlocksByCampusFacultadId: jest.Mock<Promise<RelatedBlock[]>, [number]>;
+  deleteRelationship: jest.Mock<Promise<{ id: number }>, [number, number]>;
+  hasOtherRelationships: jest.Mock<Promise<boolean>, [number, number]>;
+  deleteFacultad: jest.Mock<Promise<{ id: number }>, [number]>;
 }
 
 describe('DeleteFacultadUseCase', () => {
-  // Funcion auxiliar que arma el sistema de pruebas con dependencias simuladas.
+  // Funcion auxiliar que arma el sistema de pruebas.
   const buildSystem = () => {
-    // Creamos el repositorio falso y guardamos sus funciones para controlarlas.
     const facultadRepo: FakeFacultadRepository = {
-      findById: jest.fn(), // Esta funcion dira si la facultad existe o no.
+      findById: jest.fn(),
+      findCampusById: jest.fn(),
+      findCampusFacultadRelationship: jest.fn(),
+      findBlocksByCampusFacultadId: jest.fn(),
+      deleteRelationship: jest.fn(),
+      hasOtherRelationships: jest.fn(),
+      deleteFacultad: jest.fn(),
     };
 
-    // Creamos el puerto de relaciones falso para decidir como se comporta la cascada.
-    const relationships: FakeRelationshipsPort = {
-      deleteFacultadCascade: jest.fn(), // Esta funcion simula la eliminacion en cascada.
-    };
-
-    // Instanciamos el caso de uso real inyectando las dependencias simuladas.
     const useCase = new (DeleteFacultadUseCase as any)(
-      facultadRepo as unknown as FacultadRepositoryPort, // Le damos el repositorio simulado.
-      relationships as unknown as RelationshipsPort, // Le damos el puerto de relaciones simulado.
+      facultadRepo as unknown as FacultadRepositoryPort,
     );
 
-    // Retornamos las piezas para reutilizarlas en cada prueba.
-    return { facultadRepo, relationships, useCase };
+    return { facultadRepo, useCase };
   };
 
-  it('elimina la facultad y sus dependencias cuando existe', async () => {
-    // Armamos el sistema para esta prueba.
-    const { facultadRepo, relationships, useCase } = buildSystem();
-    // Indicamos que el repositorio encuentra la facultad con todos sus datos basicos.
+  // Flujo feliz: la relación existe, no tiene bloques dependientes, y la facultad se elimina porque era su única relación
+  it('elimina la relacion y la facultad cuando era su unica relacion', async () => {
+    const { facultadRepo, useCase } = buildSystem();
+
+    // La facultad existe
     facultadRepo.findById.mockResolvedValue({
-      id: 12,
-      codigo: 'FCT-012',
+      id: 1,
+      codigo: 'FCT-001',
       nombre: 'Facultad de Ciencias',
       nombre_corto: 'FC',
       lat: -17.389,
       lng: -66.156,
       activo: true,
       campus_id: 3,
+      campus_ids: [3],
     });
-    // Indicamos que la eliminacion en cascada se ejecuta sin errores.
-    relationships.deleteFacultadCascade.mockResolvedValue(undefined);
-    // Verificamos que el caso de uso devuelve el identificador eliminado.
-    await expect(useCase.execute({ id: 12 })).resolves.toEqual({ id: 12 });
-    // Revisamos que primero consulto al repositorio con el identificador correcto.
-    expect(facultadRepo.findById).toHaveBeenCalledWith(12);
-    // Confirmamos que luego pidio eliminar en cascada con ese mismo identificador.
-    expect(relationships.deleteFacultadCascade).toHaveBeenCalledWith(12);
+
+    // El campus existe
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+
+    // La relación existe
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 10 });
+
+    // No hay bloques dependientes
+    facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue([]);
+
+    // No tiene otras relaciones (era la única)
+    facultadRepo.hasOtherRelationships.mockResolvedValue(false);
+
+    // Ejecutamos
+    const result = await useCase.execute({ id: 1, campusId: 3 });
+
+    // Verificamos
+    expect(result.id).toBe(1);
+    expect(result.deletedFacultad).toBe(true);
+    expect(facultadRepo.deleteRelationship).toHaveBeenCalledWith(1, 3);
+    expect(facultadRepo.deleteFacultad).toHaveBeenCalledWith(1);
   });
 
+  // Flujo: la relación existe, no tiene bloques dependientes, pero la facultad tiene otras relaciones
+  it('elimina solo la relacion cuando la facultad tiene otras relaciones', async () => {
+    const { facultadRepo, useCase } = buildSystem();
+
+    // La facultad existe
+    facultadRepo.findById.mockResolvedValue({
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3, 5], // Tiene más de una relación
+    });
+
+    // El campus existe
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+
+    // La relación existe
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 10 });
+
+    // No hay bloques dependientes
+    facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue([]);
+
+    // Tiene otras relaciones
+    facultadRepo.hasOtherRelationships.mockResolvedValue(true);
+
+    // Ejecutamos
+    const result = await useCase.execute({ id: 1, campusId: 3 });
+
+    // Verificamos
+    expect(result.id).toBe(1);
+    expect(result.deletedFacultad).toBe(false);
+    expect(facultadRepo.deleteRelationship).toHaveBeenCalledWith(1, 3);
+    expect(facultadRepo.deleteFacultad).not.toHaveBeenCalled();
+  });
+
+  // NotFoundException cuando la facultad no existe
   it('lanza NotFoundException cuando la facultad no existe', async () => {
-    // Armamos el sistema para esta prueba.
-    const { facultadRepo, relationships, useCase } = buildSystem();
-    // Esta vez el repositorio dira que la facultad no existe.
+    const { facultadRepo, useCase } = buildSystem();
+
     facultadRepo.findById.mockResolvedValue(null);
-    // Esperamos que el caso de uso rechace con la excepcion NotFoundException.
-    await expect(useCase.execute({ id: 404 })).rejects.toThrow(
+
+    await expect(useCase.execute({ id: 999, campusId: 3 })).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    // Confirmamos que no se intento eliminar en cascada nada inexistente.
-    expect(relationships.deleteFacultadCascade).not.toHaveBeenCalled();
+
+    expect(facultadRepo.findCampusById).not.toHaveBeenCalled();
+    expect(facultadRepo.deleteRelationship).not.toHaveBeenCalled();
   });
 
-  it('propaga el error cuando deleteFacultadCascade falla', async () => {
-    // Armamos el sistema para esta prueba.
-    const { facultadRepo, relationships, useCase } = buildSystem();
-    // El repositorio informa que la facultad si existe.
+  // NotFoundException cuando el campus no existe
+  it('lanza NotFoundException cuando el campus no existe', async () => {
+    const { facultadRepo, useCase } = buildSystem();
+
+    // La facultad existe
     facultadRepo.findById.mockResolvedValue({
-      id: 55,
-      codigo: 'FCT-055',
-      nombre: 'Facultad de Tecnologia',
-      nombre_corto: 'TEC',
-      lat: -17.4,
-      lng: -66.2,
-      activo: false,
-      campus_id: 9,
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3],
     });
-    // Simulamos un error que podria ocurrir dentro de la base de datos.
-    const failure = new Error('Fallo en la cascada');
-    // Hacemos que la eliminacion en cascada devuelva ese error.
-    relationships.deleteFacultadCascade.mockRejectedValue(failure);
-    // Esperamos que el caso de uso deje pasar el error hacia quien lo invoca.
-    await expect(useCase.execute({ id: 55 })).rejects.toThrow(failure);
-    // Revisamos que el intento de borrar en cascada uso el identificador correcto.
-    expect(relationships.deleteFacultadCascade).toHaveBeenCalledWith(55);
+
+    // El campus NO existe
+    facultadRepo.findCampusById.mockResolvedValue(null);
+
+    await expect(useCase.execute({ id: 1, campusId: 999 })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    expect(facultadRepo.findCampusFacultadRelationship).not.toHaveBeenCalled();
+    expect(facultadRepo.deleteRelationship).not.toHaveBeenCalled();
+  });
+
+  // BadRequestException cuando la relación NO existe (ni activa ni inactiva)
+  it('lanza BadRequestException cuando la relacion no existe', async () => {
+    const { facultadRepo, useCase } = buildSystem();
+
+    // La facultad existe
+    facultadRepo.findById.mockResolvedValue({
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3],
+    });
+
+    // El campus existe
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+
+    // La relación NO existe (ni activa ni inactiva)
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue(null);
+
+    await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+
+    expect(facultadRepo.findBlocksByCampusFacultadId).not.toHaveBeenCalled();
+    expect(facultadRepo.deleteRelationship).not.toHaveBeenCalled();
+  });
+
+  // Permite eliminar relaciones inactivas si no tienen bloques dependientes
+  it('permite eliminar una relacion inactiva si no tiene bloques dependientes', async () => {
+    const { facultadRepo, useCase } = buildSystem();
+
+    // La facultad existe
+    facultadRepo.findById.mockResolvedValue({
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3],
+    });
+
+    // El campus existe
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+
+    // La relación existe (aunque esté inactiva)
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 10 });
+
+    // No hay bloques dependientes
+    facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue([]);
+
+    // No tiene otras relaciones
+    facultadRepo.hasOtherRelationships.mockResolvedValue(false);
+
+    // Ejecutamos
+    const result = await useCase.execute({ id: 1, campusId: 3 });
+
+    // Verificamos que se eliminó
+    expect(result.id).toBe(1);
+    expect(result.deletedFacultad).toBe(true);
+    expect(facultadRepo.deleteRelationship).toHaveBeenCalledWith(1, 3);
+    expect(facultadRepo.deleteFacultad).toHaveBeenCalledWith(1);
+  });
+
+  // ConflictException cuando hay bloques dependientes
+  it('lanza ConflictException cuando hay bloques dependientes', async () => {
+    const { facultadRepo, useCase } = buildSystem();
+
+    // La facultad existe
+    facultadRepo.findById.mockResolvedValue({
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3],
+    });
+
+    // El campus existe
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+
+    // La relación existe
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 10 });
+
+    // Hay bloques dependientes
+    const relatedBlocks: RelatedBlock[] = [
+      {
+        id: 1,
+        codigo: 'EDIF-A',
+        nombre: 'Edificio A',
+        nombre_corto: 'EA',
+        activo: true,
+        campus_nombre: 'Campus Central',
+      },
+    ];
+    facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue(relatedBlocks);
+
+    await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+
+    // Verificamos el formato del error
+    const error = await useCase.execute({ id: 1, campusId: 3 }).catch((e) => e);
+    const response = error.getResponse() as any;
+    expect(response.error).toBe('CONFLICT_ERROR');
+    expect(response.message).toBe('No se puede eliminar la relacion porque hay bloques dependientes');
+    expect(response.details[0].block.id).toBe(1);
+
+    expect(facultadRepo.deleteRelationship).not.toHaveBeenCalled();
+    expect(facultadRepo.deleteFacultad).not.toHaveBeenCalled();
+  });
+
+  // Propaga error cuando deleteRelationship falla
+  it('propaga el error cuando deleteRelationship falla', async () => {
+    const { facultadRepo, useCase } = buildSystem();
+
+    // La facultad existe
+    facultadRepo.findById.mockResolvedValue({
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3],
+    });
+
+    // El campus existe
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+
+    // La relación existe
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 10 });
+
+    // No hay bloques dependientes
+    facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue([]);
+
+    // DeleteRelationship falla
+    const failure = new Error('Fallo en la base de datos');
+    facultadRepo.deleteRelationship.mockRejectedValue(failure);
+
+    await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toThrow(failure);
   });
 });

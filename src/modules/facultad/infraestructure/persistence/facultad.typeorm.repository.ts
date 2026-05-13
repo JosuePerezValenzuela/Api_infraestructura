@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import {
   CreateFacultadData,
   FacultadRepositoryPort,
+  RelatedBlock,
 } from '../../domain/facultad.repository.port';
 import {
   facultadCompleta,
@@ -462,11 +463,61 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     facultadId: number,
     campusId: number,
   ): Promise<{ id: number } | null> {
+    // Busca relaciones tanto activas como inactivas
     const rows = await this.dataSource.query<Array<{ id: number }>>(
-      `SELECT id FROM infraestructura.campus_facultades 
-       WHERE facultad_id = $1 AND campus_id = $2 AND activo = true`,
+      `SELECT id FROM infraestructura.campus_facultades
+       WHERE facultad_id = $1 AND campus_id = $2`,
       [facultadId, campusId],
     );
     return rows.length > 0 ? { id: rows[0].id } : null;
+  }
+
+  // Busca bloques que dependen de una relación específica (campus_facultad_id)
+  async findBlocksByCampusFacultadId(campus_facultadId: number): Promise<RelatedBlock[]> {
+    const sql = `
+      SELECT
+        b.id,
+        b.codigo,
+        b.nombre,
+        b.nombre_corto,
+        b.activo,
+        c.nombre AS campus_nombre
+      FROM infraestructura.bloques b
+      INNER JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id
+      INNER JOIN infraestructura.campus c ON c.id = cf.campus_id
+      WHERE cf.id = $1
+    `;
+    const rows = await this.dataSource.query<RelatedBlock[]>(sql, [campus_facultadId]);
+    return rows;
+  }
+
+  // Elimina una relación específica (facultad + campus)
+  async deleteRelationship(facultadId: number, campusId: number): Promise<{ id: number }> {
+    await this.dataSource.query(
+      `DELETE FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND campus_id = $2`,
+      [facultadId, campusId],
+    );
+    return { id: facultadId };
+  }
+
+  // Verifica si la facultad tiene otras relaciones (activas o inactivas)
+  async hasOtherRelationships(facultadId: number, excludeCampusId: number): Promise<boolean> {
+    const rows = await this.dataSource.query<Array<{ count: string }>>(
+      `SELECT COUNT(*) as count
+       FROM infraestructura.campus_facultades
+       WHERE facultad_id = $1 AND campus_id != $2`,
+      [facultadId, excludeCampusId],
+    );
+    const count = parseInt(rows[0]?.count ?? '0', 10);
+    return count > 0;
+  }
+
+  // Elimina la facultad físicamente
+  async deleteFacultad(facultadId: number): Promise<{ id: number }> {
+    await this.dataSource.query(
+      `DELETE FROM infraestructura.facultades WHERE id = $1`,
+      [facultadId],
+    );
+    return { id: facultadId };
   }
 }

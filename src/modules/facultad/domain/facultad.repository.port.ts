@@ -18,6 +18,15 @@ export interface CreateFacultadData {
 
 export const FacultadRepositoryPort = Symbol('FacultadRepositoryPort');
 
+export interface RelatedBlock {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  activo: boolean;
+  campus_nombre: string;
+}
+
 export interface FacultadRepositoryPort {
   create(data: CreateFacultadData): Promise<{ id: number }>;
 
@@ -36,4 +45,17 @@ export interface FacultadRepositoryPort {
     facultadId: number,
     campusId: number,
   ): Promise<{ id: number } | null>;
+
+  // Métodos para delete de UNA relación específica
+  // Busca bloques que dependen de una relación específica (campus_facultad_id)
+  findBlocksByCampusFacultadId(campus_facultadId: number): Promise<RelatedBlock[]>;
+
+  // Elimina una relación específica (facultad + campus)
+  deleteRelationship(facultadId: number, campusId: number): Promise<{ id: number }>;
+
+  // Verifica si la facultad tiene otras relaciones (activas o inactivas, después de eliminar)
+  hasOtherRelationships(facultadId: number, excludeCampusId: number): Promise<boolean>;
+
+  // Elimina la facultad físicamente
+  deleteFacultad(facultadId: number): Promise<{ id: number }>;
 }

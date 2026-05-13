@@ -27,6 +27,18 @@ export class AddDeleteRestrictions1758700000001 implements MigrationInterface {
       FOREIGN KEY (facultad_id) REFERENCES infraestructura.facultades(id)
       ON DELETE RESTRICT
     `);
+
+    // FK en bloques -> campus_facultades (RESTRICT: no permite eliminar relación si hay bloques)
+    await queryRunner.query(`
+      ALTER TABLE infraestructura.bloques
+      DROP CONSTRAINT IF EXISTS fk_bloques_campus_facultad
+    `);
+    await queryRunner.query(`
+      ALTER TABLE infraestructura.bloques
+      ADD CONSTRAINT fk_bloques_campus_facultad
+      FOREIGN KEY (campus_facultad_id) REFERENCES infraestructura.campus_facultades(id)
+      ON DELETE RESTRICT
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -49,6 +61,16 @@ export class AddDeleteRestrictions1758700000001 implements MigrationInterface {
       ALTER TABLE infraestructura.campus_facultades
       ADD CONSTRAINT fk_campus_facultades_facultad
       FOREIGN KEY (facultad_id) REFERENCES infraestructura.facultades(id)
+    `);
+
+    await queryRunner.query(`
+      ALTER TABLE infraestructura.bloques
+      DROP CONSTRAINT IF EXISTS fk_bloques_campus_facultad
+    `);
+    await queryRunner.query(`
+      ALTER TABLE infraestructura.bloques
+      ADD CONSTRAINT fk_bloques_campus_facultad
+      FOREIGN KEY (campus_facultad_id) REFERENCES infraestructura.campus_facultades(id)
     `);
   }
 }

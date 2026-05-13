@@ -4,12 +4,15 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  HttpException,
   ParseIntPipe,
   Post,
   Patch,
   Query,
   Param,
   Delete,
+  ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,6 +24,7 @@ import {
   ApiBody,
   ApiNoContentResponse,
   ApiNotFoundResponse,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import { CreateFacultadUseCase } from '../application/create-facultad.usecase';
 import { ListFacultadesUseCase } from '../application/list-facultades.usecase';
@@ -31,6 +35,8 @@ import { CreateFacultadDto } from './dto/create-facultad.dto';
 import { ListFacultadesQueryDto } from './dto/list-facultades-query.dto';
 import { CreateFacultadCommand } from '../application/dto/create-facultad.command';
 import { UpdateFacultadesDto } from './dto/update-facultad.dto';
+import { DeleteFacultadCampusDto } from './dto/delete-facultad.dto';
+import { BadRequestException } from '@nestjs/common';
 
 @ApiTags('Facultades')
 @Controller('facultades')
@@ -195,25 +201,91 @@ export class FacultadController {
     return { id: resp.id };
   }
 
-  @Delete(':id')
+  @Delete(':id/campus/:campusId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Elimina la facultad' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiOperation({ summary: 'Elimina la relación específica entre una facultad y un campus (delete físico)' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID de la facultad' })
+  @ApiParam({ name: 'campusId', type: Number, description: 'ID del campus' })
   @ApiNoContentResponse({
-    description: 'Facultad eliminada',
+    description: 'La relación entre la facultad y el campus fue eliminada físicamente',
   })
   @ApiNotFoundResponse({
-    description: 'No se encontro el codigo',
+    description: 'Facultad o campus no encontrado',
     schema: {
       example: {
         error: 'NOT_FOUND',
         message: 'No se encontro la facultad',
-        details: [{ field: 'id', message: 'La facultad indicada no existe' }],
+        details: [{ field: 'id', message: 'Facultad inexistente' }],
       },
     },
   })
-  async delete(@Param('id', ParseIntPipe) id: number) {
-    await this.deleteFacultad.execute({ id });
-    return;
+  @ApiBadRequestResponse({
+    description: 'La relación entre la facultad y el campus no existe',
+    schema: {
+      example: {
+        error: 'VALIDATION_ERROR',
+        message: 'La relacion entre la facultad y el campus no existe',
+        details: [
+          {
+            field: 'campusId',
+            message: 'La facultad con ID 1 no esta relacionada con el campus con ID 5',
+          },
+        ],
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'No se puede eliminar - hay bloques dependientes de esta relación',
+    schema: {
+      example: {
+        error: 'CONFLICT_ERROR',
+        message: 'No se puede eliminar la relacion porque hay bloques dependientes',
+        details: [
+          {
+            field: 'bloques',
+            message: 'Bloque "Edificio A" (EDIF-A) depende de esta relacion',
+            block: {
+              id: 1,
+              codigo: 'EDIF-A',
+              nombre: 'Edificio A',
+              nombre_corto: 'EA',
+              activo: true,
+              campus_nombre: 'Campus Central',
+            },
+          },
+          {
+            field: 'bloques',
+            message: 'Bloque "Laboratorio" (LAB-01) depende de esta relacion',
+            block: {
+              id: 2,
+              codigo: 'LAB-01',
+              nombre: 'Laboratorio',
+              nombre_corto: 'LAB',
+              activo: true,
+              campus_nombre: 'Campus Central',
+            },
+          },
+        ],
+      },
+    },
+  })
+  async delete(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('campusId', ParseIntPipe) campusId: number,
+  ) {
+    try {
+      await this.deleteFacultad.execute({ id, campusId });
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new HttpException(err.getResponse(), HttpStatus.NOT_FOUND);
+      }
+      if (err instanceof ConflictException) {
+        throw new HttpException(err.getResponse(), HttpStatus.CONFLICT);
+      }
+      if (err instanceof BadRequestException) {
+        throw new HttpException(err.getResponse(), HttpStatus.BAD_REQUEST);
+      }
+      throw new HttpException('Error interno', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }
