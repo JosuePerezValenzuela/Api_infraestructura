@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -16,6 +17,7 @@ import {
   ApiCreatedResponse,
   ApiExtraModels,
   ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -239,7 +241,7 @@ export class TipoAmbienteController {
     schema: { example: { id: 5 } },
   })
   async update(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTipoAmbienteDto,
   ): Promise<{ id: number }> {
     return this.updateTipoAmbienteUseCase.execute({
@@ -252,14 +254,14 @@ export class TipoAmbienteController {
   @ApiOperation({
     summary: 'Eliminar un tipo de ambiente',
     description:
-      'Elimina el tipo de ambiente y sus ambientes dependientes en cascada.',
+      'Elimina un tipo de ambiente solo si no tiene ambientes asociados. Si hay ambientes dependientes, devuelve 409 Conflict.',
   })
   @ApiParam({
     name: 'id',
     description: 'Identificador del tipo de ambiente a eliminar',
   })
   @ApiBadRequestResponse({
-    description: 'Id inválido',
+    description: 'Id invalido',
     schema: {
       example: {
         statusCode: 400,
@@ -271,11 +273,59 @@ export class TipoAmbienteController {
       },
     },
   })
+  @ApiNotFoundResponse({
+    description: 'El tipo de ambiente no existe',
+    schema: {
+      example: {
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'No se encontro el tipo de ambiente',
+        details: [
+          {
+            field: 'id',
+            message: 'El tipo de ambiente indicado no existe',
+          },
+        ],
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'No se puede eliminar: hay ambientes asociados',
+    schema: {
+      example: {
+        statusCode: 409,
+        error: 'CONFLICT_ERROR',
+        message: 'No se puede eliminar el tipo de ambiente',
+        details: [
+          {
+            field: 'ambientes',
+            message:
+              'Ambiente "Aula 101" (AUL-101) depende de este tipo de ambiente',
+            id: 1,
+            codigo: 'AUL-101',
+            nombre: 'Aula 101',
+            activo: true,
+          },
+          {
+            field: 'ambientes',
+            message:
+              'Ambiente "Laboratorio Q1" (LAB-Q1) depende de este tipo de ambiente',
+            id: 2,
+            codigo: 'LAB-Q1',
+            nombre: 'Laboratorio Q1',
+            activo: false,
+          },
+        ],
+      },
+    },
+  })
   @ApiNoContentResponse({
     description: 'Tipo de ambiente eliminado correctamente',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: number): Promise<void> {
-    await this.deleteTipoAmbienteUseCase.execute({ id: Number(id) });
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<void> {
+    await this.deleteTipoAmbienteUseCase.execute({ id });
   }
 }

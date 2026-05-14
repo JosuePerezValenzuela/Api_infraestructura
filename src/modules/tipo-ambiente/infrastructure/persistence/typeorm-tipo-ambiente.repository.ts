@@ -5,7 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError } from 'typeorm';
-import { TipoAmbienteRepositoryPort } from '../../domain/tipo-ambiente.repository.port';
+import {
+  TipoAmbienteRepositoryPort,
+  RelatedAmbiente,
+} from '../../domain/tipo-ambiente.repository.port';
 import { CreateTipoAmbienteCommand } from '../../domain/commands/create-tipo-ambiente.command';
 import {
   ListTipoAmbientesOptions,
@@ -183,44 +186,55 @@ export class TypeormTipoAmbienteRepository implements TipoAmbienteRepositoryPort
     };
   }
 
-  async delete(command: { id: number }): Promise<{ id: number }> {
-    const exists = await this.dataSource.query<Array<{ id: number | string }>>(
-      `
-        SELECT id
-        FROM infraestructura.tipo_ambientes
-        WHERE id = $1
-      `,
-      [command.id],
+  async findRelatedAmbientes(
+    tipoAmbienteId: number,
+  ): Promise<RelatedAmbiente[]> {
+    const sql = `
+      SELECT id, codigo, nombre, nombre_corto, activo
+      FROM infraestructura.ambientes
+      WHERE tipo_ambiente_id = $1
+      ORDER BY nombre ASC
+    `;
+
+    const rows = await this.dataSource.query<
+      Array<{
+        id: number | string;
+        codigo: string;
+        nombre: string;
+        nombre_corto: string | null;
+        activo: boolean;
+      }>
+    >(sql, [tipoAmbienteId]);
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      codigo: row.codigo,
+      nombre: row.nombre,
+      nombre_corto: row.nombre_corto,
+      activo: row.activo,
+    }));
+  }
+
+  async delete(tipoAmbienteId: number): Promise<{ id: number }> {
+    const sql = `
+      DELETE FROM infraestructura.tipo_ambientes
+      WHERE id = $1
+      RETURNING id
+    `;
+
+    const rows: Array<{ id: number | string }> = await this.dataSource.query(
+      sql,
+      [tipoAmbienteId],
     );
 
-    if (!exists.length) {
+    if (rows.length === 0) {
       throw new NotFoundException({
         error: 'NOT_FOUND',
         message: 'No se encontro el tipo de ambiente',
-        details: [{ field: 'id', message: 'El tipo de ambiente no existe' }],
       });
     }
 
-    await this.dataSource.query(
-      `
-        DELETE FROM infraestructura.ambientes
-        WHERE tipo_ambiente_id = $1
-      `,
-      [command.id],
-    );
-
-    const rows = await this.dataSource.query<Array<{ id: number | string }>>(
-      `
-        DELETE FROM infraestructura.tipo_ambientes
-        WHERE id = $1
-        RETURNING id
-      `,
-      [command.id],
-    );
-
-    const [row] = rows;
-
-    return { id: Number(row.id) };
+    return { id: Number(rows[0].id) };
   }
 
   async findById(id: number): Promise<TipoAmbienteListItem | null> {

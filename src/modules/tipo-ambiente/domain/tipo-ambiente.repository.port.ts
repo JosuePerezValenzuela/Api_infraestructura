@@ -1,5 +1,4 @@
 import { CreateTipoAmbienteCommand } from './commands/create-tipo-ambiente.command';
-import { DeleteTipoAmbienteCommand } from './commands/delete-tipo-ambiente.command';
 import {
   ListTipoAmbientesOptions,
   ListTipoAmbientesResult,
@@ -9,6 +8,14 @@ import { UpdateTipoAmbienteCommand } from './commands/update-tipo-ambiente.comma
 
 export const TipoAmbienteRepositoryPort = Symbol('TipoAmbienteRepositoryPort');
 
+export interface RelatedAmbiente {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  activo: boolean;
+}
+
 export interface TipoAmbienteRepositoryPort {
   create(command: CreateTipoAmbienteCommand): Promise<{ id: number }>;
 
@@ -16,7 +23,10 @@ export interface TipoAmbienteRepositoryPort {
 
   list(options: ListTipoAmbientesOptions): Promise<ListTipoAmbientesResult>;
 
-  delete(command: DeleteTipoAmbienteCommand): Promise<{ id: number }>;
+  // Métodos para delete
+  findRelatedAmbientes(tipoAmbienteId: number): Promise<RelatedAmbiente[]>;
+
+  delete(tipoAmbienteId: number): Promise<{ id: number }>;
 
   update(command: UpdateTipoAmbienteCommand): Promise<{ id: number }>;
 
