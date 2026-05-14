@@ -8,6 +8,14 @@ import {
 
 export const TipoBloqueRepositoryPort = Symbol('TipoBloqueRepositoryPort');
 
+export interface RelatedBloque {
+  id: number;
+  codigo: string;
+  nombre: string;
+  nombre_corto: string | null;
+  activo: boolean;
+}
+
 export interface TipoBloqueRepositoryPort {
   create(command: CreateTipoBloqueCommand): Promise<{ id: number }>;
 
@@ -20,4 +28,9 @@ export interface TipoBloqueRepositoryPort {
   findById(id: number): Promise<TipoBloqueListItem | null>;
 
   update(command: UpdateTipoBloqueCommand): Promise<{ id: number }>;
+
+  // Métodos para delete
+  findRelatedBloques(tipoBloqueId: number): Promise<RelatedBloque[]>;
+
+  delete(tipoBloqueId: number): Promise<{ id: number }>;
 }

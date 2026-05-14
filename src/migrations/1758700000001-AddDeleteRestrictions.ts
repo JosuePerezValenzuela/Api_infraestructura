@@ -51,6 +51,18 @@ export class AddDeleteRestrictions1758700000001 implements MigrationInterface {
       FOREIGN KEY (bloque_id) REFERENCES infraestructura.bloques(id)
       ON DELETE RESTRICT
     `);
+
+    // FK en bloques -> tipo_bloques (RESTRICT: no permite eliminar tipo si hay bloques)
+    await queryRunner.query(`
+      ALTER TABLE infraestructura.bloques
+      DROP CONSTRAINT IF EXISTS fk_bloques_tipo_bloque
+    `);
+    await queryRunner.query(`
+      ALTER TABLE infraestructura.bloques
+      ADD CONSTRAINT fk_bloques_tipo_bloque
+      FOREIGN KEY (tipo_bloque_id) REFERENCES infraestructura.tipo_bloques(id)
+      ON DELETE RESTRICT
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -93,6 +105,16 @@ export class AddDeleteRestrictions1758700000001 implements MigrationInterface {
       ALTER TABLE infraestructura.ambientes
       ADD CONSTRAINT fk_ambientes_bloque
       FOREIGN KEY (bloque_id) REFERENCES infraestructura.bloques(id)
+    `);
+
+    await queryRunner.query(`
+      ALTER TABLE infraestructura.bloques
+      DROP CONSTRAINT IF EXISTS fk_bloques_tipo_bloque
+    `);
+    await queryRunner.query(`
+      ALTER TABLE infraestructura.bloques
+      ADD CONSTRAINT fk_bloques_tipo_bloque
+      FOREIGN KEY (tipo_bloque_id) REFERENCES infraestructura.tipo_bloques(id)
     `);
   }
 }

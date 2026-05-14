@@ -241,6 +241,33 @@ export class TipoBloqueController {
       },
     },
   })
+  @ApiConflictResponse({
+    description: 'No se puede eliminar: hay bloques asociados',
+    schema: {
+      example: {
+        error: 'CONFLICT_ERROR',
+        message: 'No se puede eliminar el tipo de bloque',
+        details: [
+          {
+            field: 'bloques',
+            message: 'Bloque "Edificio A" (ED-A) depende de este tipo de bloque',
+            id: 1,
+            codigo: 'ED-A',
+            nombre: 'Edificio A',
+            activo: true,
+          },
+          {
+            field: 'bloques',
+            message: 'Bloque "Edificio B" (ED-B) depende de este tipo de bloque',
+            id: 2,
+            codigo: 'ED-B',
+            nombre: 'Edificio B',
+            activo: false,
+          },
+        ],
+      },
+    },
+  })
   @ApiNoContentResponse({
     description: 'Tipo de bloque eliminado correctametne',
   })

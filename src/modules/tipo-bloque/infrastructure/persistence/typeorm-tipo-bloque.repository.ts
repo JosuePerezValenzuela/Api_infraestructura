@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import { CreateTipoBloqueCommand } from '../../domain/commands/create-tipo-bloque.command';
 import { UpdateTipoBloqueCommand } from '../../domain/commands/update-tipo-bloque.command';
-import { TipoBloqueRepositoryPort } from '../../domain/tipo-bloque.repository.port';
+import {
+  TipoBloqueRepositoryPort,
+  RelatedBloque,
+} from '../../domain/tipo-bloque.repository.port';
 import {
   ListTipoBloquesOptions,
   ListTipoBloquesResult,
@@ -308,5 +311,54 @@ export class TypeormTipoBloqueRepository implements TipoBloqueRepositoryPort {
       }
       throw error;
     }
+  }
+
+  async findRelatedBloques(tipoBloqueId: number): Promise<RelatedBloque[]> {
+    const sql = `
+      SELECT id, codigo, nombre, nombre_corto, activo
+      FROM infraestructura.bloques
+      WHERE tipo_bloque_id = $1
+      ORDER BY nombre ASC
+    `;
+
+    const rows = await this.dataSource.query<
+      Array<{
+        id: number | string;
+        codigo: string;
+        nombre: string;
+        nombre_corto: string | null;
+        activo: boolean;
+      }>
+    >(sql, [tipoBloqueId]);
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      codigo: row.codigo,
+      nombre: row.nombre,
+      nombre_corto: row.nombre_corto,
+      activo: row.activo,
+    }));
+  }
+
+  async delete(tipoBloqueId: number): Promise<{ id: number }> {
+    const sql = `
+      DELETE FROM infraestructura.tipo_bloques
+      WHERE id = $1
+      RETURNING id
+    `;
+
+    const rows: Array<{ id: number | string }> = await this.dataSource.query(
+      sql,
+      [tipoBloqueId],
+    );
+
+    if (rows.length === 0) {
+      throw new NotFoundException({
+        error: 'NOT_FOUND',
+        message: 'No se encontro el tipo de bloque',
+      });
+    }
+
+    return { id: Number(rows[0].id) };
   }
 }
