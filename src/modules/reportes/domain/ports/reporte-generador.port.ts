@@ -5,7 +5,6 @@ export interface ArchivoReporte {
   stream: Readable;
   filename: string;
   mime_type: string;
-  size?: number;
 }
 
 export interface ReporteGeneradorPort {

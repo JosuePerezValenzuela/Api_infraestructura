@@ -1,11 +1,5 @@
-export type EstadoEntidad = 'activo' | 'inactivo';
-
-export interface CapacidadResumen {
-  total: number;
-  examen: number;
-}
-
-export interface KpiResumen {
+export type KpiResumen = {
+  // Campus level
   total_facultades?: number;
   facultades_activas?: number;
   facultades_inactivas?: number;
@@ -19,57 +13,54 @@ export interface KpiResumen {
   ambientes_inactivos?: number;
   total_tipos_ambiente?: number;
   tipos_ambiente?: Record<string, number>;
-  capacidad?: CapacidadResumen;
+  capacidad?: { total: number; examen: number };
   activos_asociados?: number;
-}
+};
 
-export interface AmbienteView {
-  id: number; // antes string
+export type AmbienteView = {
+  id: number;
   codigo: string;
   nombre: string;
-  piso: number; // antes string, en BD es smallint
+  piso: number;
   tipo_ambiente: string;
-  capacidad: CapacidadResumen;
-  // aquí puedes decidir si quieres algo estructurado o solo texto
-  dimensiones?: string; // p.ej. "10 x 8 x 3 m"
-  clases?: boolean; // en BD es boolean; si prefieres texto "Sí/No", déjalo como string
-  estado: EstadoEntidad;
+  capacidad: { total: number; examen: number };
+  dimensiones?: string;
+  clases: boolean;
+  estado: 'activo' | 'inactivo';
   activos_count: number;
-}
+};
 
-export interface BloqueView {
-  id: number; // antes string
+export type BloqueView = {
+  id: number;
   codigo: string;
   nombre: string;
   tipo_bloque: string;
   pisos: number;
-  estado: EstadoEntidad;
+  estado: 'activo' | 'inactivo';
   kpis: KpiResumen;
   ambientes: AmbienteView[];
-}
+};
 
-export interface FacultadView {
-  id: number; // antes string
+export type FacultadView = {
+  id: number;
   codigo: string;
   nombre: string;
-  estado: EstadoEntidad;
+  estado: 'activo' | 'inactivo';
   kpis: KpiResumen;
   bloques: BloqueView[];
-}
+};
 
-export interface CampusView {
-  id: number; // antes string
+export type CampusView = {
+  id: number;
   codigo: string;
   nombre: string;
   direccion: string;
-  estado: EstadoEntidad;
+  estado: 'activo' | 'inactivo';
   kpis: KpiResumen;
   facultades: FacultadView[];
-}
+};
 
-export interface InventarioReporteViewModel {
-  scope: 'campus' | 'facultad' | 'bloque';
-  campus?: CampusView;
-  facultad?: FacultadView;
-  bloque?: BloqueView;
-}
+export type InventarioReporteViewModel =
+  | { scope: 'campus'; campus: CampusView; facultad?: never; bloque?: never }
+  | { scope: 'facultad'; facultad: FacultadView; campus?: never; bloque?: never }
+  | { scope: 'bloque'; bloque: BloqueView; campus?: never; facultad?: never };
