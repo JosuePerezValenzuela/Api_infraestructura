@@ -101,6 +101,14 @@ export class TypeormHorarioRepository implements HorarioRepositoryPort {
     }));
   }
 
+  // Elimina horarios de operación de un ambiente
+  async deleteByAmbienteId(ambienteId: number): Promise<void> {
+    await this.dataSource.query(
+      `DELETE FROM infraestructura.horarios_operacion WHERE ambiente_id = $1`,
+      [ambienteId],
+    );
+  }
+
   // Helpers
   private async runInTransaction<T>(
     work: (runner: QueryRunner) => Promise<T>,

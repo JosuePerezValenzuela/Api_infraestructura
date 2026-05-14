@@ -238,18 +238,26 @@ describe('AmbienteController', () => {
   });
 
   describe('delete', () => {
-    it('invoca al caso de uso y retorna 204', async () => {
+    it('invoca al caso de uso y retorna void', async () => {
       await controller.delete(5);
       expect(deleteUseCase.execute).toHaveBeenCalledWith({ id: 5 });
     });
 
-    it('propaga NotFoundException cuando el caso de uso falla', async () => {
-      deleteUseCase.execute.mockRejectedValue(
-        new NotFoundException('No existe'),
-      );
-      await expect(controller.delete(999)).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+    it('lanza HttpException 404 cuando el caso de uso lanza NotFoundException', async () => {
+      const notFoundException = new NotFoundException({
+        error: 'NOT_FOUND',
+        message: 'No se encontró el ambiente solicitado',
+        details: [{ field: 'id', message: 'Ambiente inexistente' }],
+      });
+      deleteUseCase.execute.mockRejectedValue(notFoundException);
+
+      try {
+        await controller.delete(999);
+        fail('Expected HttpException to be thrown');
+      } catch (err) {
+        expect(err.constructor.name).toBe('HttpException');
+        expect((err as any).getStatus()).toBe(404);
+      }
     });
   });
 

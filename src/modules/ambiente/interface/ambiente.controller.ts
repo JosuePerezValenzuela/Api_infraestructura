@@ -4,6 +4,7 @@
   Delete,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Param,
   ParseIntPipe,
@@ -11,6 +12,7 @@
   Post,
   Put,
   Query,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -22,6 +24,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiParam,
 } from '@nestjs/swagger';
 import { CreateAmbienteUseCase } from '../application/create-ambiente.usecase';
 import { ListAmbientesUseCase } from '../application/list-ambientes.usecase';
@@ -515,19 +518,30 @@ export class AmbienteController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un ambiente' })
-  @ApiNoContentResponse({ description: 'Ambiente eliminado correctamente' })
+  @ApiOperation({ summary: 'Elimina un ambiente por ID (delete físico)' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID del ambiente a eliminar' })
+  @ApiNoContentResponse({
+    description: 'El ambiente fue eliminado físicamente (sin cuerpo en respuesta)',
+  })
   @ApiNotFoundResponse({
-    description: 'No existe el ambiente',
+    description: 'Ambiente no encontrado',
     schema: {
       example: {
         error: 'NOT_FOUND',
-        message: 'No se encontro el ambiente solicitado',
+        message: 'No se encontró el ambiente solicitado',
+        details: [{ field: 'id', message: 'Ambiente inexistente' }],
       },
     },
   })
   async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.deleteAmbiente.execute({ id });
+    try {
+      await this.deleteAmbiente.execute({ id });
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        throw new HttpException(err.getResponse(), HttpStatus.NOT_FOUND);
+      }
+      throw new HttpException('Error interno', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Put(':id/horarios')

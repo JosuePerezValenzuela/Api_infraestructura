@@ -30,4 +30,5 @@ export interface HorarioRepositoryPort {
     command: ReplaceHorariosCommand,
   ): Promise<ReplaceHorariosResult>;
   listByAmbiente(ambiente_id: number): Promise<HorarioSlot[]>;
+  deleteByAmbienteId(ambienteId: number): Promise<void>;
 }
