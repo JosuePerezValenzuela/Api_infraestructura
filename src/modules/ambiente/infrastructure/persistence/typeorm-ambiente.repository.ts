@@ -214,13 +214,13 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
         c.id AS campus_id,
         c.nombre AS campus_nombre
       FROM infraestructura.ambientes a
-      INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id AND b.activo = true
-      INNER JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id AND cf.activo = true
-      INNER JOIN infraestructura.campus c ON c.id = cf.campus_id AND c.activo = true
-      INNER JOIN infraestructura.facultades f ON f.id = cf.facultad_id AND f.activo = true
+      INNER JOIN infraestructura.bloques b ON b.id = a.bloque_id
+      INNER JOIN infraestructura.campus_facultades cf ON cf.id = b.campus_facultad_id
+      INNER JOIN infraestructura.campus c ON c.id = cf.campus_id
+      INNER JOIN infraestructura.facultades f ON f.id = cf.facultad_id
       INNER JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
       INNER JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
-      WHERE a.id = $1 AND a.activo = true
+      WHERE a.id = $1
       LIMIT 1
     `;
     const rows = await this.dataSource.query<AmbienteCompletoItem[]>(sql, [id]);
