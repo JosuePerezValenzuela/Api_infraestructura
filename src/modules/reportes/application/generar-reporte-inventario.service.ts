@@ -26,10 +26,43 @@ export class GenerarReporteInventarioService {
     private readonly generador: ReporteGeneradorPort,
   ) {}
 
+  /**
+   * Genera el archivo XLSX.
+   * Solo se usa cuando el frontend solicita el Excel.
+   */
   async ejecutar(dto: GenerarReporteInventarioDto): Promise<ArchivoReporte> {
+    const view_model = await this.obtener_view_model_o_404(dto);
+
+    try {
+      return await this.generador.generar_xlsx(view_model);
+    } catch (err) {
+      console.log(err);
+      throw new InternalServerErrorException({
+        error: 'INTERNAL_ERROR',
+        message: 'Ocurrió un error al generar el reporte de inventario',
+      });
+    }
+  }
+
+  /**
+   * Devuelve el view-model completo como JSON.
+   * Se usa cuando el frontend solicita formato PDF
+   * (el frontend genera el PDF con estos datos).
+   */
+  async obtener_datos_json(
+    dto: GenerarReporteInventarioDto,
+  ): Promise<InventarioReporteViewModel> {
+    return this.obtener_view_model_o_404(dto);
+  }
+
+  /**
+   * Obtiene el view-model del repositorio y lanza 404 si no existe.
+   */
+  private async obtener_view_model_o_404(
+    dto: GenerarReporteInventarioDto,
+  ): Promise<InventarioReporteViewModel> {
     const view_model = await this.obtener_view_model(dto);
 
-    // 404 si no hay nada para ese scope/scopeId
     if (
       !view_model ||
       (!view_model.campus && !view_model.facultad && !view_model.bloque)
@@ -40,37 +73,7 @@ export class GenerarReporteInventarioService {
       });
     }
 
-    // Sanitizar errores internos del generador (XLSX/PDF)
-    try {
-      switch (dto.formato) {
-        case ReporteFormato.XLSX:
-          return await this.generador.generar_xlsx(view_model);
-
-        case ReporteFormato.PDF:
-          return await this.generador.generar_pdf(view_model);
-
-        default:
-          // Protección extra por si algún día se llama al usecase
-          // programáticamente sin pasar por la validación del DTO.
-          throw new BadRequestException({
-            error: 'VALIDATION_ERROR',
-            message: 'Los datos enviados no son validos',
-            details: [
-              {
-                field: 'formato',
-                message: 'Formato no soportado, use xlsx o pdf',
-              },
-            ],
-          });
-      }
-    } catch (err) {
-      // Aquí podrías loggear el error real con Logger si quieres
-      console.log(err);
-      throw new InternalServerErrorException({
-        error: 'INTERNAL_ERROR',
-        message: 'Ocurrió un error al generar el reporte de inventario',
-      });
-    }
+    return view_model;
   }
 
   private obtener_view_model(

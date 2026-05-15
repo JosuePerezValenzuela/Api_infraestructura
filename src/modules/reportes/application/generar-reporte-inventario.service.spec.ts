@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { PassThrough } from 'stream';
+import { NotFoundException } from '@nestjs/common';
 import { GenerarReporteInventarioService } from './generar-reporte-inventario.service';
 import { InventarioReporteRepository } from '../domain/ports/inventario-reporte.repository';
 import {
@@ -65,7 +66,6 @@ describe('GenerarReporteInventarioService', () => {
   let generador: jest.Mocked<ReporteGeneradorPort>;
 
   beforeEach(async () => {
-    // Creamos mocks para el repositorio y el generador.
     const repoMock: jest.Mocked<InventarioReporteRepository> = {
       obtener_por_campus: jest.fn(),
       obtener_por_facultad: jest.fn(),
@@ -89,11 +89,11 @@ describe('GenerarReporteInventarioService', () => {
     generador = moduleRef.get('ReporteGeneradorPort');
   });
 
-  it('usa repo de campus y generador XLSX cuando scope=campus y formato=xlsx', async () => {
-    // Configuramos el repo para devolver un view-model de campus.
+  // ========== ejecutar (XLSX) ==========
+
+  it('ejecutar: usa repo de campus y generador XLSX cuando scope=campus y formato=xlsx', async () => {
     const viewModel = makeViewModel(ReporteScope.CAMPUS);
     repo.obtener_por_campus.mockResolvedValue(viewModel);
-    // Configuramos el generador para devolver un archivo simulado.
     generador.generar_xlsx.mockResolvedValue({
       stream: makeStream(),
       filename: 'inventario_campus_20241209.xlsx',
@@ -103,59 +103,99 @@ describe('GenerarReporteInventarioService', () => {
 
     await service.ejecutar({
       scope: ReporteScope.CAMPUS,
-      scopeId: 'campus-1',
+      scopeId: 1,
       formato: ReporteFormato.XLSX,
     });
 
-    expect(repo.obtener_por_campus).toHaveBeenCalledWith('campus-1');
+    expect(repo.obtener_por_campus).toHaveBeenCalledWith(1);
     expect(generador.generar_xlsx).toHaveBeenCalledWith(viewModel);
   });
 
-  it('usa repo de facultad y generador PDF cuando scope=facultad y formato=pdf', async () => {
+  it('ejecutar: usa repo de facultad y generador XLSX', async () => {
     const viewModel = makeViewModel(ReporteScope.FACULTAD);
     repo.obtener_por_facultad.mockResolvedValue(viewModel);
-    generador.generar_pdf.mockResolvedValue({
+    generador.generar_xlsx.mockResolvedValue({
       stream: makeStream(),
-      filename: 'inventario_facultad_20241209.pdf',
-      mime_type: 'application/pdf',
+      filename: 'inventario_facultad_20241209.xlsx',
+      mime_type:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
 
     await service.ejecutar({
       scope: ReporteScope.FACULTAD,
-      scopeId: 'fac-1',
-      formato: ReporteFormato.PDF,
+      scopeId: 1,
+      formato: ReporteFormato.XLSX,
     });
 
-    expect(repo.obtener_por_facultad).toHaveBeenCalledWith('fac-1');
-    expect(generador.generar_pdf).toHaveBeenCalledWith(viewModel);
+    expect(repo.obtener_por_facultad).toHaveBeenCalledWith(1);
+    expect(generador.generar_xlsx).toHaveBeenCalledWith(viewModel);
   });
 
-  it('usa repo de bloque y generador PDF cuando scope=bloque y formato=pdf', async () => {
-    const viewModel = makeViewModel(ReporteScope.BLOQUE);
-    repo.obtener_por_bloque.mockResolvedValue(viewModel);
-    generador.generar_pdf.mockResolvedValue({
-      stream: makeStream(),
-      filename: 'inventario_bloque_20241209.pdf',
-      mime_type: 'application/pdf',
-    });
+  it('ejecutar: lanza NotFoundException si no existe el recurso', async () => {
+    repo.obtener_por_campus.mockResolvedValue(null);
 
-    await service.ejecutar({
-      scope: ReporteScope.BLOQUE,
-      scopeId: 'bloq-1',
-      formato: ReporteFormato.PDF,
-    });
-
-    expect(repo.obtener_por_bloque).toHaveBeenCalledWith('bloq-1');
-    expect(generador.generar_pdf).toHaveBeenCalledWith(viewModel);
-  });
-
-  it('arroja si el formato no es soportado', async () => {
     await expect(
       service.ejecutar({
         scope: ReporteScope.CAMPUS,
-        scopeId: 'campus-1',
-        formato: 'csv' as ReporteFormato,
+        scopeId: 999,
+        formato: ReporteFormato.XLSX,
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  // ========== obtener_datos_json (PDF) ==========
+
+  it('obtener_datos_json: devuelve el view-model para campus', async () => {
+    const viewModel = makeViewModel(ReporteScope.CAMPUS);
+    repo.obtener_por_campus.mockResolvedValue(viewModel);
+
+    const result = await service.obtener_datos_json({
+      scope: ReporteScope.CAMPUS,
+      scopeId: 1,
+      formato: ReporteFormato.PDF,
+    });
+
+    expect(result).toEqual(viewModel);
+    expect(repo.obtener_por_campus).toHaveBeenCalledWith(1);
+  });
+
+  it('obtener_datos_json: devuelve el view-model para facultad', async () => {
+    const viewModel = makeViewModel(ReporteScope.FACULTAD);
+    repo.obtener_por_facultad.mockResolvedValue(viewModel);
+
+    const result = await service.obtener_datos_json({
+      scope: ReporteScope.FACULTAD,
+      scopeId: 1,
+      formato: ReporteFormato.PDF,
+    });
+
+    expect(result).toEqual(viewModel);
+    expect(repo.obtener_por_facultad).toHaveBeenCalledWith(1);
+  });
+
+  it('obtener_datos_json: devuelve el view-model para bloque', async () => {
+    const viewModel = makeViewModel(ReporteScope.BLOQUE);
+    repo.obtener_por_bloque.mockResolvedValue(viewModel);
+
+    const result = await service.obtener_datos_json({
+      scope: ReporteScope.BLOQUE,
+      scopeId: 1,
+      formato: ReporteFormato.PDF,
+    });
+
+    expect(result).toEqual(viewModel);
+    expect(repo.obtener_por_bloque).toHaveBeenCalledWith(1);
+  });
+
+  it('obtener_datos_json: lanza NotFoundException si no existe el recurso', async () => {
+    repo.obtener_por_bloque.mockResolvedValue(null);
+
+    await expect(
+      service.obtener_datos_json({
+        scope: ReporteScope.BLOQUE,
+        scopeId: 999,
+        formato: ReporteFormato.PDF,
+      }),
+    ).rejects.toThrow(NotFoundException);
   });
 });
