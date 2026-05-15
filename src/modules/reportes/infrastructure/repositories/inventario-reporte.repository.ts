@@ -19,12 +19,12 @@ type CampusRow = {
   activo: boolean;
 };
 
-type FacultadRow = {
+type CampusFacultadRow = {
   id: number;
+  facultad_id: number;
   codigo: string;
   nombre: string;
   activo: boolean;
-  campus_id?: number;
 };
 
 type BloqueRow = {
@@ -33,7 +33,7 @@ type BloqueRow = {
   nombre: string;
   pisos: number;
   activo: boolean;
-  facultad_id: number;
+  campus_facultad_id: number;
   tipo_bloque: string;
 };
 
@@ -62,6 +62,10 @@ type AmbienteRow = {
  * Repositorio de reportes de inventario con SQL crudo.
  * Construye un view-model jerárquico (campus -> facultades -> bloques -> ambientes)
  * con KPIs agregadas por nivel.
+ *
+ * Modelo de datos actual:
+ * - Campus 1----n Campus_Facultades n----1 Facultad
+ * - Bloques -> Campus_Facultades (cada bloque pertenece a una relación campus-facultad específica)
  */
 @Injectable()
 export class InventarioReporteRepositoryAdapter implements InventarioReporteRepository {
@@ -75,20 +79,37 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
       return null;
     }
 
-    const facultades = await this.findFacultades(campusHeader.id);
-    const bloques = await this.findBloquesByFacultades(
-      facultades.map((f) => f.id),
+    // Obtener las relaciones campus_facultades activas para este campus
+    const campusFacultades = await this.findCampusFacultades(campus_id);
+    const facultades = await this.findFacultadesByCampusFacultades(
+      campusFacultades.map((cf) => cf.id),
+    );
+
+    const bloques = await this.findBloquesByCampusFacultades(
+      campusFacultades.map((cf) => cf.id),
     );
     const ambientes = await this.findAmbientesByBloques(
       bloques.map((b) => b.id),
     );
 
-    const bloquesByFacultad = this.groupBy(bloques, (b) => b.facultad_id);
+    // Agrupar por campus_facultad_id (que identifica la relación campus-facultad)
+    const bloquesByCampusFacultad = this.groupBy(bloques, (b) => b.campus_facultad_id);
     const ambientesByBloque = this.groupBy(ambientes, (a) => a.bloque_id);
 
+    // Crear vista de facultades, agrupando bloques por cada relación campus-facultad
     const facultadesView: FacultadView[] = facultades.map((f) => {
-      const bloquesFac = bloquesByFacultad[f.id] ?? [];
-      const bloquesView: BloqueView[] = bloquesFac.map((b) => {
+      // Filtrar las relaciones de este campus para esta facultad
+      const relacionesCampusFacultad = campusFacultades.filter(
+        (cf) => cf.facultad_id === f.id,
+      );
+
+      // Obtener todos los bloques de todas las relaciones campus-facultad de esta facultad en este campus
+      const bloquesDeFacultad: BloqueRow[] = [];
+      for (const rel of relacionesCampusFacultad) {
+        bloquesDeFacultad.push(...(bloquesByCampusFacultad[rel.id] ?? []));
+      }
+
+      const bloquesView: BloqueView[] = bloquesDeFacultad.map((b) => {
         const ambientesBloque = ambientesByBloque[b.id] ?? [];
         const kpisBloque = this.buildAmbientesKpis(ambientesBloque);
         return {
@@ -137,10 +158,30 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
       return null;
     }
 
-    const bloques = await this.findBloquesByFacultades([facultadHeader.id]);
+    // Obtener TODAS las relaciones campus_facultades de esta facultad (puede estar en n campus)
+    const campusFacultades = await this.findCampusFacultadesByFacultad(facultad_id);
+
+    if (campusFacultades.length === 0) {
+      // La facultad no está asociada a ningún campus mediante campus_facultades
+      const facultadView: FacultadView = {
+        id: facultadHeader.id,
+        codigo: facultadHeader.codigo,
+        nombre: facultadHeader.nombre,
+        estado: facultadHeader.activo ? 'activo' : 'inactivo',
+        kpis: this.buildBloquesKpis([]),
+        bloques: [],
+      };
+      return { scope: ReporteScope.FACULTAD, facultad: facultadView };
+    }
+
+    // Obtener bloques a través de todas las relaciones campus-facultad
+    const bloques = await this.findBloquesByCampusFacultades(
+      campusFacultades.map((cf) => cf.id),
+    );
     const ambientes = await this.findAmbientesByBloques(
       bloques.map((b) => b.id),
     );
+
     const ambientesByBloque = this.groupBy(ambientes, (a) => a.bloque_id);
 
     const bloquesView: BloqueView[] = bloques.map((b) => {
@@ -218,7 +259,7 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
 
   private async findFacultadHeader(
     facultad_id: number,
-  ): Promise<FacultadRow | undefined> {
+  ): Promise<{ id: number; codigo: string; nombre: string; activo: boolean } | undefined> {
     const result: unknown[] = await this.dataSource.query(
       `
       SELECT id, codigo, nombre, activo
@@ -228,7 +269,7 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
     `,
       [facultad_id],
     );
-    const row = result[0] as FacultadRow | undefined;
+    const row = result[0] as { id: number; codigo: string; nombre: string; activo: boolean } | undefined;
     return row;
   }
 
@@ -242,6 +283,7 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
              b.nombre,
              b.pisos,
              b.activo,
+             b.campus_facultad_id,
              tb.nombre AS tipo_bloque
       FROM infraestructura.bloques b
       JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
@@ -254,26 +296,67 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
     return row;
   }
 
-  private async findFacultades(campus_id: number): Promise<FacultadRow[]> {
+  /**
+   * Obtiene las relaciones campus_facultades activas para un campus específico
+   */
+  private async findCampusFacultades(campus_id: number): Promise<CampusFacultadRow[]> {
     const result: unknown[] = await this.dataSource.query(
       `
-      SELECT f.id,
-             f.codigo,
-             f.nombre,
-             f.activo
-      FROM infraestructura.facultades f
-      WHERE f.campus_id = $1
-      ORDER BY f.id;
+      SELECT cf.id, cf.facultad_id, f.codigo, f.nombre, f.activo
+      FROM infraestructura.campus_facultades cf
+      JOIN infraestructura.facultades f ON f.id = cf.facultad_id
+      WHERE cf.campus_id = $1 AND cf.activo = true
+      ORDER BY f.nombre;
     `,
       [campus_id],
     );
-    return result as FacultadRow[];
+    return result as CampusFacultadRow[];
   }
 
-  private async findBloquesByFacultades(
-    facultadIds: number[],
+  /**
+   * Obtiene las relaciones campus_facultades activas para una facultad específica
+   */
+  private async findCampusFacultadesByFacultad(facultad_id: number): Promise<CampusFacultadRow[]> {
+    const result: unknown[] = await this.dataSource.query(
+      `
+      SELECT cf.id, cf.facultad_id, f.codigo, f.nombre, f.activo
+      FROM infraestructura.campus_facultades cf
+      JOIN infraestructura.facultades f ON f.id = cf.facultad_id
+      WHERE cf.facultad_id = $1 AND cf.activo = true
+      ORDER BY f.nombre;
+    `,
+      [facultad_id],
+    );
+    return result as CampusFacultadRow[];
+  }
+
+  /**
+   * Obtiene facultades únicas a partir de relaciones campus_facultades
+   */
+  private async findFacultadesByCampusFacultades(
+    campusFacultadIds: number[],
+  ): Promise<CampusFacultadRow[]> {
+    if (!campusFacultadIds.length) return [];
+    const result: unknown[] = await this.dataSource.query(
+      `
+      SELECT cf.id, cf.facultad_id, f.codigo, f.nombre, f.activo
+      FROM infraestructura.campus_facultades cf
+      JOIN infraestructura.facultades f ON f.id = cf.facultad_id
+      WHERE cf.id = ANY($1::int[])
+      ORDER BY f.nombre;
+    `,
+      [campusFacultadIds],
+    );
+    return result as CampusFacultadRow[];
+  }
+
+  /**
+   * Obtiene bloques a través de las relaciones campus_facultades
+   */
+  private async findBloquesByCampusFacultades(
+    campusFacultadIds: number[],
   ): Promise<BloqueRow[]> {
-    if (!facultadIds.length) return [];
+    if (!campusFacultadIds.length) return [];
     const result: unknown[] = await this.dataSource.query(
       `
       SELECT b.id,
@@ -281,14 +364,14 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
              b.nombre,
              b.pisos,
              b.activo,
-             b.facultad_id,
+             b.campus_facultad_id,
              tb.nombre AS tipo_bloque
       FROM infraestructura.bloques b
       JOIN infraestructura.tipo_bloques tb ON tb.id = b.tipo_bloque_id
-      WHERE b.facultad_id = ANY($1::int[])
-      ORDER BY b.facultad_id, b.id;
+      WHERE b.campus_facultad_id = ANY($1::int[])
+      ORDER BY b.nombre;
     `,
-      [facultadIds],
+      [campusFacultadIds],
     );
     return result as BloqueRow[];
   }
@@ -318,7 +401,7 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
         GROUP BY ambiente_id
       ) AS activos_cnt ON activos_cnt.ambiente_id = a.id
       WHERE a.bloque_id = ANY($1::int[])
-      ORDER BY a.bloque_id, a.id;
+      ORDER BY a.nombre;
     `,
       [bloqueIds],
     );

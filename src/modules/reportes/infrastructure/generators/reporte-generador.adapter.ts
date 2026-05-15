@@ -34,11 +34,10 @@ const MIME_XLSX =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const MIME_PDF = 'application/pdf';
 
-type SheetRow = Record<string, string | number | undefined>;
-
-const PRIMARY = '#003049';
-const LIGHT_BG = '#f7f9fb';
-const ACCENT = '#669bbc';
+// ==================== COLORES ====================
+const COLOR_HEADER_BG = '003049';
+const COLOR_HEADER_FONT = 'FFFFFF';
+const COLOR_ALT_ROW = 'F7F9FB';
 
 @Injectable()
 export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
@@ -48,17 +47,18 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   async generar_xlsx(
     view_model: InventarioReporteViewModel,
   ): Promise<ArchivoReporte> {
-    const stream = new PassThrough();
-    const workbook = new Excel.stream.xlsx.WorkbookWriter({
-      stream,
-      useStyles: true,
-      useSharedStrings: true,
-    });
+    const workbook = new Excel.Workbook();
+    workbook.created = new Date();
+    workbook.modified = new Date();
 
     this.buildXlsx(workbook, view_model);
-    await workbook.commit();
 
     const filename = this.build_filename(view_model.scope, 'xlsx');
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const stream = new PassThrough();
+    stream.end(buffer);
+
     return { stream, filename, mime_type: MIME_XLSX };
   }
 
@@ -72,243 +72,491 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     return { stream, filename, mime_type: MIME_PDF };
   }
 
-  // ---------------- XLSX helpers ----------------
+  // ==================== XLSX ====================
+
   private buildXlsx(
-    workbook: Excel.stream.xlsx.WorkbookWriter,
+    workbook: Excel.Workbook,
     view: InventarioReporteViewModel,
   ) {
-    const resumen = workbook.addWorksheet('Resumen');
-    this.renderResumenSheet(resumen, view);
-
     if (view.campus) {
-      const campusSheet = workbook.addWorksheet(
-        this.sanitizeSheetName(`Campus_${view.campus.nombre}`),
-      );
-      this.renderCampusSheet(campusSheet, view.campus);
-
-      view.campus.facultades.forEach((fac) => {
-        const facSheet = workbook.addWorksheet(
-          this.sanitizeSheetName(`Fac_${fac.nombre}`),
-        );
-        this.renderFacultadSheet(facSheet, fac);
-
-        const bloquesSheet = workbook.addWorksheet(
-          this.sanitizeSheetName(`Bloques_${fac.nombre}`),
-        );
-        this.renderBloquesSheet(bloquesSheet, fac.bloques);
-      });
+      this.buildCampusBooks(workbook, view.campus);
     } else if (view.facultad) {
-      const facSheet = workbook.addWorksheet(
-        this.sanitizeSheetName(`Fac_${view.facultad.nombre}`),
-      );
-      this.renderFacultadSheet(facSheet, view.facultad);
-
-      const bloquesSheet = workbook.addWorksheet(
-        this.sanitizeSheetName(`Bloques_${view.facultad.nombre}`),
-      );
-      this.renderBloquesSheet(bloquesSheet, view.facultad.bloques);
+      this.buildFacultadBooks(workbook, view.facultad);
     } else if (view.bloque) {
-      const bloqueSheet = workbook.addWorksheet(
-        this.sanitizeSheetName(`Bloque_${view.bloque.nombre}`),
-      );
-      this.renderBloqueSheet(bloqueSheet, view.bloque);
+      this.buildBloqueBooks(workbook, view.bloque);
     }
   }
 
-  private renderResumenSheet(
+  // -----------------------
+  // LIBROS POR NIVEL
+  // -----------------------
+
+  /**
+   * Campus: 4 libros separados
+   * - Info Campus: datos de la entidad seleccionada
+   * - Facultades: todas las facultades con KPIs
+   * - Bloques: todos los bloques con referencia a facultad
+   * - Ambientes: todos los ambientes con referencia a bloque y facultad
+   */
+  private buildCampusBooks(workbook: Excel.Workbook, campus: CampusView) {
+    // Libro 1: Info del Campus
+    const campusSheet = workbook.addWorksheet('Info Campus');
+    this.renderCampusInfo(campusSheet, campus);
+
+    // Libro 2: Facultades (tabla plana)
+    const facultadesSheet = workbook.addWorksheet('Facultades');
+    this.renderFacultadesList(facultadesSheet, campus.facultades);
+
+    // Libro 3: Bloques (tabla plana)
+    const allBloques = campus.facultades.flatMap((f) =>
+      f.bloques.map((b) => ({
+        ...b,
+        facultad_nombre: f.nombre,
+        facultad_codigo: f.codigo,
+      })),
+    );
+    if (allBloques.length > 0) {
+      const bloquesSheet = workbook.addWorksheet('Bloques');
+      this.renderBloquesList(bloquesSheet, allBloques);
+    }
+
+    // Libro 4: Ambientes (tabla plana)
+    const allAmbientes = campus.facultades.flatMap((f) =>
+      f.bloques.flatMap((b) =>
+        b.ambientes.map((a) => ({
+          ...a,
+          bloque_nombre: b.nombre,
+          bloque_codigo: b.codigo,
+          tipo_bloque: b.tipo_bloque,
+          facultad_nombre: f.nombre,
+          facultad_codigo: f.codigo,
+        })),
+      ),
+    );
+    if (allAmbientes.length > 0) {
+      const ambientesSheet = workbook.addWorksheet('Ambientes');
+      this.renderAmbientesList(ambientesSheet, allAmbientes);
+    }
+  }
+
+  /**
+   * Facultad: 3 libros separados
+   * - Info Facultad: datos de la entidad seleccionada
+   * - Bloques: todos los bloques de esta facultad
+   * - Ambientes: todos los ambientes de esta facultad
+   */
+  private buildFacultadBooks(workbook: Excel.Workbook, facultad: FacultadView) {
+    // Libro 1: Info de la Facultad
+    const facSheet = workbook.addWorksheet('Info Facultad');
+    this.renderFacultadInfo(facSheet, facultad);
+
+    // Libro 2: Bloques (tabla plana)
+    if (facultad.bloques.length > 0) {
+      const bloquesSheet = workbook.addWorksheet('Bloques');
+      this.renderBloquesList(bloquesSheet, facultad.bloques);
+    }
+
+    // Libro 3: Ambientes (tabla plana)
+    const allAmbientes = facultad.bloques.flatMap((b) =>
+      b.ambientes.map((a) => ({
+        ...a,
+        bloque_nombre: b.nombre,
+        bloque_codigo: b.codigo,
+        tipo_bloque: b.tipo_bloque,
+      })),
+    );
+    if (allAmbientes.length > 0) {
+      const ambientesSheet = workbook.addWorksheet('Ambientes');
+      this.renderAmbientesList(ambientesSheet, allAmbientes);
+    }
+  }
+
+  /**
+   * Bloque: 2 libros separados
+   * - Info Bloque: datos de la entidad seleccionada
+   * - Ambientes: todos los ambientes de este bloque
+   */
+  private buildBloqueBooks(workbook: Excel.Workbook, bloque: BloqueView) {
+    // Libro 1: Info del Bloque
+    const bloqueSheet = workbook.addWorksheet('Info Bloque');
+    this.renderBloqueInfo(bloqueSheet, bloque);
+
+    // Libro 2: Ambientes
+    if (bloque.ambientes.length > 0) {
+      const ambientesSheet = workbook.addWorksheet('Ambientes');
+      const ambientesConBloque = bloque.ambientes.map((a) => ({
+        ...a,
+        bloque_nombre: bloque.nombre,
+        bloque_codigo: bloque.codigo,
+        tipo_bloque: bloque.tipo_bloque,
+      }));
+      this.renderAmbientesList(ambientesSheet, ambientesConBloque);
+    }
+  }
+
+  // ==================== HOJAS DE INFO (label-value) ====================
+
+  /**
+   * Renderiza la info de la entidad como pares label → value,
+   * SIN tabla dinámica, SIN colores de estado.
+   */
+  private renderInfoSheet(
     sheet: Excel.Worksheet,
-    view: InventarioReporteViewModel,
+    title: string,
+    fields: { label: string; value: string | number }[],
   ) {
-    sheet.columns = [
-      { header: 'Indicador', key: 'indicador', width: 30 },
-      { header: 'Valor', key: 'valor', width: 20 },
-    ];
+    // Título
+    const titleCell = sheet.getCell('A1');
+    titleCell.value = title;
+    titleCell.font = { bold: true, size: 14, color: { argb: `FF${COLOR_HEADER_BG}` } };
+    sheet.mergeCells('A1:B1');
 
-    if (view.campus) {
-      sheet.addRow({ indicador: 'Campus', valor: view.campus.nombre }).commit();
-      this.pushKpis(sheet, view.campus.kpis);
-    }
-    if (view.facultad) {
-      sheet
-        .addRow({ indicador: 'Facultad', valor: view.facultad.nombre })
-        .commit();
-      this.pushKpis(sheet, view.facultad.kpis);
-    }
-    if (view.bloque) {
-      sheet.addRow({ indicador: 'Bloque', valor: view.bloque.nombre }).commit();
-      this.pushKpis(sheet, view.bloque.kpis);
-    }
+    // Filas label → value a partir de la fila 3
+    let maxLabelLen = 0;
+    let maxValueLen = 0;
 
-    sheet.commit();
-  }
+    fields.forEach((f, i) => {
+      const rowNum = i + 3;
+      const lbl = sheet.getCell(`A${rowNum}`);
+      const val = sheet.getCell(`B${rowNum}`);
 
-  private renderCampusSheet(sheet: Excel.Worksheet, campus: CampusView) {
-    sheet.columns = [
-      { header: 'Campo', key: 'campo', width: 25 },
-      { header: 'Valor', key: 'valor', width: 60 },
-    ];
-    sheet.addRow({ campo: 'Nombre', valor: campus.nombre }).commit();
-    sheet.addRow({ campo: 'Código', valor: campus.codigo }).commit();
-    sheet.addRow({ campo: 'Dirección', valor: campus.direccion }).commit();
-    sheet.addRow({ campo: 'Estado', valor: campus.estado }).commit();
-    this.pushKpis(sheet, campus.kpis);
-    sheet.commit();
-  }
-
-  private renderFacultadSheet(sheet: Excel.Worksheet, fac: FacultadView) {
-    sheet.columns = [
-      { header: 'Campo', key: 'campo', width: 25 },
-      { header: 'Valor', key: 'valor', width: 60 },
-    ];
-    sheet.addRow({ campo: 'Nombre', valor: fac.nombre }).commit();
-    sheet.addRow({ campo: 'Código', valor: fac.codigo }).commit();
-    sheet.addRow({ campo: 'Estado', valor: fac.estado }).commit();
-    this.pushKpis(sheet, fac.kpis);
-    sheet.commit();
-  }
-
-  private renderBloqueSheet(sheet: Excel.Worksheet, bloque: BloqueView) {
-    sheet.columns = [
-      { header: 'Campo', key: 'campo', width: 25 },
-      { header: 'Valor', key: 'valor', width: 60 },
-    ];
-    sheet.addRow({ campo: 'Nombre', valor: bloque.nombre }).commit();
-    sheet.addRow({ campo: 'Código', valor: bloque.codigo }).commit();
-    sheet.addRow({ campo: 'Tipo', valor: bloque.tipo_bloque }).commit();
-    sheet.addRow({ campo: 'Pisos', valor: bloque.pisos }).commit();
-    sheet.addRow({ campo: 'Estado', valor: bloque.estado }).commit();
-    this.pushKpis(sheet, bloque.kpis);
-    this.pushAmbientesTable(sheet, bloque.ambientes);
-    sheet.commit();
-  }
-
-  private renderBloquesSheet(
-    sheet: Excel.Worksheet,
-    bloques: BloqueView[],
-  ): void {
-    sheet.columns = [
-      { header: 'Código', key: 'codigo', width: 15 },
-      { header: 'Nombre', key: 'nombre', width: 25 },
-      { header: 'Tipo', key: 'tipo', width: 15 },
-      { header: 'Pisos', key: 'pisos', width: 10 },
-      { header: 'Estado', key: 'estado', width: 12 },
-      { header: '# Ambientes', key: 'ambientes', width: 15 },
-      { header: 'Capacidad Total', key: 'capacidad_total', width: 18 },
-      { header: 'Cap. Examen', key: 'capacidad_examen', width: 15 },
-      { header: '# Activos', key: 'activos', width: 12 },
-    ];
-
-    bloques.forEach((b) => {
-      const k = this.computeAmbientesResumen(b.ambientes);
-      const row: SheetRow = {
-        codigo: b.codigo,
-        nombre: b.nombre,
-        tipo: b.tipo_bloque,
-        pisos: b.pisos,
-        estado: b.estado,
-        ambientes: b.ambientes.length,
-        capacidad_total: k.cap_total,
-        capacidad_examen: k.cap_examen,
-        activos: k.activos,
+      lbl.value = f.label;
+      lbl.font = { bold: true, size: 11, color: { argb: `FF${COLOR_HEADER_BG}` } };
+      lbl.alignment = { horizontal: 'right', vertical: 'middle' };
+      lbl.border = {
+        bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
       };
-      sheet.addRow(row).commit();
+
+      val.value = f.value;
+      val.font = { size: 11 };
+      val.alignment = { horizontal: 'left', vertical: 'middle' };
+      val.border = {
+        bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+      };
+
+      maxLabelLen = Math.max(maxLabelLen, f.label.length);
+      maxValueLen = Math.max(maxValueLen, String(f.value).length);
     });
-    sheet.commit();
+
+    // Auto-fit: col A (labels en bold) con multiplicador 1.2
+    sheet.getColumn(1).width = Math.min(Math.max(Math.ceil(maxLabelLen * 1.2 + 4), 12), 40);
+    // Col B (values en regular) con multiplicador 1.1
+    sheet.getColumn(2).width = Math.min(Math.max(Math.ceil(maxValueLen * 1.1 + 4), 20), 80);
   }
 
-  private pushAmbientesTable(
+  private renderCampusInfo(sheet: Excel.Worksheet, campus: CampusView) {
+    this.renderInfoSheet(sheet, 'Información del Campus', [
+      { label: 'Nombre', value: campus.nombre },
+      { label: 'Código', value: campus.codigo },
+      { label: 'Dirección', value: campus.direccion },
+      { label: 'Estado', value: campus.estado },
+    ]);
+  }
+
+  private renderFacultadInfo(sheet: Excel.Worksheet, facultad: FacultadView) {
+    this.renderInfoSheet(sheet, 'Información de la Facultad', [
+      { label: 'Nombre', value: facultad.nombre },
+      { label: 'Código', value: facultad.codigo },
+      { label: 'Estado', value: facultad.estado },
+    ]);
+  }
+
+  private renderBloqueInfo(sheet: Excel.Worksheet, bloque: BloqueView) {
+    this.renderInfoSheet(sheet, 'Información del Bloque', [
+      { label: 'Nombre', value: bloque.nombre },
+      { label: 'Código', value: bloque.codigo },
+      { label: 'Tipo', value: bloque.tipo_bloque },
+      { label: 'Pisos', value: bloque.pisos },
+      { label: 'Estado', value: bloque.estado },
+    ]);
+  }
+
+  // ==================== TABLAS DINÁMICAS (Excel ListObject) ====================
+
+  /**
+   * Crea una tabla dinámica de Excel con addTable.
+   * - Autofiltro incluido
+   * - Filas bandeadas (alternadas)
+   * - Encabezado con nuestro estilo azul oscuro
+   * - SIN colorear el estado (texto plano)
+   */
+  private renderDynamicTable(
     sheet: Excel.Worksheet,
-    ambientes: AmbienteView[],
+    name: string,
+    columns: { name: string }[],
+    rows: unknown[][],
+    numberFormatRanges?: { colLetter: string; format: string }[],
   ) {
-    sheet.addRow({ campo: 'Ambientes', valor: '' }).commit();
-    sheet
-      .addRow({
-        campo: 'Código',
-        valor:
-          'Nombre / Piso / Tipo / Capacidad T/Ex / Dimensiones / Clases / Estado / #Activos',
-      })
-      .commit();
+    if (rows.length === 0) {
+      sheet.getCell('A1').value = `No hay datos disponibles`;
+      // Ancho mínimo para que no se corte el mensaje
+      sheet.getColumn(1).width = 30;
+      return;
+    }
 
-    ambientes.forEach((a) => {
-      const dimensiones = a.dimensiones ?? '';
-      const clasesLabel = a.clases ? 'Sí' : 'No';
-      const valor = `${a.nombre} / ${a.piso} / ${a.tipo_ambiente} / ${a.capacidad.total}/${a.capacidad.examen} / ${dimensiones} / ${clasesLabel} / ${a.estado} / ${a.activos_count}`;
-      sheet.addRow({ campo: a.codigo, valor }).commit();
+    // Crear tabla dinámica con ExcelJS addTable
+    sheet.addTable({
+      name,
+      displayName: name,
+      ref: 'A1',
+      headerRow: true,
+      style: {
+        theme: 'TableStyleMedium2',
+        showRowStripes: true,
+      },
+      columns: columns.map((c) => ({
+        name: c.name,
+        filterButton: true,
+      })),
+      rows,
     });
+
+    // Aplicar nuestro estilo de encabezado (fondo azul oscuro, texto blanco)
+    const headerRow = sheet.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: `FF${COLOR_HEADER_BG}` },
+      };
+      cell.font = {
+        bold: true,
+        color: { argb: `FF${COLOR_HEADER_FONT}` },
+        size: 11,
+      };
+      cell.alignment = {
+        horizontal: 'center',
+        vertical: 'middle',
+      };
+    });
+    headerRow.height = 20;
+
+    // Número de fila final de la tabla (header + data)
+    const endRow = rows.length + 1;
+
+    // Formato numérico para columnas específicas
+    if (numberFormatRanges) {
+      for (const range of numberFormatRanges) {
+        this.applyNumberFormat(
+          sheet,
+          `${range.colLetter}2:${range.colLetter}${endRow}`,
+          range.format,
+        );
+      }
+    }
+
+    // Auto-fit: el header está en bold + botón de filtro.
+    // Multiplicador 1.2 compensa bold + caracteres anchos (W, Ó, etc.)
+    // +6 extra para botón de filtro, padding de celda, etc.
+    for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+      const headerLen = columns[colIdx].name.length;
+      let maxDataLen = 0;
+      for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+        const val = rows[rowIdx][colIdx];
+        if (val != null) {
+          maxDataLen = Math.max(maxDataLen, String(val).length);
+        }
+      }
+      const longest = Math.max(headerLen, maxDataLen);
+      // Fórmula: (longest * 1.2) para bold + 6 de padding visual
+      const width = Math.ceil(longest * 1.2 + 6);
+      // Capping a 80 para evitar columnas monstruosas
+      sheet.getColumn(colIdx + 1).width = Math.min(Math.max(width, 12), 80);
+    }
   }
 
-  private pushKpis(sheet: Excel.Worksheet, kpis: KpiResumen) {
-    const rows: SheetRow[] = [];
+  private renderFacultadesList(
+    sheet: Excel.Worksheet,
+    facultades: FacultadView[],
+  ) {
+    const rows = facultades.map((fac) => [
+      fac.codigo,
+      fac.nombre,
+      fac.estado,
+      fac.bloques.length,
+      fac.bloques.reduce((acc, b) => acc + b.ambientes.length, 0),
+    ]);
 
-    if (kpis.total_facultades !== undefined) {
-      rows.push({
-        indicador: 'Total facultades',
-        valor: kpis.total_facultades,
-      });
-      rows.push({
-        indicador: 'Facultades activas',
-        valor: kpis.facultades_activas,
-      });
-      rows.push({
-        indicador: 'Facultades inactivas',
-        valor: kpis.facultades_inactivas,
-      });
-    }
-    if (kpis.total_bloques !== undefined) {
-      rows.push({ indicador: 'Total bloques', valor: kpis.total_bloques });
-      rows.push({ indicador: 'Bloques activos', valor: kpis.bloques_activos });
-      rows.push({
-        indicador: 'Bloques inactivos',
-        valor: kpis.bloques_inactivos,
-      });
-    }
-    if (kpis.total_tipos_bloque !== undefined) {
-      rows.push({
-        indicador: 'Total tipos de bloque',
-        valor: kpis.total_tipos_bloque,
-      });
-    }
-    if (kpis.total_ambientes !== undefined) {
-      rows.push({ indicador: 'Total ambientes', valor: kpis.total_ambientes });
-      rows.push({
-        indicador: 'Ambientes activos',
-        valor: kpis.ambientes_activos,
-      });
-      rows.push({
-        indicador: 'Ambientes inactivos',
-        valor: kpis.ambientes_inactivos,
-      });
-    }
-    if (kpis.total_tipos_ambiente !== undefined) {
-      rows.push({
-        indicador: 'Total tipos de ambiente',
-        valor: kpis.total_tipos_ambiente,
-      });
-    }
-    if (kpis.capacidad) {
-      rows.push({
-        indicador: 'Capacidad total (asientos)',
-        valor: kpis.capacidad.total,
-      });
-      rows.push({
-        indicador: 'Capacidad examen (asientos)',
-        valor: kpis.capacidad.examen,
-      });
-    }
-    if (kpis.activos_asociados !== undefined) {
-      rows.push({
-        indicador: 'Activos asociados',
-        valor: kpis.activos_asociados,
-      });
-    }
-
-    rows.forEach((r) => sheet.addRow(r).commit());
+    this.renderDynamicTable(sheet, 'Facultades', [
+      { name: 'Código' },
+      { name: 'Nombre' },
+      { name: 'Estado' },
+      { name: 'Total Bloques' },
+      { name: 'Total Ambientes' },
+    ], rows, [
+      { colLetter: 'D', format: '#,##0' },
+      { colLetter: 'E', format: '#,##0' },
+    ]);
   }
 
-  private sanitizeSheetName(name: string): string {
-    const forbidden = /[\\/?*[\]:]/g;
-    const sanitized = name.replace(forbidden, '_').slice(0, 31);
-    return sanitized || 'Hoja';
+  private renderBloquesList(
+    sheet: Excel.Worksheet,
+    bloques: Array<
+      BloqueView & { facultad_nombre?: string; facultad_codigo?: string }
+    >,
+  ) {
+    const tieneFacultad =
+      bloques.length > 0 && 'facultad_nombre' in bloques[0];
+
+    const columns: { name: string }[] = [
+      { name: 'Código' },
+      { name: 'Nombre' },
+      { name: 'Tipo' },
+      { name: 'Pisos' },
+      { name: 'Estado' },
+      { name: 'Total Ambientes' },
+    ];
+
+    if (tieneFacultad) {
+      columns.push(
+        { name: 'Facultad Código' },
+        { name: 'Facultad Nombre' },
+      );
+    }
+
+    const rows = bloques.map((b) => {
+      const row: unknown[] = [
+        b.codigo,
+        b.nombre,
+        b.tipo_bloque,
+        b.pisos,
+        b.estado,
+        b.ambientes.length,
+      ];
+      if (tieneFacultad) {
+        row.push(b.facultad_codigo ?? '', b.facultad_nombre ?? '');
+      }
+      return row;
+    });
+
+    // La columna 'Total Ambientes' es la 6ª (F), con formato numérico
+    this.renderDynamicTable(sheet, 'Bloques', columns, rows, [
+      { colLetter: 'F', format: '#,##0' },
+    ]);
+  }
+
+  private renderAmbientesList(
+    sheet: Excel.Worksheet,
+    ambientes: Array<
+      AmbienteView & {
+        bloque_nombre?: string;
+        bloque_codigo?: string;
+        tipo_bloque?: string;
+        facultad_nombre?: string;
+        facultad_codigo?: string;
+      }
+    >,
+  ) {
+    const tieneFacultad =
+      ambientes.length > 0 && 'facultad_nombre' in ambientes[0];
+    const tieneBloque =
+      ambientes.length > 0 && 'bloque_nombre' in ambientes[0];
+
+    const columns: { name: string }[] = [
+      { name: 'Código' },
+      { name: 'Nombre' },
+      { name: 'Piso' },
+      { name: 'Tipo Ambiente' },
+      { name: 'Cap. Total' },
+      { name: 'Cap. Examen' },
+      { name: 'Dimensiones' },
+      { name: 'Clases' },
+      { name: 'Estado' },
+      { name: '# Activos' },
+    ];
+
+    if (tieneBloque) {
+      columns.push(
+        { name: 'Bloque Código' },
+        { name: 'Bloque Nombre' },
+        { name: 'Tipo Bloque' },
+      );
+    }
+
+    if (tieneFacultad) {
+      columns.push(
+        { name: 'Facultad Código' },
+        { name: 'Facultad Nombre' },
+      );
+    }
+
+    const rows = ambientes.map((amb) => {
+      const row: unknown[] = [
+        amb.codigo,
+        amb.nombre,
+        amb.piso,
+        amb.tipo_ambiente,
+        amb.capacidad.total,
+        amb.capacidad.examen,
+        amb.dimensiones ?? '',
+        amb.clases ? 'Sí' : 'No',
+        amb.estado,
+        amb.activos_count,
+      ];
+      if (tieneBloque) {
+        row.push(amb.bloque_codigo ?? '', amb.bloque_nombre ?? '', amb.tipo_bloque ?? '');
+      }
+      if (tieneFacultad) {
+        row.push(amb.facultad_codigo ?? '', amb.facultad_nombre ?? '');
+      }
+      return row;
+    });
+
+    // Columnas numéricas: siempre en posiciones fijas 5 (Cap.Total),
+    // 6 (Cap.Examen) y 10 (# Activos). Las columnas opcionales de
+    // bloque/facultad se agregan después.
+    const numFormats: { colLetter: string; format: string }[] = [
+      { colLetter: this.getColumnLetter(5), format: '#,##0' },
+      { colLetter: this.getColumnLetter(6), format: '#,##0' },
+      { colLetter: this.getColumnLetter(10), format: '#,##0' },
+    ];
+
+    this.renderDynamicTable(sheet, 'Ambientes', columns, rows, numFormats);
+  }
+
+  // ==================== HELPERS DE ESTILO ====================
+
+  private applyNumberFormat(
+    sheet: Excel.Worksheet,
+    range: string,
+    format: string,
+  ) {
+    // sheet.getCell() no acepta rangos como 'F2:K5'.
+    // Parseamos el rango y aplicamos el formato a cada celda.
+    const match = range.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+    if (!match) return;
+
+    const [, colStart, rowStartStr, colEnd, rowEndStr] = match;
+    const rowStart = parseInt(rowStartStr, 10);
+    const rowEnd = parseInt(rowEndStr, 10);
+    const startIdx = this.columnLetterToIndex(colStart);
+    const endIdx = this.columnLetterToIndex(colEnd);
+
+    for (let r = rowStart; r <= rowEnd; r++) {
+      for (let c = startIdx; c <= endIdx; c++) {
+        const cell = sheet.getRow(r).getCell(c);
+        cell.numFmt = format;
+      }
+    }
+  }
+
+  /** Convierte letra de columna (A, B, ..., Z, AA, ...) a índice 1-based */
+  private columnLetterToIndex(letter: string): number {
+    let index = 0;
+    for (let i = 0; i < letter.length; i++) {
+      index = index * 26 + (letter.charCodeAt(i) - 64);
+    }
+    return index;
+  }
+
+  private getColumnLetter(colNumber: number): string {
+    let letter = '';
+    while (colNumber > 0) {
+      colNumber--;
+      letter = String.fromCharCode((colNumber % 26) + 65) + letter;
+      colNumber = Math.floor(colNumber / 26);
+    }
+    return letter;
   }
 
   private build_filename(scope: string, ext: string) {
@@ -316,30 +564,17 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     return `inventario_${scope}_${date}.${ext}`;
   }
 
-  private computeAmbientesResumen(ambientes: AmbienteView[]) {
-    return ambientes.reduce(
-      (acc, a) => {
-        acc.cap_total += a.capacidad.total ?? 0;
-        acc.cap_examen += a.capacidad.examen ?? 0;
-        acc.activos += a.activos_count ?? 0;
-        return acc;
-      },
-      { cap_total: 0, cap_examen: 0, activos: 0 },
-    );
-  }
+  // ==================== PDF ====================
 
-  // ---------------- PDF helpers ----------------
   private async buildPdfDefinition(
     view: InventarioReporteViewModel,
   ): Promise<TDocumentDefinitions> {
     const content: PdfContent[] = [];
 
     if (view.campus) {
-      // 1) Página del CAMPUS
       const campusCharts = await this.buildKpiChartsRow(view.campus.kpis);
       content.push(...this.sectionCampus(view.campus, false, campusCharts));
 
-      // 2) Una página nueva por FACULTAD (cada una con sus bloques dentro)
       for (const fac of view.campus.facultades) {
         const facCharts = await this.buildKpiChartsRow(fac.kpis);
         content.push(...this.sectionFacultad(fac, true, facCharts));
@@ -356,25 +591,23 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       header: {
         fontSize: 16,
         bold: true,
-        color: PRIMARY,
+        color: COLOR_HEADER_BG,
         margin: [0, 0, 0, 8],
       },
       subheader: {
         fontSize: 12,
         bold: true,
-        color: PRIMARY,
+        color: COLOR_HEADER_BG,
         margin: [0, 8, 0, 4],
       },
-      kpiLabel: { fontSize: 10, color: PRIMARY },
-      tableHeader: { bold: true, fillColor: PRIMARY, color: '#ffffff' },
+      kpiLabel: { fontSize: 10, color: COLOR_HEADER_BG },
+      tableHeader: { bold: true, fillColor: COLOR_HEADER_BG, color: '#ffffff' },
     };
 
     return {
       content,
       styles,
-      // Usamos Helvetica como fuente por defecto (no depende de archivos externos)
       defaultStyle: { font: 'Helvetica', fontSize: 10 },
-      // Márgenes de página (izq, arriba, der, abajo)
       pageMargins: [40, 60, 40, 40],
     };
   }
@@ -474,7 +707,6 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       ),
     );
 
-    // Cada bloque en página nueva
     fac.bloques.forEach((b) => {
       blocks.push(...this.sectionBloque(b, true));
     });
@@ -526,7 +758,6 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
           'Estado',
           '#Activos',
         ],
-        // Anchos algo más estrechos (suman ~450pt)
         [45, 105, 20, 45, 55, 70, 30, 40, 40],
       ),
     );
@@ -576,14 +807,19 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
             text: String(value),
             fontSize: 14,
             bold: true,
-            color: PRIMARY,
+            color: COLOR_HEADER_BG,
             alignment: 'center',
             margin: [0, 4, 0, 0],
           },
         ],
-        fillColor: LIGHT_BG,
+        fillColor: COLOR_ALT_ROW,
         border: [true, true, true, true],
-        borderColor: [ACCENT, ACCENT, ACCENT, ACCENT],
+        borderColor: [
+          COLOR_HEADER_BG,
+          COLOR_HEADER_BG,
+          COLOR_HEADER_BG,
+          COLOR_HEADER_BG,
+        ],
         borderWidth: 0.5,
       };
     };
@@ -644,24 +880,28 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
             color: 'white',
             bold: true,
             alignment: 'center',
-            fontSize: 9, // <-- encabezado un poco más chico
+            fontSize: 9,
           })),
           ...rows.map<TableCell[]>((r) =>
             r.map<TableCell>((cell, idx) => ({
               text: String(cell ?? ''),
-              alignment: idx === 1 || idx === 5 ? 'left' : 'center', // Nombre/Dimensiones a la izquierda
-              fontSize: 9, // <-- cuerpo más chico
+              alignment: idx === 1 || idx === 5 ? 'left' : 'center',
+              fontSize: 9,
             })),
           ),
         ],
       },
       layout: {
         fillColor: (rowIndex: number) =>
-          rowIndex === 0 ? PRIMARY : rowIndex % 2 === 0 ? LIGHT_BG : null,
+          rowIndex === 0
+            ? COLOR_HEADER_BG
+            : rowIndex % 2 === 0
+              ? COLOR_ALT_ROW
+              : null,
         hLineColor: () => '#cccccc',
         vLineColor: () => '#cccccc',
-        paddingLeft: () => 2, // <-- menos padding horizontal
-        paddingRight: () => 2, // <-- menos padding horizontal
+        paddingLeft: () => 2,
+        paddingRight: () => 2,
       },
     };
   }
@@ -669,7 +909,6 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   private async createPdfStream(
     docDefinition: TDocumentDefinitions,
   ): Promise<PassThrough> {
-    // Usamos solo fuentes estándar de PDF, sin archivos externos
     const printer = new PdfPrinter({
       Helvetica: {
         normal: 'Helvetica',
@@ -706,7 +945,6 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   ): Promise<PdfContent | null> {
     const charts: PdfContent[] = [];
 
-    // Facultades
     if (
       kpis.facultades_activas !== undefined ||
       kpis.facultades_inactivas !== undefined
@@ -718,17 +956,14 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       });
 
       if (buffer) {
-        const chartImage: PdfContent = {
-          // pdfmake acepta Buffer en runtime, pero los tipos esperan string
+        charts.push({
           image: buffer as unknown as string,
           width: 160,
           margin: [0, 0, 10, 0],
-        };
-        charts.push(chartImage);
+        });
       }
     }
 
-    // Bloques
     if (
       kpis.bloques_activos !== undefined ||
       kpis.bloques_inactivos !== undefined
@@ -740,16 +975,14 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       });
 
       if (buffer) {
-        const chartImage: PdfContent = {
+        charts.push({
           image: buffer as unknown as string,
           width: 160,
           margin: [0, 0, 10, 0],
-        };
-        charts.push(chartImage);
+        });
       }
     }
 
-    // Ambientes
     if (
       kpis.ambientes_activos !== undefined ||
       kpis.ambientes_inactivos !== undefined
@@ -761,12 +994,11 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       });
 
       if (buffer) {
-        const chartImage: PdfContent = {
+        charts.push({
           image: buffer as unknown as string,
           width: 160,
           margin: [0, 0, 10, 0],
-        };
-        charts.push(chartImage);
+        });
       }
     }
 
