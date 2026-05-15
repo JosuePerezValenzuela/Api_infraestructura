@@ -38,18 +38,6 @@ export class CreateFacultadDto {
   })
   nombre_corto?: string | null;
 
-  @ApiProperty({ example: -14.3935, description: 'Latitud (y)' })
-  @IsDefined({ message: 'No se ingreso la latitud' })
-  @IsNotEmpty({ message: 'El campo latitud no puede estar vacio' })
-  @IsNumber({}, { message: 'La latitud debe ser numerico' })
-  lat!: number;
-
-  @ApiProperty({ example: -66.157, description: 'Longitud (x)' })
-  @IsDefined({ message: 'No se ingreso la longitud' })
-  @IsNotEmpty({ message: 'El campo longitud no puede estar vacio' })
-  @IsNumber({}, { message: 'La longitud debe ser numerico' })
-  lng!: number;
-
   @ApiProperty({
     description: 'Lista de IDs de campus donde estará la facultad',
     type: [Number],

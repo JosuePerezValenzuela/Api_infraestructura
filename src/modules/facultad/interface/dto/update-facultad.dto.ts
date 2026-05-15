@@ -1,41 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 import {
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-  ValidationArguments,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
-  Max,
-  Min,
   IsNumber,
-  Validate,
   IsBoolean,
   IsArray,
   ArrayMinSize,
   ArrayMaxSize,
 } from 'class-validator';
-
-/**
- * Si se envia lat tambien se debe enviar lng y viceversa
- */
-
-type WithLatLng = { lat?: number | null; lng?: number | null };
-
-@ValidatorConstraint({ name: 'LatLngPair', async: false })
-class LatLngPair implements ValidatorConstraintInterface {
-  validate(_: number | undefined, args: ValidationArguments): boolean {
-    const o = args.object as WithLatLng;
-    const hasLat = o.lat !== undefined && o.lat !== null;
-    const hasLng = o.lng !== undefined && o.lng !== null;
-    return (hasLat && hasLng) || (!hasLat && !hasLng);
-  }
-  defaultMessage(): string {
-    return 'Si se envia lat tambien se debe enviar lng y viceversa';
-  }
-}
 
 export class UpdateFacultadesDto {
   @ApiPropertyOptional({
@@ -83,32 +58,6 @@ export class UpdateFacultadesDto {
     message: 'El nombre corto minimo debe tener minimo 1 caracter',
   })
   nombre_corto?: string;
-
-  @ApiPropertyOptional({
-    description: 'Latitud de la facultad',
-    minimum: -90,
-    maximum: 90,
-    example: -17.393178,
-  })
-  @IsOptional()
-  @IsNumber({}, { message: 'La latitud debe ser un numero' })
-  @Max(90, { message: 'La latitud no puede ser mayor a 90' })
-  @Min(-90, { message: 'La latitud no puede ser menor a -90' })
-  @Validate(LatLngPair)
-  lat?: number;
-
-  @ApiPropertyOptional({
-    description: 'Longitud de la facultad',
-    minimum: -180,
-    maximum: 180,
-    example: -17.393178,
-  })
-  @IsOptional()
-  @IsNumber({}, { message: 'La longitud debe ser un numero' })
-  @Max(90, { message: 'La longitud no puede ser mayor a 90' })
-  @Min(-90, { message: 'La longitud no puede ser menor a -90' })
-  @Validate(LatLngPair)
-  lng?: number;
 
   @ApiPropertyOptional({
     description: 'Indica el estado de la facultad',

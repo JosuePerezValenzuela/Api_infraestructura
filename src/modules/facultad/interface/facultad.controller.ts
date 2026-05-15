@@ -67,8 +67,6 @@ export class FacultadController {
               { id: 5, nombre: 'Temporal' },
             ],
             activo: true,
-            lat: -17.450068,
-            lng: -66.133971,
             creado_en: '2025-10-10T15:30:00.000Z',
           },
         ],
@@ -133,8 +131,6 @@ export class FacultadController {
         codigo: '30',
         nombre: 'FACULTAD DE NUEVA',
         nombre_corto: 'FVN',
-        lat: -17.393498,
-        lng: -66.145992,
         campus_ids: [1, 2],
       },
     },
@@ -144,8 +140,6 @@ export class FacultadController {
       codigo: dto.codigo,
       nombre: dto.nombre,
       nombre_corto: dto.nombre_corto ?? null,
-      lat: dto.lat,
-      lng: dto.lng,
       campus_ids: dto.campus_ids,
     });
 
@@ -164,8 +158,6 @@ export class FacultadController {
       example: {
         nombre: 'FACULTAD ACTUALIZADA',
         nombre_corto: 'FACT',
-        lat: -17.393498,
-        lng: -66.145992,
         activo: true,
         // Agregar/eliminar/reemplazar campuses
         // Ejemplo: eliminar campus 2, agregar campus 3

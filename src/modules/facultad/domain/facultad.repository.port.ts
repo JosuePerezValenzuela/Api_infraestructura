@@ -12,7 +12,6 @@ export interface CreateFacultadData {
   codigo: string;
   nombre: string;
   nombre_corto: string | null;
-  pointLiteral: string;
   campus_ids: number[];
 }
 

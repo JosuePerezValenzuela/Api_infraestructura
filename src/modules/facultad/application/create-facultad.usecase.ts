@@ -1,12 +1,6 @@
-import {
-  Inject,
-  Injectable,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Inject, Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { FacultadRepositoryPort } from '../domain/facultad.repository.port';
 import { CampusRepositoryPort } from '../../campus/domain/campus.repository.port';
-import { GeoPoint } from '../../_shared/domain/value-objects/geo-point.vo';
 import { CreateFacultadCommand } from './dto/create-facultad.command';
 
 @Injectable()
@@ -19,30 +13,6 @@ export class CreateFacultadUseCase {
   ) {}
 
   async execute(cmd: CreateFacultadCommand): Promise<{ id: number }> {
-    //Creamos el POINT a guardar en postgres
-    let pointLiteral: string;
-    try {
-      const geoPoint = GeoPoint.create({ lat: cmd.lat, lng: cmd.lng });
-      pointLiteral = geoPoint.toPostgresPointLiteral();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      let field: string;
-
-      if (message.includes('Latitud')) {
-        field = 'Latitud';
-      } else if (message.includes('Longitud')) {
-        field = 'Longitud';
-      } else {
-        field = 'Campo desconocido';
-      }
-
-      throw new BadRequestException({
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [{ field, message }],
-      });
-    }
-
     // Verificamos que todos los campus_ids existan
     for (const campusId of cmd.campus_ids) {
       const campus = await this.campusRepository.findById(Number(campusId));
@@ -57,12 +27,11 @@ export class CreateFacultadUseCase {
       throw new ConflictException('Ya existe una facultad con el mismo codigo');
     }
 
-    //Ejecutamos al que creara la facultad
+    // Ejecutamos al que creara la facultad
     const created = await this.facultadRepository.create({
       codigo: cmd.codigo,
       nombre: cmd.nombre,
       nombre_corto: cmd.nombre_corto,
-      pointLiteral,
       campus_ids: cmd.campus_ids,
     });
 

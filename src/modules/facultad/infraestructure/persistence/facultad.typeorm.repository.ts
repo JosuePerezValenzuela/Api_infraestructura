@@ -1,5 +1,6 @@
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { BadRequestException } from '@nestjs/common';
 import {
   CreateFacultadData,
   FacultadRepositoryPort,
@@ -11,8 +12,6 @@ import {
   ListFacultadesResult,
   UpdateFacultadesInput,
 } from '../../domain/facultad.list.types';
-import { GeoPoint } from '../../../_shared/domain/value-objects/geo-point.vo';
-import { BadRequestException } from '@nestjs/common';
 
 export class TypeormFacultadRepository implements FacultadRepositoryPort {
   constructor(
@@ -37,24 +36,16 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
   }
 
   async create(data: CreateFacultadData): Promise<{ id: number }> {
-    // Insertar facultad sin campus_id (ahora es M:M)
+    // Insertar facultad sin coordenadas
     const sql = `
-      INSERT INTO infraestructura.facultades (codigo, nombre, nombre_corto, coordenadas)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO infraestructura.facultades (codigo, nombre, nombre_corto)
+      VALUES ($1, $2, $3)
       RETURNING id
     `;
 
-    const params = [
-      data.codigo,
-      data.nombre,
-      data.nombre_corto,
-      data.pointLiteral,
-    ];
+    const params = [data.codigo, data.nombre, data.nombre_corto];
 
-    const rows: Array<{ id: string }> = await this.dataSource.query(
-      sql,
-      params,
-    );
+    const rows: Array<{ id: string }> = await this.dataSource.query(sql, params);
 
     const [row] = rows;
     const facultadId = Number(row.id);
@@ -88,8 +79,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       f.codigo,
       f.nombre,
       f.nombre_corto,
-      f.coordenadas[1]::float8 AS lat,
-      f.coordenadas[0]::float8 AS lng,
       f.activo,
       (
         SELECT cf.campus_id
@@ -123,7 +112,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
   async findPaginated(
     opts: ListFacultadesQuery,
   ): Promise<ListFacultadesResult> {
-    //Cantidad de registros que debemos saltar antes de empezar a mostrar resultados
+    // Cantidad de registros que debemos saltar antes de empezar a mostrar resultados
     const offset = (opts.page - 1) * opts.take;
 
     const filterParams: Array<string | number | boolean> = [];
@@ -165,7 +154,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       creado_en: 'f.creado_en',
     };
 
-    //Construccion de la consulta
+    // Construccion de la consulta
     const countSql = `
       SELECT COUNT(DISTINCT f.id)::int AS total
       FROM infraestructura.facultades f
@@ -180,20 +169,20 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       filterParams,
     );
 
-    //Extraccion de todo, si esta vaico asumimos 0
+    // Extraccion de todo, si esta vacio asumimos 0
     const total = countRows[0]?.total ?? 0;
 
-    //Copiamos los parametros de filtro para reutilizarlos en la consulta principal
+    // Copiamos los parametros de filtro para reutilizarlos en la consulta principal
     const dataParams = [...filterParams];
-    //Calculamos el indice que ocupara LIMIT
+    // Calculamos el indice que ocupara LIMIT
     const limitIndex = dataParams.length + 1;
     dataParams.push(opts.take);
 
-    //Calculamos el indice que tomara el offset
+    // Calculamos el indice que tomara el offset
     const offsetIndex = dataParams.length + 1;
     dataParams.push(offset);
 
-    //Consulta principal
+    // Consulta principal
     const dataSql = `
       SELECT DISTINCT ON (f.id)
         f.id,
@@ -215,9 +204,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
           WHERE cf5.facultad_id = f.id AND cf5.activo = true
         ) AS campuses_json,
         f.activo,
-        f.creado_en,
-        f.coordenadas[1]::float8 AS lat,
-        f.coordenadas[0]::float8 AS lng
+        f.creado_en
       FROM infraestructura.facultades f
       LEFT JOIN infraestructura.campus_facultades cf ON cf.facultad_id = f.id AND cf.activo = true
       LEFT JOIN infraestructura.campus c ON c.id = cf.campus_id
@@ -235,8 +222,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       nombre_corto: string | null;
       activo: boolean;
       creado_en: string | Date;
-      lng: number;
-      lat: number;
       campus_ids: number[] | null;
       campuses_json: Array<{ id: number; nombre: string }> | null;
     }> = await this.dataSource.query(dataSql, dataParams);
@@ -250,8 +235,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       campuses: row.campuses_json ?? [],
       activo: row.activo,
       creado_en: new Date(row.creado_en).toISOString(),
-      lat: row.lat,
-      lng: row.lng,
     }));
 
     // Calculamos si existe siguiente pagina
@@ -276,34 +259,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     id: number,
     input: UpdateFacultadesInput,
   ): Promise<{ id: number }> {
-    //Creamos el POINT A GUARDAR EN POSTGRES
-    let pointLiteral: string | null;
-    try {
-      if (input.lat !== undefined && input.lng !== undefined) {
-        const geoPoint = GeoPoint.create({ lat: input.lat, lng: input.lng });
-        pointLiteral = geoPoint.toPostgresPointLiteral();
-      } else {
-        pointLiteral = null;
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      let field: string;
-
-      if (message.includes('Latitud')) {
-        field = 'Latitud';
-      } else if (message.includes('Longitud')) {
-        field = 'Longitud';
-      } else {
-        field = 'Campo desconocido';
-      }
-
-      throw new BadRequestException({
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [{ field, message }],
-      });
-    }
-
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
@@ -323,14 +278,14 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       params.push(input.nombre_corto);
     }
 
-    if (pointLiteral !== null) {
-      sets.push(`coordenadas = $${i++}`);
-      params.push(pointLiteral);
-    }
-
     if (input.activo !== undefined) {
       sets.push(`activo = $${i++}`);
       params.push(input.activo);
+    }
+
+    // Si no hay nada que actualizar, no ejecutamos
+    if (sets.length === 0) {
+      return { id };
     }
 
     const sql = `
@@ -363,49 +318,43 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
         (c: number) => !newCampusIds.includes(c),
       );
 
-      // Eliminar relaciones que ya no están (soft delete - marcar activo = false)
+      // Eliminar relaciones que ya no están (delete físico)
       if (toRemove.length > 0) {
-        // 1. Obtener los IDs de campus_facultades que se inactivarán
-        const relToDeactivate = await this.dataSource.query<
-          Array<{ id: number }>
-        >(
-          'SELECT id FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND campus_id = ANY($2)',
-          [id, toRemove],
-        );
-        const relIds = relToDeactivate.map((r: { id: number }) => r.id);
-
-        // 2. Inactivar la relación
-        await this.dataSource.query(
-          'UPDATE infraestructura.campus_facultades SET activo = false WHERE facultad_id = $1 AND campus_id = ANY($2)',
-          [id, toRemove],
-        );
-
-        // 3. Cascade: inactivar bloques y ambientes
-        if (relIds.length > 0) {
-          await this.dataSource.query(
-            'UPDATE infraestructura.bloques SET activo = false WHERE campus_facultad_id = ANY($1)',
-            [relIds],
+        // Para cada relación a eliminar, verificar que no tenga bloques dependientes
+        for (const campusId of toRemove) {
+          const relToCheck = await this.dataSource.query<Array<{ id: number }>>(
+            `SELECT id FROM infraestructura.campus_facultades 
+             WHERE facultad_id = $1 AND campus_id = $2`,
+            [id, campusId],
           );
 
-          await this.dataSource.query(
-            `UPDATE infraestructura.ambientes SET activo = false 
-             WHERE bloque_id IN (
-               SELECT id FROM infraestructura.bloques WHERE campus_facultad_id = ANY($1)
-             )`,
-            [relIds],
-          );
+          if (relToCheck.length > 0) {
+            const campusFacultadId = relToCheck[0].id;
+
+            // Verificar si hay bloques que dependen de esta relación
+            const bloquesDependientes = await this.dataSource.query<Array<{ id: number; codigo: string; nombre: string }>>(
+              `SELECT id, codigo, nombre FROM infraestructura.bloques 
+               WHERE campus_facultad_id = $1 AND activo = true`,
+              [campusFacultadId],
+            );
+
+            if (bloquesDependientes.length > 0) {
+              throw new BadRequestException({
+                error: 'CONFLICT_ERROR',
+                message: 'No se puede eliminar la relación con el campus porque existen bloques activos que dependen de ella',
+                details: bloquesDependientes.map((b) => ({
+                  field: 'campus_ids',
+                  message: `Bloque "${b.nombre}" (${b.codigo}) depende de esta relación`,
+                })),
+              });
+            }
+          }
         }
 
-        // IMPORTANTE: Recalcular las relaciones actuales DESPUÉS de inactivar
-        // Esto evita intentar crear relaciones que fueron inactivadas
-        const updatedRelations = await this.dataSource.query<
-          Array<{ campus_id: number }>
-        >(
-          'SELECT campus_id FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND activo = true',
-          [id],
-        );
-        currentCampusIds = updatedRelations.map(
-          (r: { campus_id: number }) => r.campus_id,
+        // Eliminar físicamente las relaciones
+        await this.dataSource.query(
+          'DELETE FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND campus_id = ANY($2)',
+          [id, toRemove],
         );
       }
 
@@ -416,10 +365,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
 
       // Crear nuevas relaciones o reactivar existentes
       if (toAdd.length > 0) {
-        // Primero verificamos si algunas de las relaciones a agregar ya existen (inactivas)
-        // y las reactivamos en lugar de crear nuevas
         for (const campusId of toAdd) {
-          // Buscar si existe la relación (activas o inactivas)
           const existingRel = await this.dataSource.query<Array<{ id: number; activo: boolean }>>(
             `SELECT id, activo FROM infraestructura.campus_facultades 
              WHERE facultad_id = $1 AND campus_id = $2`,
@@ -427,18 +373,14 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
           );
 
           if (existingRel.length > 0) {
-            // La relación existe, verificamos si está inactiva
             if (!existingRel[0].activo) {
-              // Reactivar la relación inactiva
               await this.dataSource.query(
                 `UPDATE infraestructura.campus_facultades SET activo = true 
                  WHERE facultad_id = $1 AND campus_id = $2`,
                 [id, campusId],
               );
             }
-            // Si ya está activa, no hacemos nada
           } else {
-            // La relación no existe, crear nueva
             await this.dataSource.query(
               `INSERT INTO infraestructura.campus_facultades (campus_id, facultad_id) VALUES ($1, $2)`,
               [campusId, id],
@@ -463,7 +405,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     facultadId: number,
     campusId: number,
   ): Promise<{ id: number } | null> {
-    // Busca relaciones tanto activas como inactivas
     const rows = await this.dataSource.query<Array<{ id: number }>>(
       `SELECT id FROM infraestructura.campus_facultades
        WHERE facultad_id = $1 AND campus_id = $2`,
@@ -472,7 +413,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     return rows.length > 0 ? { id: rows[0].id } : null;
   }
 
-  // Busca bloques que dependen de una relación específica (campus_facultad_id)
   async findBlocksByCampusFacultadId(campus_facultadId: number): Promise<RelatedBlock[]> {
     const sql = `
       SELECT
@@ -491,7 +431,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     return rows;
   }
 
-  // Elimina una relación específica (facultad + campus)
   async deleteRelationship(facultadId: number, campusId: number): Promise<{ id: number }> {
     await this.dataSource.query(
       `DELETE FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND campus_id = $2`,
@@ -500,7 +439,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     return { id: facultadId };
   }
 
-  // Verifica si la facultad tiene otras relaciones (activas o inactivas)
   async hasOtherRelationships(facultadId: number, excludeCampusId: number): Promise<boolean> {
     const rows = await this.dataSource.query<Array<{ count: string }>>(
       `SELECT COUNT(*) as count
@@ -512,7 +450,6 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     return count > 0;
   }
 
-  // Elimina la facultad físicamente
   async deleteFacultad(facultadId: number): Promise<{ id: number }> {
     await this.dataSource.query(
       `DELETE FROM infraestructura.facultades WHERE id = $1`,

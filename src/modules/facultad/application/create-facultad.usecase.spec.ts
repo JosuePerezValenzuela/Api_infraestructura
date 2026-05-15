@@ -8,7 +8,6 @@ import type { CampusRepositoryPort as CampusRepositoryPortType } from '../../cam
 
 // Definimos una interfaz local que describe como esperamos que sea el puerto de repositorio de facultades.
 interface FakeFacultadRepositoryPort {
-  // Metodo que debera crear la facultad en la base de datos.
   create: jest.Mock<
     Promise<{ id: number }>,
     [
@@ -17,11 +16,9 @@ interface FakeFacultadRepositoryPort {
         nombre: string;
         nombre_corto: string | null;
         campus_ids: number[];
-        pointLiteral: string;
       },
     ]
   >;
-  // Metodo que verifica si un codigo esta ocupado.
   isCodeTaken: jest.Mock<Promise<boolean>, [string]>;
 }
 
@@ -81,8 +78,6 @@ describe('CreateFacultadUseCase', () => {
       codigo: 'FCYT-01',
       nombre: 'Facultad de Ciencias y Tecnologia',
       nombre_corto: 'FCyT',
-      lat: -17.3939,
-      lng: -66.15,
       campus_ids: [1, 2],
     };
     // Ejecutamos el caso de uso con los datos de entrada.
@@ -102,7 +97,6 @@ describe('CreateFacultadUseCase', () => {
       nombre: 'Facultad de Ciencias y Tecnologia',
       nombre_corto: 'FCyT',
       campus_ids: [1, 2],
-      pointLiteral: '-66.15,-17.3939',
     });
     // Verificamos que el caso de uso devuelva el identificador proporcionado por el repositorio.
     expect(resultado).toEqual({ id: 42 });
@@ -117,8 +111,6 @@ describe('CreateFacultadUseCase', () => {
       codigo: 'FCYT-01',
       nombre: 'Facultad de Ciencias y Tecnologia',
       nombre_corto: 'FCyT',
-      lat: -17.3939,
-      lng: -66.15,
       campus_ids: [1],
     };
     // Ejecutamos el caso de uso y esperamos que se rechace con una ConflictException.
@@ -136,8 +128,6 @@ describe('CreateFacultadUseCase', () => {
       codigo: 'FCYT-01',
       nombre: 'Facultad de Ciencias y Tecnologia',
       nombre_corto: 'FCyT',
-      lat: -17.3939,
-      lng: -66.15,
       campus_ids: [1, 999],
     };
     // Ejecutamos el caso de uso y esperamos un rechazo con BadRequestException.

@@ -28,7 +28,7 @@ export class UpdateFacultadUseCase {
     id,
     input,
   }: UpdateFacultadesInputAndId): Promise<{ id: number }> {
-    //Verificacion de que este id existe
+    // Verificacion de que este id existe
     const current: facultadCompleta | null =
       await this.facultadRepo.findById(id);
     if (!current) {
@@ -39,13 +39,11 @@ export class UpdateFacultadUseCase {
       });
     }
 
-    //No permitir actualizaciones vacias
+    // No permitir actualizaciones vacias
     if (
       input.codigo === undefined &&
       input.nombre === undefined &&
       input.nombre_corto === undefined &&
-      input.lng === undefined &&
-      input.lat === undefined &&
       input.activo === undefined &&
       input.campus_ids === undefined
     ) {
@@ -56,23 +54,10 @@ export class UpdateFacultadUseCase {
       });
     }
 
-    //Normalizamos las entradas
+    // Normalizamos las entradas
     input.codigo = input.codigo?.trim();
     input.nombre = input.nombre?.trim();
     input.nombre_corto = input.nombre_corto?.trim();
-
-    //Validamos la latitud y longitud
-    const latProvided = typeof input.lat === 'number';
-    const lngProvided = typeof input.lng === 'number';
-    if (latProvided !== lngProvided) {
-      throw new BadRequestException({
-        error: 'VALIDATION_ERROR',
-        message: 'Los datos enviados no son validos',
-        details: [
-          { field: 'lat y/o lng', message: 'Debe enviar lat y lng juntos' },
-        ],
-      });
-    }
 
     // El nuevo codigo es unico?
     if (input.codigo) {

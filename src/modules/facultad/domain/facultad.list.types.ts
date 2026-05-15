@@ -5,12 +5,11 @@ export interface facultadCompleta {
   codigo: string;
   nombre: string;
   nombre_corto: string | null;
-  lat: number;
-  lng: number;
   activo: boolean;
   campus_id: number | null;
   campus_ids: number[];
 }
+
 export interface ListFacultadesQuery {
   page: number;
   take: number;
@@ -34,8 +33,6 @@ export interface ListFacultadesItem {
   campuses: CampusInfo[];
   activo: boolean;
   creado_en: string;
-  lat: number;
-  lng: number;
 }
 
 export interface ListFacultadesMeta {
@@ -55,8 +52,6 @@ export interface UpdateFacultadesInput {
   codigo?: string;
   nombre?: string;
   nombre_corto?: string;
-  lat?: number;
-  lng?: number;
   activo?: boolean;
   campus_ids?: number[];
 }
