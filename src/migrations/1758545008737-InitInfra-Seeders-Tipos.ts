@@ -10,36 +10,39 @@ export class InitInfraSeedersTipos1758545008737 implements MigrationInterface {
 -- Tipo de Bloques
 INSERT INTO infraestructura.tipo_bloques (nombre, descripcion)
 VALUES
-  ('Aulas', 'Bloque con aulas para clases convencionales'),
-  ('Laboratorios de computacion', 'Bloque equipados para practicas de computacion'),
-  ('Servicios estudiantiles', 'Edificios que brindando servicios de bienestar y apoyo al estudiante'),
-  ('Canchas de Futbol 5', 'Canchas de cemento'),
-  ('Laboratorios basicos', 'Ambiente que tiene laboratorios basicos de FCyT'),
-  ('Talleres de carpinteria', 'Aula para carpinteria'),
-  ('Administracion', 'Edificio administrativo'),
-  ('Talleres', 'Edificio de talleres'),
-  ('Laboratorio de suelos', 'Laboratorio suelos'),
-  ('Laboratorios de hidraulica', 'Laboratorio de hidraulica'),
-  ('Departamento', 'Departamento de carrera'),
-  ('Anfiteatro', 'Anfiteatro'),
-  ('Comedor', 'Comedor'),
-  ('Aula Magna', 'Aula Magna'),
-  ('Salas audiovisuales', 'Salas audiovisuales');
+  ('Edif. Aulas', 'Edificio de aulas con pizarra'),
+  ('Lab. Computacion', 'Laboratorios de computacion'),
+  ('Edif. Administrativo', 'Edificios de servicios administrativos'),
+  ('Tall. Carpinteria', 'Talleres de carpinteria'),
+  ('Tinglados', 'Ambientes grandes con tinglado'),
+  ('Departamento', 'Departamentos'),
+  ('Edif. Mixto', 'Edificio que ofrece distintos servicios y/o distintos tipos de aulas'),
+  ('Anfiteatro', 'Anfiteatros'),
+  ('Comedor', 'Comedores'),
+  ('Tall. Forestales', 'Talleres Forestales'),
+  ('Edif. Cientifico', 'Edificio de investigacion/produccion cientifica'),
+  ('Aula Magna', 'Aulas Magna'),
+  ('Sala Audiovisual', 'Salas Audiovisuales'),
+  ('Lab. Basicos', 'Laboratorios basicos'),
+  ('Otro', 'Otros'),
+  ('Aprisco', 'Apriscos'),
+  ('Lab. Suelos', 'Laboratorios de suelos');
 
 -- Tipo de Ambientes
 INSERT INTO infraestructura.tipo_ambientes (nombre, descripcion, descripcion_corta)
 VALUES
-  ('Oficina', 'Ambiente de tipo oficina', NULL),
-  ('Aula', 'Ambiente para clases normales', 'Clases normales'),
-  ('Salon auditorium', 'Ambiente de tipo auditorium', NULL),
-  ('Laboratorio', 'Laboratorio comun', NULL),
-  ('Taller', 'Taller', NULL),
-  ('Biblioteca', 'Ambiente para solicitar libros', NULL),
+  ('Aula', 'Aula de clases', NULL),
+  ('Salon Auditorio', 'Salon de auditorio', 'Clases normales'),
+  ('Laboratorio', 'Aula tipo laboratorio', NULL),
   ('Anfiteatro', 'Anfiteatro', NULL),
-  ('Quirofano', 'Ambiente de practicas', NULL),
-  ('Clinica', 'Ambiente para practicas', NULL),
-  ('Otro', 'Otro', 'Otro'),
-  ('Establo', 'Ambiente grande', NULL);
+  ('Comunidad', 'Comunidad', NULL),
+  ('Taller', 'Aula tipo taller', NULL),
+  ('Oficina', 'Ambiente tipo oficina', NULL),
+  ('Otro', 'Otros', NULL),
+  ('Biblioteca', 'Biblioteca', NULL),
+  ('Establo', 'Establo', NULL),
+  ('Clinica', 'Clinicas', 'Otro'),
+  ('Quirofano', 'Quirofanos', NULL);
     `);
   }
 
