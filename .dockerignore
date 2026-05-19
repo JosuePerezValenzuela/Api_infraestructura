@@ -1,0 +1,34 @@
+# Dependencies
+node_modules
+
+# Build outputs (we rebuild in Docker)
+dist
+
+# Development files
+.git
+.gitignore
+*.md
+README*
+
+# Test coverage
+coverage
+*.log
+
+# IDE
+.idea
+.vscode
+
+# Environment files (keep .env.example, ignore .env)
+.env
+
+# Docker files (avoid recursive inclusion)
+Dockerfile
+Dockerfile.dev
+docker-compose.yml
+.dockerignore
+
+# Misc
+.DS_Store
+*.tmp
+temp/
+be.infra.umss.net/
