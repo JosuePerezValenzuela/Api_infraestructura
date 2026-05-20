@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+coverage
+*.log
+.idea
+.vscode
+.env
+*.tmp
+.DS_Store
+be.infra.umss.net/
+.devcontainer/
+docker/dev/

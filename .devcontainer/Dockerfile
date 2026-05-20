@@ -19,4 +19,4 @@ WORKDIR /workspace
 
 EXPOSE 3002 9229
 
-CMD ["sleep", "infinity"]
+CMD ["sh"]
