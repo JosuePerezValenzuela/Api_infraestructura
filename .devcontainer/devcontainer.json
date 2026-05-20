@@ -12,7 +12,6 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "firsttris.vscode-jest-runner",
-        "mtxr.sqltools",
         "usernamehw.errorlens"
       ],
       "settings": {
@@ -27,6 +26,9 @@
       }
     }
   },
-  "forwardPorts": [3002, 9229],
-  "postCreateCommand": "pnpm install"
+  "forwardPorts": [
+    3002,
+    9229
+  ],
+  "postCreateCommand": "bash -c 'pnpm install'"
 }

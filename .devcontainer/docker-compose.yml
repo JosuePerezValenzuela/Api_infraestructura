@@ -23,8 +23,8 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     container_name: infraestructura-api-dev
-    restart: unless-stopped
     user: node
+    tty: true
     ports:
       - '${PORT:-3002}:${PORT:-3002}'
     env_file:
@@ -34,11 +34,13 @@ services:
       DB_HOST: postgres
     volumes:
       - ..:/workspace:cached
-      - /workspace/node_modules
+      - pnpm_store:/home/node/.local/share/pnpm
     depends_on:
       postgres:
         condition: service_healthy
 
 volumes:
   postgres_dev_data:
+    driver: local
+  pnpm_store:
     driver: local
