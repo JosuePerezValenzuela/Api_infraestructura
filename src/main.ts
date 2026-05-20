@@ -14,7 +14,7 @@ async function bootstrap() {
     .get<string>('CORS_ORIGINS')
     ?.split(',')
     .map((o) => o.trim())
-    .filter(Boolean) ?? ['http://localhost:3000', 'http://localhost:3001'];
+    .filter(Boolean) ?? ['http://localhost:8000', 'http://localhost:3001'];
   const prefix = cfg.get<string>('GLOBAL_PREFIX') ?? 'api';
   const baseUrl = cfg.get<string>('API_BASE_URL') ?? `http://localhost:${port}`;
   //Seguridad HTTP
