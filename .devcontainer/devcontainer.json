@@ -1,10 +1,11 @@
 {
   "name": "Infraestructura API - Development",
   "dockerComposeFile": [
-    "../docker-compose.yml"
+    "docker-compose.yml"
   ],
   "service": "app",
-  "workspaceFolder": "/workspaces/Api_infraestructura",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "node",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -26,6 +27,6 @@
       }
     }
   },
-  "forwardPorts": [3000, 9229],
+  "forwardPorts": [3002, 9229],
   "postCreateCommand": "pnpm install"
 }

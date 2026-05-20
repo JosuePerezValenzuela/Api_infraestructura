@@ -1,7 +1,0 @@
-ignoredBuiltDependencies:
-  - canvas
-
-onlyBuiltDependencies:
-  - '@nestjs/core'
-  - '@scarf/scarf'
-  - unrs-resolver
