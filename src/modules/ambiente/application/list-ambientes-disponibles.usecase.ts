@@ -104,8 +104,8 @@ export class ListAmbientesDisponiblesUseCase {
     if (!Number.isInteger(page) || page < 1) {
       error('page', 'Debe ser un entero mayor o igual a 1');
     }
-    if (!Number.isInteger(take) || take < 1 || take > 50) {
-      error('take', 'Debe ser un entero entre 1 y 50');
+    if (!Number.isInteger(take) || take < 1 || take > 1000) {
+      error('take', 'Debe ser un entero entre 1 y 1000');
     }
 
     const orderBy = input.orderBy ?? 'nombre';

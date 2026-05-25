@@ -248,7 +248,7 @@ export class ListAmbientesDisponiblesQueryDto {
   @ApiPropertyOptional({
     description: 'Cantidad de registros por pagina',
     minimum: 1,
-    maximum: 50,
+    maximum: 1000,
     default: 10,
     example: 10,
   })
@@ -256,7 +256,7 @@ export class ListAmbientesDisponiblesQueryDto {
   @IsOptional()
   @IsInt({ message: 'take debe ser un entero' })
   @Min(1, { message: 'take debe ser mayor o igual a 1' })
-  @Max(50, { message: 'take no puede superar 50' })
+  @Max(1000, { message: 'take no puede superar 1000' })
   take?: number;
 
   @ApiPropertyOptional({
