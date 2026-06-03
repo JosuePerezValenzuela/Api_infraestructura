@@ -30,8 +30,20 @@
 
 ## Container Execution
 
-- El proyecto corre dentro de un devcontainer. **Todos los comandos del proyecto** (pnpm install, build, lint, test, format, migration, etc.) se ejecutan **dentro del contenedor `app`**, no en la máquina host.
-- Para ejecutar comandos dentro del contenedor: `docker compose -f .devcontainer/docker-compose.yml exec app <comando>`.
+- El proyecto corre dentro de un devcontainer (VS Code "Reopen in Container"). **Todos los comandos del proyecto** (pnpm install, build, lint, test, format, migration, etc.) se ejecutan **dentro del contenedor `app`**, no en la máquina host.
+- VS Code levanta el compose automáticamente con el nombre de proyecto `api_infraestructura_devcontainer`. NO ejecutar `docker compose -f .devcontainer/docker-compose.yml` porque crea un stack separado.
+- Para ejecutar comandos dentro del contenedor, usar:
+
+  **Opción B (directo por nombre de contenedor):**
+
+  ```
+  docker exec infraestructura-api-dev <comando>
+  ```
+
+- Los servicios del stack son:
+  - `infraestructura-api-dev` — App NestJS
+  - `infraestructura-db-dev` — PostgreSQL 16
+  - `infraestructura-redis-dev` — Redis 7 (Alpine 3.23)
 
 ## Build, Test, and Development Commands
 

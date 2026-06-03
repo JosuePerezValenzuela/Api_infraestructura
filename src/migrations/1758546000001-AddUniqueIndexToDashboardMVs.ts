@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddUniqueIndexToDashboardMVs1758546000001
-  implements MigrationInterface
-{
+export class AddUniqueIndexToDashboardMVs1758546000001 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Índice único para MV de campus_resumen (necesario para REFRESH CONCURRENTLY)
     await queryRunner.query(`

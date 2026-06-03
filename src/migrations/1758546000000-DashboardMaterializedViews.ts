@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class DashboardMaterializedViews1758546000000
-  implements MigrationInterface
-{
+export class DashboardMaterializedViews1758546000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Vista materializada para dashboard global de campus (resumen - sin filtro de activo)
     await queryRunner.query(`
@@ -80,9 +78,17 @@ export class DashboardMaterializedViews1758546000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP MATERIALIZED VIEW IF EXISTS mv_dashboard_campus_resumen`);
-    await queryRunner.query(`DROP MATERIALIZED VIEW IF EXISTS mv_dashboard_tipos_bloque`);
-    await queryRunner.query(`DROP MATERIALIZED VIEW IF EXISTS mv_dashboard_tipos_ambiente`);
-    await queryRunner.query(`DROP MATERIALIZED VIEW IF EXISTS mv_dashboard_activos_no_asignados`);
+    await queryRunner.query(
+      `DROP MATERIALIZED VIEW IF EXISTS mv_dashboard_campus_resumen`,
+    );
+    await queryRunner.query(
+      `DROP MATERIALIZED VIEW IF EXISTS mv_dashboard_tipos_bloque`,
+    );
+    await queryRunner.query(
+      `DROP MATERIALIZED VIEW IF EXISTS mv_dashboard_tipos_ambiente`,
+    );
+    await queryRunner.query(
+      `DROP MATERIALIZED VIEW IF EXISTS mv_dashboard_activos_no_asignados`,
+    );
   }
 }
