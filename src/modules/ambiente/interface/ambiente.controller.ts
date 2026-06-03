@@ -519,9 +519,14 @@ export class AmbienteController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Elimina un ambiente por ID (delete físico)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del ambiente a eliminar' })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID del ambiente a eliminar',
+  })
   @ApiNoContentResponse({
-    description: 'El ambiente fue eliminado físicamente (sin cuerpo en respuesta)',
+    description:
+      'El ambiente fue eliminado físicamente (sin cuerpo en respuesta)',
   })
   @ApiNotFoundResponse({
     description: 'Ambiente no encontrado',
@@ -540,7 +545,10 @@ export class AmbienteController {
       if (err instanceof NotFoundException) {
         throw new HttpException(err.getResponse(), HttpStatus.NOT_FOUND);
       }
-      throw new HttpException('Error interno', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Error interno',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 

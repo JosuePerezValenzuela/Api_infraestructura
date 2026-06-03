@@ -51,16 +51,46 @@ describe('DashboardCampusTypeormRepository.getGlobalDashboard', () => {
 
     // Mock 2: Tipos de bloque por campus
     const tiposBloqueRows = [
-      { campus_id: 1, campus_nombre: 'Campus A', tipo_bloque_nombre: 'A', cantidad: 2 },
-      { campus_id: 1, campus_nombre: 'Campus A', tipo_bloque_nombre: 'B', cantidad: 1 },
-      { campus_id: 2, campus_nombre: 'Campus B', tipo_bloque_nombre: 'A', cantidad: 2 },
+      {
+        campus_id: 1,
+        campus_nombre: 'Campus A',
+        tipo_bloque_nombre: 'A',
+        cantidad: 2,
+      },
+      {
+        campus_id: 1,
+        campus_nombre: 'Campus A',
+        tipo_bloque_nombre: 'B',
+        cantidad: 1,
+      },
+      {
+        campus_id: 2,
+        campus_nombre: 'Campus B',
+        tipo_bloque_nombre: 'A',
+        cantidad: 2,
+      },
     ];
 
     // Mock 3: Tipos de ambiente por campus
     const tiposAmbienteRows = [
-      { campus_id: 1, campus_nombre: 'Campus A', tipo_ambiente_nombre: 'Aula', cantidad: 3 },
-      { campus_id: 1, campus_nombre: 'Campus A', tipo_ambiente_nombre: 'Laboratorio', cantidad: 2 },
-      { campus_id: 2, campus_nombre: 'Campus B', tipo_ambiente_nombre: 'Aula', cantidad: 3 },
+      {
+        campus_id: 1,
+        campus_nombre: 'Campus A',
+        tipo_ambiente_nombre: 'Aula',
+        cantidad: 3,
+      },
+      {
+        campus_id: 1,
+        campus_nombre: 'Campus A',
+        tipo_ambiente_nombre: 'Laboratorio',
+        cantidad: 2,
+      },
+      {
+        campus_id: 2,
+        campus_nombre: 'Campus B',
+        tipo_ambiente_nombre: 'Aula',
+        cantidad: 3,
+      },
     ];
 
     // Mock 4: Activos sin asignar (la MV tiene columna 'cantidad')
@@ -72,7 +102,9 @@ describe('DashboardCampusTypeormRepository.getGlobalDashboard', () => {
     (dataSource.query as jest.Mock).mockResolvedValueOnce(tiposAmbienteRows);
     (dataSource.query as jest.Mock).mockResolvedValueOnce(unassignedRows);
 
-    const repo = new DashboardCampusTypeormRepository(dataSource as unknown as DataSource);
+    const repo = new DashboardCampusTypeormRepository(
+      dataSource as unknown as DataSource,
+    );
 
     const result = await repo.getGlobalDashboard({
       campusIds: [1, 2],
@@ -80,13 +112,32 @@ describe('DashboardCampusTypeormRepository.getGlobalDashboard', () => {
     });
 
     // Filtros aplicados
-    expect(result.filtersApplied).toEqual({ campusIds: [1, 2], includeInactive: true });
+    expect(result.filtersApplied).toEqual({
+      campusIds: [1, 2],
+      includeInactive: true,
+    });
 
     // KPIs con nueva estructura (total, activos, inactivos)
-    expect(result.data.kpis.campus).toEqual({ total: 2, activos: 1, inactivos: 1 });
-    expect(result.data.kpis.facultades).toEqual({ total: 3, activos: 2, inactivos: 1 });
-    expect(result.data.kpis.bloques).toEqual({ total: 5, activos: 3, inactivos: 2 });
-    expect(result.data.kpis.ambientes).toEqual({ total: 8, activos: 5, inactivos: 3 });
+    expect(result.data.kpis.campus).toEqual({
+      total: 2,
+      activos: 1,
+      inactivos: 1,
+    });
+    expect(result.data.kpis.facultades).toEqual({
+      total: 3,
+      activos: 2,
+      inactivos: 1,
+    });
+    expect(result.data.kpis.bloques).toEqual({
+      total: 5,
+      activos: 3,
+      inactivos: 2,
+    });
+    expect(result.data.kpis.ambientes).toEqual({
+      total: 8,
+      activos: 5,
+      inactivos: 3,
+    });
     expect(result.data.kpis.capacidad).toEqual({ total: 150, examen: 90 });
     expect(result.data.kpis.activos).toEqual({ asignados: 15, sinAsignar: 4 });
 
@@ -125,9 +176,14 @@ describe('DashboardCampusTypeormRepository.getDetailDashboard', () => {
     const dataSource = makeMockDataSource();
     (dataSource.query as jest.Mock).mockResolvedValueOnce([]);
 
-    const repo = new DashboardCampusTypeormRepository(dataSource as unknown as DataSource);
+    const repo = new DashboardCampusTypeormRepository(
+      dataSource as unknown as DataSource,
+    );
 
-    const result = await repo.getDetailDashboard({ campusId: 99, includeInactive: false });
+    const result = await repo.getDetailDashboard({
+      campusId: 99,
+      includeInactive: false,
+    });
 
     expect(result).toBeNull();
   });
@@ -135,7 +191,9 @@ describe('DashboardCampusTypeormRepository.getDetailDashboard', () => {
   it('mapea el detalle del campus con KPIs, charts y porFacultad', async () => {
     const dataSource = makeMockDataSource();
     // 1) Campus base
-    (dataSource.query as jest.Mock).mockResolvedValueOnce([{ id: 10, nombre: 'Campus X', activo: true }]);
+    (dataSource.query as jest.Mock).mockResolvedValueOnce([
+      { id: 10, nombre: 'Campus X', activo: true },
+    ]);
     // 2) Resumen/KPIs desde MV
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
       {
@@ -158,11 +216,23 @@ describe('DashboardCampusTypeormRepository.getDetailDashboard', () => {
     ]);
     // 3) Tipos de bloque desde MV
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      { campus_id: 10, campus_nombre: 'Campus X', tipo_bloque_id: 1, tipo_bloque_nombre: 'Acad', cantidad: 2 },
+      {
+        campus_id: 10,
+        campus_nombre: 'Campus X',
+        tipo_bloque_id: 1,
+        tipo_bloque_nombre: 'Acad',
+        cantidad: 2,
+      },
     ]);
     // 4) Tipos de ambiente desde MV
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      { campus_id: 10, campus_nombre: 'Campus X', tipo_ambiente_id: 5, tipo_ambiente_nombre: 'Aula', cantidad: 4 },
+      {
+        campus_id: 10,
+        campus_nombre: 'Campus X',
+        tipo_ambiente_id: 5,
+        tipo_ambiente_nombre: 'Aula',
+        cantidad: 4,
+      },
     ]);
     // 5) Por facultad (query directo)
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
@@ -179,16 +249,36 @@ describe('DashboardCampusTypeormRepository.getDetailDashboard', () => {
     // 6) Activos no asignados globales (desde MV)
     (dataSource.query as jest.Mock).mockResolvedValueOnce([{ cantidad: 3 }]);
 
-    const repo = new DashboardCampusTypeormRepository(dataSource as unknown as DataSource);
+    const repo = new DashboardCampusTypeormRepository(
+      dataSource as unknown as DataSource,
+    );
 
-    const result = await repo.getDetailDashboard({ campusId: 10, includeInactive: true });
+    const result = await repo.getDetailDashboard({
+      campusId: 10,
+      includeInactive: true,
+    });
 
-    expect(result?.data.campus).toEqual({ id: 10, nombre: 'Campus X', activo: true });
+    expect(result?.data.campus).toEqual({
+      id: 10,
+      nombre: 'Campus X',
+      activo: true,
+    });
     expect(result?.data.kpis.ambientes).toEqual({ activos: 5, inactivos: 1 });
     expect(result?.data.kpis.capacidad).toEqual({ total: 300, examen: 200 });
-    expect(result?.data.kpis.activos).toEqual({ asignados: 40, noAsignadosGlobal: 3 });
-    expect(result?.data.charts.tiposBloque[0]).toEqual({ tipoBloqueId: 1, tipoBloqueNombre: 'Acad', cantidad: 2 });
-    expect(result?.data.charts.tiposAmbiente[0]).toEqual({ tipoAmbienteId: 5, tipoAmbienteNombre: 'Aula', cantidad: 4 });
+    expect(result?.data.kpis.activos).toEqual({
+      asignados: 40,
+      noAsignadosGlobal: 3,
+    });
+    expect(result?.data.charts.tiposBloque[0]).toEqual({
+      tipoBloqueId: 1,
+      tipoBloqueNombre: 'Acad',
+      cantidad: 2,
+    });
+    expect(result?.data.charts.tiposAmbiente[0]).toEqual({
+      tipoAmbienteId: 5,
+      tipoAmbienteNombre: 'Aula',
+      cantidad: 4,
+    });
     expect(result?.data.porFacultad).toHaveLength(1);
     expect(result?.data.porFacultad[0]).toMatchObject({
       id: 1,

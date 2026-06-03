@@ -29,7 +29,8 @@ export class DeleteBloqueUseCase {
     if (relatedAmbientes.length > 0) {
       throw new ConflictException({
         error: 'CONFLICT_ERROR',
-        message: 'No se puede eliminar el bloque porque tiene ambientes dependientes',
+        message:
+          'No se puede eliminar el bloque porque tiene ambientes dependientes',
         details: relatedAmbientes.map((a) => ({
           field: 'ambientes',
           message: `Ambiente "${a.nombre}" (${a.codigo}) de tipo "${a.tipo_ambiente_nombre}"`,

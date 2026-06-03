@@ -65,10 +65,30 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
     ]);
     // 5) Distribuciones - tipos de ambiente por bloque
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
-      { bloque_id: '101', bloque_nombre: 'Bloque A', tipo_ambiente_nombre: 'Aula', cantidad: '6' },
-      { bloque_id: '101', bloque_nombre: 'Bloque A', tipo_ambiente_nombre: 'Laboratorio', cantidad: '3' },
-      { bloque_id: '102', bloque_nombre: 'Bloque B', tipo_ambiente_nombre: 'Aula', cantidad: '8' },
-      { bloque_id: '102', bloque_nombre: 'Bloque B', tipo_ambiente_nombre: 'Auditorio', cantidad: '3' },
+      {
+        bloque_id: '101',
+        bloque_nombre: 'Bloque A',
+        tipo_ambiente_nombre: 'Aula',
+        cantidad: '6',
+      },
+      {
+        bloque_id: '101',
+        bloque_nombre: 'Bloque A',
+        tipo_ambiente_nombre: 'Laboratorio',
+        cantidad: '3',
+      },
+      {
+        bloque_id: '102',
+        bloque_nombre: 'Bloque B',
+        tipo_ambiente_nombre: 'Aula',
+        cantidad: '8',
+      },
+      {
+        bloque_id: '102',
+        bloque_nombre: 'Bloque B',
+        tipo_ambiente_nombre: 'Auditorio',
+        cantidad: '3',
+      },
     ]);
     // 6) Por bloque
     (dataSource.query as jest.Mock).mockResolvedValueOnce([
@@ -107,7 +127,10 @@ describe('DashboardFacultadTypeormRepository.getDetailDashboard', () => {
 
     expect(result?.schemaVersion).toBe(2);
     expect(result?.layout).toEqual({ mode: 'detail' });
-    expect(result?.filtersApplied).toEqual({ facultadId: 22, includeInactive: true });
+    expect(result?.filtersApplied).toEqual({
+      facultadId: 22,
+      includeInactive: true,
+    });
     expect(result?.data.facultad).toEqual({
       id: 22,
       nombre: 'Facultad de Ingeniería',

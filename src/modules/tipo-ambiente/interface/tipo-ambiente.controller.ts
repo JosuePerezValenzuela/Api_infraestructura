@@ -323,9 +323,7 @@ export class TipoAmbienteController {
     description: 'Tipo de ambiente eliminado correctamente',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<void> {
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.deleteTipoAmbienteUseCase.execute({ id });
   }
 }

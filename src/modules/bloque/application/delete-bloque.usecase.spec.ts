@@ -2,7 +2,10 @@
 
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { DeleteBloqueUseCase } from './delete-bloque.usecase';
-import type { BloqueRepositoryPort, RelatedAmbiente } from '../domain/bloque.repository.port';
+import type {
+  BloqueRepositoryPort,
+  RelatedAmbiente,
+} from '../domain/bloque.repository.port';
 
 interface FakeBloqueRepositoryPort {
   findById: jest.Mock<Promise<{ id: number; codigo: string } | null>, [number]>;

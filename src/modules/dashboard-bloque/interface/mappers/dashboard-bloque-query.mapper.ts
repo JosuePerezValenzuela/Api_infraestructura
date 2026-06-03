@@ -8,7 +8,11 @@ export class DashboardBloqueQueryMapper {
     query: DashboardBloqueDetailQueryDto,
   ): DashboardBloqueDetailFilters {
     const bloqueId = Number(bloqueIdRaw);
-    if (Number.isNaN(bloqueId) || !Number.isInteger(bloqueId) || bloqueId <= 0) {
+    if (
+      Number.isNaN(bloqueId) ||
+      !Number.isInteger(bloqueId) ||
+      bloqueId <= 0
+    ) {
       throw this.buildValidationException(
         'bloqueId',
         'El parámetro bloqueId debe ser un entero positivo',

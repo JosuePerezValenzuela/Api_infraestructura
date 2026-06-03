@@ -50,7 +50,8 @@ export class DashboardCampusController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Dashboard global con KPIs, rankings, distribuciones y lista por campus',
+    description:
+      'Dashboard global con KPIs, rankings, distribuciones y lista por campus',
     schema: {
       example: {
         schemaVersion: 1,
@@ -200,12 +201,24 @@ export class DashboardCampusController {
           charts: {
             tiposBloque: [
               { tipoBloqueId: 1, tipoBloqueNombre: 'Academico', cantidad: 8 },
-              { tipoBloqueId: 2, tipoBloqueNombre: 'Administrativo', cantidad: 4 },
+              {
+                tipoBloqueId: 2,
+                tipoBloqueNombre: 'Administrativo',
+                cantidad: 4,
+              },
             ],
             tiposAmbiente: [
               { tipoAmbienteId: 3, tipoAmbienteNombre: 'Aula', cantidad: 25 },
-              { tipoAmbienteId: 5, tipoAmbienteNombre: 'Laboratorio', cantidad: 10 },
-              { tipoAmbienteId: 7, tipoAmbienteNombre: 'Auditorio', cantidad: 5 },
+              {
+                tipoAmbienteId: 5,
+                tipoAmbienteNombre: 'Laboratorio',
+                cantidad: 10,
+              },
+              {
+                tipoAmbienteId: 7,
+                tipoAmbienteNombre: 'Auditorio',
+                cantidad: 5,
+              },
             ],
           },
           porFacultad: [

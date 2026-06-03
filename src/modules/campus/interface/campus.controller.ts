@@ -172,9 +172,14 @@ export class CampusController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Elimina un campus por ID (delete físico)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del campus a eliminar' })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID del campus a eliminar',
+  })
   @ApiNoContentResponse({
-    description: 'El campus fue eliminado físicamente (sin cuerpo en respuesta)',
+    description:
+      'El campus fue eliminado físicamente (sin cuerpo en respuesta)',
   })
   @ApiNotFoundResponse({
     description: 'Campus no encontrado',
@@ -191,7 +196,8 @@ export class CampusController {
     schema: {
       example: {
         error: 'CONFLICT_ERROR',
-        message: 'No se puede eliminar el campus porque tiene facultades relacionadas',
+        message:
+          'No se puede eliminar el campus porque tiene facultades relacionadas',
         details: [
           {
             field: 'facultades',

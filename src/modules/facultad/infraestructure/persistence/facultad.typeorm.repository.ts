@@ -45,7 +45,10 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
 
     const params = [data.codigo, data.nombre, data.nombre_corto];
 
-    const rows: Array<{ id: string }> = await this.dataSource.query(sql, params);
+    const rows: Array<{ id: string }> = await this.dataSource.query(
+      sql,
+      params,
+    );
 
     const [row] = rows;
     const facultadId = Number(row.id);
@@ -307,7 +310,7 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
         'SELECT campus_id FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND activo = true',
         [id],
       );
-      let currentCampusIds = currentRelations.map(
+      const currentCampusIds = currentRelations.map(
         (r: { campus_id: number }) => r.campus_id,
       );
 
@@ -332,7 +335,9 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
             const campusFacultadId = relToCheck[0].id;
 
             // Verificar si hay bloques que dependen de esta relación
-            const bloquesDependientes = await this.dataSource.query<Array<{ id: number; codigo: string; nombre: string }>>(
+            const bloquesDependientes = await this.dataSource.query<
+              Array<{ id: number; codigo: string; nombre: string }>
+            >(
               `SELECT id, codigo, nombre FROM infraestructura.bloques 
                WHERE campus_facultad_id = $1 AND activo = true`,
               [campusFacultadId],
@@ -341,7 +346,8 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
             if (bloquesDependientes.length > 0) {
               throw new BadRequestException({
                 error: 'CONFLICT_ERROR',
-                message: 'No se puede eliminar la relación con el campus porque existen bloques activos que dependen de ella',
+                message:
+                  'No se puede eliminar la relación con el campus porque existen bloques activos que dependen de ella',
                 details: bloquesDependientes.map((b) => ({
                   field: 'campus_ids',
                   message: `Bloque "${b.nombre}" (${b.codigo}) depende de esta relación`,
@@ -366,7 +372,9 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       // Crear nuevas relaciones o reactivar existentes
       if (toAdd.length > 0) {
         for (const campusId of toAdd) {
-          const existingRel = await this.dataSource.query<Array<{ id: number; activo: boolean }>>(
+          const existingRel = await this.dataSource.query<
+            Array<{ id: number; activo: boolean }>
+          >(
             `SELECT id, activo FROM infraestructura.campus_facultades 
              WHERE facultad_id = $1 AND campus_id = $2`,
             [id, campusId],
@@ -413,7 +421,9 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     return rows.length > 0 ? { id: rows[0].id } : null;
   }
 
-  async findBlocksByCampusFacultadId(campus_facultadId: number): Promise<RelatedBlock[]> {
+  async findBlocksByCampusFacultadId(
+    campus_facultadId: number,
+  ): Promise<RelatedBlock[]> {
     const sql = `
       SELECT
         b.id,
@@ -427,11 +437,16 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
       INNER JOIN infraestructura.campus c ON c.id = cf.campus_id
       WHERE cf.id = $1
     `;
-    const rows = await this.dataSource.query<RelatedBlock[]>(sql, [campus_facultadId]);
+    const rows = await this.dataSource.query<RelatedBlock[]>(sql, [
+      campus_facultadId,
+    ]);
     return rows;
   }
 
-  async deleteRelationship(facultadId: number, campusId: number): Promise<{ id: number }> {
+  async deleteRelationship(
+    facultadId: number,
+    campusId: number,
+  ): Promise<{ id: number }> {
     await this.dataSource.query(
       `DELETE FROM infraestructura.campus_facultades WHERE facultad_id = $1 AND campus_id = $2`,
       [facultadId, campusId],
@@ -439,7 +454,10 @@ export class TypeormFacultadRepository implements FacultadRepositoryPort {
     return { id: facultadId };
   }
 
-  async hasOtherRelationships(facultadId: number, excludeCampusId: number): Promise<boolean> {
+  async hasOtherRelationships(
+    facultadId: number,
+    excludeCampusId: number,
+  ): Promise<boolean> {
     const rows = await this.dataSource.query<Array<{ count: string }>>(
       `SELECT COUNT(*) as count
        FROM infraestructura.campus_facultades

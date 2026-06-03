@@ -93,7 +93,10 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
     );
 
     // Agrupar por campus_facultad_id (que identifica la relación campus-facultad)
-    const bloquesByCampusFacultad = this.groupBy(bloques, (b) => b.campus_facultad_id);
+    const bloquesByCampusFacultad = this.groupBy(
+      bloques,
+      (b) => b.campus_facultad_id,
+    );
     const ambientesByBloque = this.groupBy(ambientes, (a) => a.bloque_id);
 
     // Crear vista de facultades, agrupando bloques por cada relación campus-facultad
@@ -159,7 +162,8 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
     }
 
     // Obtener TODAS las relaciones campus_facultades de esta facultad (puede estar en n campus)
-    const campusFacultades = await this.findCampusFacultadesByFacultad(facultad_id);
+    const campusFacultades =
+      await this.findCampusFacultadesByFacultad(facultad_id);
 
     if (campusFacultades.length === 0) {
       // La facultad no está asociada a ningún campus mediante campus_facultades
@@ -259,7 +263,9 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
 
   private async findFacultadHeader(
     facultad_id: number,
-  ): Promise<{ id: number; codigo: string; nombre: string; activo: boolean } | undefined> {
+  ): Promise<
+    { id: number; codigo: string; nombre: string; activo: boolean } | undefined
+  > {
     const result: unknown[] = await this.dataSource.query(
       `
       SELECT id, codigo, nombre, activo
@@ -269,7 +275,9 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
     `,
       [facultad_id],
     );
-    const row = result[0] as { id: number; codigo: string; nombre: string; activo: boolean } | undefined;
+    const row = result[0] as
+      | { id: number; codigo: string; nombre: string; activo: boolean }
+      | undefined;
     return row;
   }
 
@@ -299,7 +307,9 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
   /**
    * Obtiene las relaciones campus_facultades activas para un campus específico
    */
-  private async findCampusFacultades(campus_id: number): Promise<CampusFacultadRow[]> {
+  private async findCampusFacultades(
+    campus_id: number,
+  ): Promise<CampusFacultadRow[]> {
     const result: unknown[] = await this.dataSource.query(
       `
       SELECT cf.id, cf.facultad_id, f.codigo, f.nombre, f.activo
@@ -316,7 +326,9 @@ export class InventarioReporteRepositoryAdapter implements InventarioReporteRepo
   /**
    * Obtiene las relaciones campus_facultades activas para una facultad específica
    */
-  private async findCampusFacultadesByFacultad(facultad_id: number): Promise<CampusFacultadRow[]> {
+  private async findCampusFacultadesByFacultad(
+    facultad_id: number,
+  ): Promise<CampusFacultadRow[]> {
     const result: unknown[] = await this.dataSource.query(
       `
       SELECT cf.id, cf.facultad_id, f.codigo, f.nombre, f.activo

@@ -2,7 +2,10 @@ import { Test } from '@nestjs/testing';
 import { Response } from 'express';
 import { ReportesController } from './reportes.controller';
 import { GenerarReporteInventarioService } from '../application/generar-reporte-inventario.service';
-import { ReporteFormato, ReporteScope } from './dto/generar-reporte-inventario.dto';
+import {
+  ReporteFormato,
+  ReporteScope,
+} from './dto/generar-reporte-inventario.dto';
 import { PassThrough } from 'stream';
 
 // Stub de Response que implementa writable stream para permitir pipe().

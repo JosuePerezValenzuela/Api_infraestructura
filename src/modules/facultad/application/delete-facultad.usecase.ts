@@ -14,7 +14,13 @@ export class DeleteFacultadUseCase {
     private readonly facultadRepo: FacultadRepositoryPort,
   ) {}
 
-  async execute({ id, campusId }: { id: number; campusId: number }): Promise<{ id: number; deletedFacultad?: boolean }> {
+  async execute({
+    id,
+    campusId,
+  }: {
+    id: number;
+    campusId: number;
+  }): Promise<{ id: number; deletedFacultad?: boolean }> {
     // 1. Verificar que la facultad exista
     const facultad = await this.facultadRepo.findById(id);
     if (!facultad) {
@@ -36,7 +42,10 @@ export class DeleteFacultadUseCase {
     }
 
     // 3. Verificar que la relación entre facultad y campus exista (activas o inactivas)
-    const relacion = await this.facultadRepo.findCampusFacultadRelationship(id, campusId);
+    const relacion = await this.facultadRepo.findCampusFacultadRelationship(
+      id,
+      campusId,
+    );
     if (!relacion) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
@@ -51,11 +60,14 @@ export class DeleteFacultadUseCase {
     }
 
     // 4. Verificar si hay bloques dependientes de esta relación específica
-    const relatedBlocks = await this.facultadRepo.findBlocksByCampusFacultadId(relacion.id);
+    const relatedBlocks = await this.facultadRepo.findBlocksByCampusFacultadId(
+      relacion.id,
+    );
     if (relatedBlocks.length > 0) {
       throw new ConflictException({
         error: 'CONFLICT_ERROR',
-        message: 'No se puede eliminar la relacion porque hay bloques dependientes',
+        message:
+          'No se puede eliminar la relacion porque hay bloques dependientes',
         details: relatedBlocks.map((b) => ({
           field: 'bloques',
           message: `Bloque "${b.nombre}" (${b.codigo}) depende de esta relacion`,
@@ -75,7 +87,10 @@ export class DeleteFacultadUseCase {
     await this.facultadRepo.deleteRelationship(id, campusId);
 
     // 6. Verificar si la facultad tiene otras relaciones (activas o inactivas)
-    const hasOtherRelations = await this.facultadRepo.hasOtherRelationships(id, campusId);
+    const hasOtherRelations = await this.facultadRepo.hasOtherRelationships(
+      id,
+      campusId,
+    );
 
     // Si no tiene más relaciones, eliminar la facultad también
     if (!hasOtherRelations) {

@@ -62,5 +62,10 @@ export type CampusView = {
 
 export type InventarioReporteViewModel =
   | { scope: 'campus'; campus: CampusView; facultad?: never; bloque?: never }
-  | { scope: 'facultad'; facultad: FacultadView; campus?: never; bloque?: never }
+  | {
+      scope: 'facultad';
+      facultad: FacultadView;
+      campus?: never;
+      bloque?: never;
+    }
   | { scope: 'bloque'; bloque: BloqueView; campus?: never; facultad?: never };

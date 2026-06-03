@@ -273,10 +273,7 @@ export class TypeormAmbienteRepository implements AmbienteRepositoryPort {
     }
 
     if (options.facultadId !== null) {
-      pushCondition(
-        (start) => `f.id = $${start}`,
-        [options.facultadId],
-      );
+      pushCondition((start) => `f.id = $${start}`, [options.facultadId]);
     }
 
     if (options.tipoAmbienteId !== null) {

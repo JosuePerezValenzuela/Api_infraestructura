@@ -1,4 +1,10 @@
-import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiOkResponse,
@@ -36,7 +42,8 @@ export class DashboardBloqueController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Dashboard detalle de un bloque con KPIs, charts y lista de ambientes',
+    description:
+      'Dashboard detalle de un bloque con KPIs, charts y lista de ambientes',
     schema: {
       example: {
         schemaVersion: 2,
@@ -99,7 +106,12 @@ export class DashboardBloqueController {
       example: {
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son válidos',
-        details: [{ field: 'bloqueId', message: 'El parámetro bloqueId debe ser un entero positivo' }],
+        details: [
+          {
+            field: 'bloqueId',
+            message: 'El parámetro bloqueId debe ser un entero positivo',
+          },
+        ],
       },
     },
   })

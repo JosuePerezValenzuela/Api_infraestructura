@@ -24,7 +24,8 @@ export class DeleteCampusUseCase {
     if (relatedFaculties.length > 0) {
       throw new ConflictException({
         error: 'CONFLICT_ERROR',
-        message: 'No se puede eliminar el campus porque tiene facultades relacionadas',
+        message:
+          'No se puede eliminar el campus porque tiene facultades relacionadas',
         details: relatedFaculties.map((f) => ({
           field: 'facultades',
           message: `Facultad "${f.nombre}" (${f.codigo}) está relacionada con este campus`,

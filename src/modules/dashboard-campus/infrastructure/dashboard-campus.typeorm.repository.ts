@@ -71,22 +71,8 @@ function mapCampusSummaryRows(raw: unknown[]): CampusSummaryRow[] {
   }));
 }
 
-/** Construye filtros dinámicos para las queries */
-function buildFilters(includeInactive: boolean, campusIds?: number[]) {
-  return {
-    campusFilter: campusIds && campusIds.length > 0 ? 'AND c.id = ANY($1)' : '',
-    activoFilter: includeInactive ? '' : 'AND c.activo = TRUE',
-    cfActivoFilter: includeInactive ? '' : 'AND cf.activo = TRUE',
-    fActivoFilter: includeInactive ? '' : 'AND f.activo = TRUE',
-    campusIdsParam: campusIds && campusIds.length > 0 ? [campusIds] : [],
-  };
-}
-
 /** Calcula KPIs globales a partir de las filas de campus */
-function calculateKPIs(
-  campusRows: CampusSummaryRow[],
-  noAsignados: number,
-) {
+function calculateKPIs(campusRows: CampusSummaryRow[], noAsignados: number) {
   return {
     campus: {
       total: campusRows.length,
@@ -120,14 +106,16 @@ function calculateKPIs(
 }
 
 /** Agrupa tipos por campus */
-function groupTiposPorCampus<T extends { campus_id: number; campus_nombre: string }>(
-  rows: T[],
-  getCantidad: (row: T) => number,
-  getTipo: (row: T) => string,
-) {
+function groupTiposPorCampus<
+  T extends { campus_id: number; campus_nombre: string },
+>(rows: T[], getCantidad: (row: T) => number, getTipo: (row: T) => string) {
   const map = new Map<
     number,
-    { nombre: string; cantidadTotal: number; tipos: { tipo: string; cantidad: number }[] }
+    {
+      nombre: string;
+      cantidadTotal: number;
+      tipos: { tipo: string; cantidad: number }[];
+    }
   >();
 
   for (const row of rows) {
@@ -155,9 +143,7 @@ function groupTiposPorCampus<T extends { campus_id: number; campus_nombre: strin
 // ============================================================
 
 @Injectable()
-export class DashboardCampusTypeormRepository
-  implements DashboardCampusRepositoryPort
-{
+export class DashboardCampusTypeormRepository implements DashboardCampusRepositoryPort {
   constructor(private readonly dataSource: DataSource) {}
 
   // ------------------------------------------------------------
@@ -195,16 +181,24 @@ export class DashboardCampusTypeormRepository
     // Aplicar filtros en memoria (rápido porque ya tenemos los datos)
     if (campusIds && campusIds.length > 0) {
       campusRows = campusRows.filter((r) => campusIds.includes(r.campus_id));
-      tiposBloqueRows = tiposBloqueRows.filter((r) => campusIds.includes(r.campus_id));
-      tiposAmbienteRows = tiposAmbienteRows.filter((r) => campusIds.includes(r.campus_id));
+      tiposBloqueRows = tiposBloqueRows.filter((r) =>
+        campusIds.includes(r.campus_id),
+      );
+      tiposAmbienteRows = tiposAmbienteRows.filter((r) =>
+        campusIds.includes(r.campus_id),
+      );
     }
 
     if (!includeInactive) {
       campusRows = campusRows.filter((r) => r.campus_activo);
       // Los tipos también se filtran según los campuses activos
       const activeCampusIds = campusRows.map((r) => r.campus_id);
-      tiposBloqueRows = tiposBloqueRows.filter((r) => activeCampusIds.includes(r.campus_id));
-      tiposAmbienteRows = tiposAmbienteRows.filter((r) => activeCampusIds.includes(r.campus_id));
+      tiposBloqueRows = tiposBloqueRows.filter((r) =>
+        activeCampusIds.includes(r.campus_id),
+      );
+      tiposAmbienteRows = tiposAmbienteRows.filter((r) =>
+        activeCampusIds.includes(r.campus_id),
+      );
     }
 
     // Calcular KPIs
@@ -213,10 +207,18 @@ export class DashboardCampusTypeormRepository
     // Rankings
     const rankings = {
       porCantidadAmbientes: campusRows
-        .map((r) => ({ campusId: r.campus_id, nombre: r.campus_nombre, cantidad: r.ambientes_total }))
+        .map((r) => ({
+          campusId: r.campus_id,
+          nombre: r.campus_nombre,
+          cantidad: r.ambientes_total,
+        }))
         .sort((a, b) => b.cantidad - a.cantidad),
       porCapacidadTotal: campusRows
-        .map((r) => ({ campusId: r.campus_id, nombre: r.campus_nombre, capacidad: r.capacidad_total }))
+        .map((r) => ({
+          campusId: r.campus_id,
+          nombre: r.campus_nombre,
+          capacidad: r.capacidad_total,
+        }))
         .sort((a, b) => b.capacidad - a.capacidad),
     };
 
@@ -277,13 +279,13 @@ export class DashboardCampusTypeormRepository
       `SELECT * FROM mv_dashboard_campus_resumen`,
     );
     let summaryRows = mapCampusSummaryRows(summaryRaw);
-    
+
     // Filtrar por el campus específico
-    summaryRows = summaryRows.filter(r => r.campus_id === campusId);
+    summaryRows = summaryRows.filter((r) => r.campus_id === campusId);
 
     // Si no incluye inactivos, filtrar solo activos
     if (!includeInactive) {
-      summaryRows = summaryRows.filter(r => r.campus_activo);
+      summaryRows = summaryRows.filter((r) => r.campus_activo);
     }
 
     const summary = summaryRows[0] ?? {
@@ -305,19 +307,27 @@ export class DashboardCampusTypeormRepository
     const tiposBloqueRaw = await this.dataSource.query(
       `SELECT * FROM mv_dashboard_tipos_bloque`,
     );
-    let tiposBloqueRows = (tiposBloqueRaw as TipoBloqueRow[]).filter(r => r.campus_id === campusId);
+    let tiposBloqueRows = (tiposBloqueRaw as TipoBloqueRow[]).filter(
+      (r) => r.campus_id === campusId,
+    );
 
     // 4) Tipos de ambiente desde MV (filtrado por campusId)
     const tiposAmbienteRaw = await this.dataSource.query(
       `SELECT * FROM mv_dashboard_tipos_ambiente`,
     );
-    let tiposAmbienteRows = (tiposAmbienteRaw as TipoAmbienteRow[]).filter(r => r.campus_id === campusId);
+    let tiposAmbienteRows = (tiposAmbienteRaw as TipoAmbienteRow[]).filter(
+      (r) => r.campus_id === campusId,
+    );
 
     // Si no incluye inactivos, filtrar los tipos según los campuses activos
     if (!includeInactive) {
-      const activeCampusIds = summaryRows.map(r => r.campus_id);
-      tiposBloqueRows = tiposBloqueRows.filter(r => activeCampusIds.includes(r.campus_id));
-      tiposAmbienteRows = tiposAmbienteRows.filter(r => activeCampusIds.includes(r.campus_id));
+      const activeCampusIds = summaryRows.map((r) => r.campus_id);
+      tiposBloqueRows = tiposBloqueRows.filter((r) =>
+        activeCampusIds.includes(r.campus_id),
+      );
+      tiposAmbienteRows = tiposAmbienteRows.filter((r) =>
+        activeCampusIds.includes(r.campus_id),
+      );
     }
 
     // 5) Por facultad (no está en MV, requiere query directo)
@@ -354,13 +364,32 @@ export class DashboardCampusTypeormRepository
       filtersApplied: { campusId, includeInactive },
       layout: { mode: 'detail' },
       data: {
-        campus: { id: Number(campus.id), nombre: campus.nombre, activo: campus.activo },
+        campus: {
+          id: Number(campus.id),
+          nombre: campus.nombre,
+          activo: campus.activo,
+        },
         kpis: {
-          facultades: { activos: Number(summary.facultades_activos ?? 0), inactivos: Number(summary.facultades_inactivos ?? 0) },
-          bloques: { activos: Number(summary.bloques_activos ?? 0), inactivos: Number(summary.bloques_inactivos ?? 0) },
-          ambientes: { activos: Number(summary.ambientes_activos ?? 0), inactivos: Number(summary.ambientes_inactivos ?? 0) },
-          capacidad: { total: Number(summary.capacidad_total ?? 0), examen: Number(summary.capacidad_examen ?? 0) },
-          activos: { asignados: Number(summary.activos_asignados ?? 0), noAsignadosGlobal: noAsignados },
+          facultades: {
+            activos: Number(summary.facultades_activos ?? 0),
+            inactivos: Number(summary.facultades_inactivos ?? 0),
+          },
+          bloques: {
+            activos: Number(summary.bloques_activos ?? 0),
+            inactivos: Number(summary.bloques_inactivos ?? 0),
+          },
+          ambientes: {
+            activos: Number(summary.ambientes_activos ?? 0),
+            inactivos: Number(summary.ambientes_inactivos ?? 0),
+          },
+          capacidad: {
+            total: Number(summary.capacidad_total ?? 0),
+            examen: Number(summary.capacidad_examen ?? 0),
+          },
+          activos: {
+            asignados: Number(summary.activos_asignados ?? 0),
+            noAsignadosGlobal: noAsignados,
+          },
         },
         charts: {
           tiposBloque: tiposBloqueRows.map((row) => ({

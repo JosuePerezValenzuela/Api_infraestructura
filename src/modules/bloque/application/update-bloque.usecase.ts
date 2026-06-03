@@ -228,10 +228,7 @@ export class UpdateBloqueUseCase {
     }
 
     // Validar la relación campus_facultad si se proporciona alguno de los dos
-    if (
-      input.facultad_id !== undefined ||
-      input.campus_id !== undefined
-    ) {
+    if (input.facultad_id !== undefined || input.campus_id !== undefined) {
       const current = await this.bloqueRepo.findById(id);
       const facultadId = input.facultad_id ?? current?.facultad_id;
       const campusId = input.campus_id ?? current?.campus_id;
@@ -302,9 +299,7 @@ export class UpdateBloqueUseCase {
       ...(input.pisos !== undefined ? { pisos: input.pisos } : {}),
       ...(pointLiteral !== undefined ? { coordinates: { pointLiteral } } : {}),
       ...(input.activo !== undefined ? { activo: input.activo } : {}),
-      ...(campus_facultad_id !== undefined
-        ? { campus_facultad_id }
-        : {}),
+      ...(campus_facultad_id !== undefined ? { campus_facultad_id } : {}),
       ...(input.tipo_bloque_id !== undefined
         ? { tipo_bloque_id: input.tipo_bloque_id }
         : {}),

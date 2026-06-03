@@ -30,18 +30,6 @@ type BloqueSummaryRow = {
   activos_asignados: number;
 };
 
-type TipoBloqueRow = {
-  tipo_bloque_id: number;
-  tipo_bloque_nombre: string;
-  cantidad: number;
-};
-
-type TipoAmbienteRow = {
-  tipo_ambiente_id: number;
-  tipo_ambiente_nombre: string;
-  cantidad: number;
-};
-
 // ============================================================
 // MAPPERS
 // ============================================================
@@ -64,8 +52,7 @@ function mapBloqueSummaryRows(raw: unknown[]): BloqueSummaryRow[] {
 // ============================================================
 
 @Injectable()
-export class DashboardFacultadTypeormRepository
-  implements DashboardFacultadRepositoryPort {
+export class DashboardFacultadTypeormRepository implements DashboardFacultadRepositoryPort {
   constructor(private readonly dataSource: DataSource) {}
 
   // ------------------------------------------------------------
@@ -84,7 +71,7 @@ export class DashboardFacultadTypeormRepository
     // 1) Verificar existencia de la facultad
     const facultadRows = await this.dataSource.query(
       `
-      SELECT 
+      SELECT
         f.id, f.nombre, f.nombre_corto, f.activo,
         c.id AS campus_id, c.nombre AS campus_nombre
       FROM infraestructura.facultades f
@@ -218,13 +205,25 @@ export class DashboardFacultadTypeormRepository
     const sinAsignarGlobal = unassignedRows[0]?.cantidad ?? 0;
 
     // 7) Procesar rankings
-    const porCantidadAmbientes = (rankingAmbientesRows as { bloque_id: string; bloque_nombre: string; cantidad: string }[]).map((row) => ({
+    const porCantidadAmbientes = (
+      rankingAmbientesRows as {
+        bloque_id: string;
+        bloque_nombre: string;
+        cantidad: string;
+      }[]
+    ).map((row) => ({
       bloqueId: Number(row.bloque_id),
       nombre: row.bloque_nombre,
       cantidad: Number(row.cantidad),
     }));
 
-    const porCapacidadTotal = (rankingCapacidadRows as { bloque_id: string; bloque_nombre: string; capacidad: string }[]).map((row) => ({
+    const porCapacidadTotal = (
+      rankingCapacidadRows as {
+        bloque_id: string;
+        bloque_nombre: string;
+        capacidad: string;
+      }[]
+    ).map((row) => ({
       bloqueId: Number(row.bloque_id),
       nombre: row.bloque_nombre,
       capacidad: Number(row.capacidad),
@@ -237,7 +236,14 @@ export class DashboardFacultadTypeormRepository
       tipo_ambiente_nombre: string;
       cantidad: string;
     }
-    const distribucionMap = new Map<string, { nombre: string; cantidadTotal: number; tipos: { tipo: string; cantidad: number }[] }>();
+    const distribucionMap = new Map<
+      string,
+      {
+        nombre: string;
+        cantidadTotal: number;
+        tipos: { tipo: string; cantidad: number }[];
+      }
+    >();
 
     for (const row of distribucionRows as DistribucionRow[]) {
       const bloqueKey = row.bloque_id;

@@ -157,14 +157,27 @@ export class DashboardBloqueTypeormRepository implements DashboardBloqueReposito
           },
         },
         charts: {
-          tiposAmbiente: (tiposAmbienteRows as { tipo_ambiente_nombre: string; cantidad: string }[]).map(
-            (row) => ({
-              tipo: row.tipo_ambiente_nombre,
-              cantidad: Number(row.cantidad),
-            }),
-          ),
+          tiposAmbiente: (
+            tiposAmbienteRows as {
+              tipo_ambiente_nombre: string;
+              cantidad: string;
+            }[]
+          ).map((row) => ({
+            tipo: row.tipo_ambiente_nombre,
+            cantidad: Number(row.cantidad),
+          })),
         },
-        porAmbiente: (ambientesRows as { ambiente_id: string; ambiente_nombre: string; piso: string; capacidad_total: string; capacidad_examen: string; tipo_ambiente_nombre: string; activos_asignados: string }[]).map((row) => ({
+        porAmbiente: (
+          ambientesRows as {
+            ambiente_id: string;
+            ambiente_nombre: string;
+            piso: string;
+            capacidad_total: string;
+            capacidad_examen: string;
+            tipo_ambiente_nombre: string;
+            activos_asignados: string;
+          }[]
+        ).map((row) => ({
           id: Number(row.ambiente_id),
           nombre: row.ambiente_nombre,
           piso: Number(row.piso),

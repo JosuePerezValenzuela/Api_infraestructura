@@ -1,6 +1,10 @@
 // Archivo de pruebas para DeleteFacultadUseCase.
 
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DeleteFacultadUseCase } from '../application/delete-facultad.usecase';
 import type { facultadCompleta } from '../domain/facultad.list.types';
 import type {
@@ -12,7 +16,10 @@ import type {
 interface FakeFacultadRepository {
   findById: jest.Mock<Promise<facultadCompleta | null>, [number]>;
   findCampusById: jest.Mock<Promise<{ id: number } | null>, [number]>;
-  findCampusFacultadRelationship: jest.Mock<Promise<{ id: number } | null>, [number, number]>;
+  findCampusFacultadRelationship: jest.Mock<
+    Promise<{ id: number } | null>,
+    [number, number]
+  >;
   findBlocksByCampusFacultadId: jest.Mock<Promise<RelatedBlock[]>, [number]>;
   deleteRelationship: jest.Mock<Promise<{ id: number }>, [number, number]>;
   hasOtherRelationships: jest.Mock<Promise<boolean>, [number, number]>;
@@ -123,9 +130,9 @@ describe('DeleteFacultadUseCase', () => {
 
     facultadRepo.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute({ id: 999, campusId: 3 })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      useCase.execute({ id: 999, campusId: 3 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(facultadRepo.findCampusById).not.toHaveBeenCalled();
     expect(facultadRepo.deleteRelationship).not.toHaveBeenCalled();
@@ -151,9 +158,9 @@ describe('DeleteFacultadUseCase', () => {
     // El campus NO existe
     facultadRepo.findCampusById.mockResolvedValue(null);
 
-    await expect(useCase.execute({ id: 1, campusId: 999 })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      useCase.execute({ id: 1, campusId: 999 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(facultadRepo.findCampusFacultadRelationship).not.toHaveBeenCalled();
     expect(facultadRepo.deleteRelationship).not.toHaveBeenCalled();
@@ -182,9 +189,9 @@ describe('DeleteFacultadUseCase', () => {
     // La relación NO existe (ni activa ni inactiva)
     facultadRepo.findCampusFacultadRelationship.mockResolvedValue(null);
 
-    await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      useCase.execute({ id: 1, campusId: 3 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
     expect(facultadRepo.findBlocksByCampusFacultadId).not.toHaveBeenCalled();
     expect(facultadRepo.deleteRelationship).not.toHaveBeenCalled();
@@ -265,15 +272,17 @@ describe('DeleteFacultadUseCase', () => {
     ];
     facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue(relatedBlocks);
 
-    await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      useCase.execute({ id: 1, campusId: 3 }),
+    ).rejects.toBeInstanceOf(ConflictException);
 
     // Verificamos el formato del error
     const error = await useCase.execute({ id: 1, campusId: 3 }).catch((e) => e);
     const response = error.getResponse() as any;
     expect(response.error).toBe('CONFLICT_ERROR');
-    expect(response.message).toBe('No se puede eliminar la relacion porque hay bloques dependientes');
+    expect(response.message).toBe(
+      'No se puede eliminar la relacion porque hay bloques dependientes',
+    );
     expect(response.details[0].block.id).toBe(1);
 
     expect(facultadRepo.deleteRelationship).not.toHaveBeenCalled();
@@ -310,6 +319,8 @@ describe('DeleteFacultadUseCase', () => {
     const failure = new Error('Fallo en la base de datos');
     facultadRepo.deleteRelationship.mockRejectedValue(failure);
 
-    await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toThrow(failure);
+    await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toThrow(
+      failure,
+    );
   });
 });

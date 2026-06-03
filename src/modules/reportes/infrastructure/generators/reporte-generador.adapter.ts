@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment,
-                  @typescript-eslint/no-unsafe-call,
-                  @typescript-eslint/no-unsafe-member-access,
-                  @typescript-eslint/no-unsafe-argument */
 import { Injectable } from '@nestjs/common';
 import Excel from 'exceljs';
 import { PassThrough } from 'stream';
@@ -208,7 +204,11 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     // Título
     const titleCell = sheet.getCell('A1');
     titleCell.value = title;
-    titleCell.font = { bold: true, size: 14, color: { argb: `FF${COLOR_HEADER_BG}` } };
+    titleCell.font = {
+      bold: true,
+      size: 14,
+      color: { argb: `FF${COLOR_HEADER_BG}` },
+    };
     sheet.mergeCells('A1:B1');
 
     // Filas label → value a partir de la fila 3
@@ -221,7 +221,11 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       const val = sheet.getCell(`B${rowNum}`);
 
       lbl.value = f.label;
-      lbl.font = { bold: true, size: 11, color: { argb: `FF${COLOR_HEADER_BG}` } };
+      lbl.font = {
+        bold: true,
+        size: 11,
+        color: { argb: `FF${COLOR_HEADER_BG}` },
+      };
       lbl.alignment = { horizontal: 'right', vertical: 'middle' };
       lbl.border = {
         bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
@@ -239,9 +243,15 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     });
 
     // Auto-fit: col A (labels en bold) con multiplicador 1.2
-    sheet.getColumn(1).width = Math.min(Math.max(Math.ceil(maxLabelLen * 1.2 + 4), 12), 40);
+    sheet.getColumn(1).width = Math.min(
+      Math.max(Math.ceil(maxLabelLen * 1.2 + 4), 12),
+      40,
+    );
     // Col B (values en regular) con multiplicador 1.1
-    sheet.getColumn(2).width = Math.min(Math.max(Math.ceil(maxValueLen * 1.1 + 4), 20), 80);
+    sheet.getColumn(2).width = Math.min(
+      Math.max(Math.ceil(maxValueLen * 1.1 + 4), 20),
+      80,
+    );
   }
 
   private renderCampusInfo(sheet: Excel.Worksheet, campus: CampusView) {
@@ -377,16 +387,22 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       fac.bloques.reduce((acc, b) => acc + b.ambientes.length, 0),
     ]);
 
-    this.renderDynamicTable(sheet, 'Facultades', [
-      { name: 'Código' },
-      { name: 'Nombre' },
-      { name: 'Estado' },
-      { name: 'Total Bloques' },
-      { name: 'Total Ambientes' },
-    ], rows, [
-      { colLetter: 'D', format: '#,##0' },
-      { colLetter: 'E', format: '#,##0' },
-    ]);
+    this.renderDynamicTable(
+      sheet,
+      'Facultades',
+      [
+        { name: 'Código' },
+        { name: 'Nombre' },
+        { name: 'Estado' },
+        { name: 'Total Bloques' },
+        { name: 'Total Ambientes' },
+      ],
+      rows,
+      [
+        { colLetter: 'D', format: '#,##0' },
+        { colLetter: 'E', format: '#,##0' },
+      ],
+    );
   }
 
   private renderBloquesList(
@@ -395,8 +411,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
       BloqueView & { facultad_nombre?: string; facultad_codigo?: string }
     >,
   ) {
-    const tieneFacultad =
-      bloques.length > 0 && 'facultad_nombre' in bloques[0];
+    const tieneFacultad = bloques.length > 0 && 'facultad_nombre' in bloques[0];
 
     const columns: { name: string }[] = [
       { name: 'Código' },
@@ -408,10 +423,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     ];
 
     if (tieneFacultad) {
-      columns.push(
-        { name: 'Facultad Código' },
-        { name: 'Facultad Nombre' },
-      );
+      columns.push({ name: 'Facultad Código' }, { name: 'Facultad Nombre' });
     }
 
     const rows = bloques.map((b) => {
@@ -449,8 +461,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
   ) {
     const tieneFacultad =
       ambientes.length > 0 && 'facultad_nombre' in ambientes[0];
-    const tieneBloque =
-      ambientes.length > 0 && 'bloque_nombre' in ambientes[0];
+    const tieneBloque = ambientes.length > 0 && 'bloque_nombre' in ambientes[0];
 
     const columns: { name: string }[] = [
       { name: 'Código' },
@@ -474,10 +485,7 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
     }
 
     if (tieneFacultad) {
-      columns.push(
-        { name: 'Facultad Código' },
-        { name: 'Facultad Nombre' },
-      );
+      columns.push({ name: 'Facultad Código' }, { name: 'Facultad Nombre' });
     }
 
     const rows = ambientes.map((amb) => {
@@ -494,7 +502,11 @@ export class ReporteGeneradorAdapter implements ReporteGeneradorPort {
         amb.activos_count,
       ];
       if (tieneBloque) {
-        row.push(amb.bloque_codigo ?? '', amb.bloque_nombre ?? '', amb.tipo_bloque ?? '');
+        row.push(
+          amb.bloque_codigo ?? '',
+          amb.bloque_nombre ?? '',
+          amb.tipo_bloque ?? '',
+        );
       }
       if (tieneFacultad) {
         row.push(amb.facultad_codigo ?? '', amb.facultad_nombre ?? '');

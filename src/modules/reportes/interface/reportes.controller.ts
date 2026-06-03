@@ -61,8 +61,7 @@ export class ReportesController {
   ) {
     if (dto.formato === ReporteFormato.XLSX) {
       // === XLSX → devolver archivo binario ===
-      const archivo =
-        await this.generarReporteInventarioService.ejecutar(dto);
+      const archivo = await this.generarReporteInventarioService.ejecutar(dto);
       res.setHeader('Content-Type', archivo.mime_type);
       res.setHeader(
         'Content-Disposition',
@@ -84,9 +83,7 @@ export class ReportesController {
    * Los KPIs se usaban para generar el PDF en backend; ahora el frontend
    * los calcula si los necesita.
    */
-  private removerKpis(
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
+  private removerKpis(data: Record<string, unknown>): Record<string, unknown> {
     return JSON.parse(
       JSON.stringify(data, (_key, value) => {
         if (_key === 'kpis') return undefined;

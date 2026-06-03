@@ -123,17 +123,11 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
     }
 
     if (options.facultadId !== null) {
-      pushCondition(
-        (start) => `f.id = $${start}`,
-        [options.facultadId],
-      );
+      pushCondition((start) => `f.id = $${start}`, [options.facultadId]);
     }
 
     if (options.campusId !== null) {
-      pushCondition(
-        (start) => `c.id = $${start}`,
-        [options.campusId],
-      );
+      pushCondition((start) => `c.id = $${start}`, [options.campusId]);
     }
 
     if (options.tipoBloqueId !== null) {
@@ -433,7 +427,9 @@ export class TypeormBloqueRepository implements BloqueRepositoryPort {
       INNER JOIN infraestructura.tipo_ambientes ta ON ta.id = a.tipo_ambiente_id
       WHERE a.bloque_id = $1
     `;
-    const rows = await this.dataSource.query<RelatedAmbiente[]>(sql, [bloqueId]);
+    const rows = await this.dataSource.query<RelatedAmbiente[]>(sql, [
+      bloqueId,
+    ]);
     return rows;
   }
 

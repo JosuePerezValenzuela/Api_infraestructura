@@ -35,7 +35,6 @@ import { CreateFacultadDto } from './dto/create-facultad.dto';
 import { ListFacultadesQueryDto } from './dto/list-facultades-query.dto';
 import { CreateFacultadCommand } from '../application/dto/create-facultad.command';
 import { UpdateFacultadesDto } from './dto/update-facultad.dto';
-import { DeleteFacultadCampusDto } from './dto/delete-facultad.dto';
 import { BadRequestException } from '@nestjs/common';
 
 @ApiTags('Facultades')
@@ -195,11 +194,15 @@ export class FacultadController {
 
   @Delete(':id/campus/:campusId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Elimina la relación específica entre una facultad y un campus (delete físico)' })
+  @ApiOperation({
+    summary:
+      'Elimina la relación específica entre una facultad y un campus (delete físico)',
+  })
   @ApiParam({ name: 'id', type: Number, description: 'ID de la facultad' })
   @ApiParam({ name: 'campusId', type: Number, description: 'ID del campus' })
   @ApiNoContentResponse({
-    description: 'La relación entre la facultad y el campus fue eliminada físicamente',
+    description:
+      'La relación entre la facultad y el campus fue eliminada físicamente',
   })
   @ApiNotFoundResponse({
     description: 'Facultad o campus no encontrado',
@@ -220,18 +223,21 @@ export class FacultadController {
         details: [
           {
             field: 'campusId',
-            message: 'La facultad con ID 1 no esta relacionada con el campus con ID 5',
+            message:
+              'La facultad con ID 1 no esta relacionada con el campus con ID 5',
           },
         ],
       },
     },
   })
   @ApiConflictResponse({
-    description: 'No se puede eliminar - hay bloques dependientes de esta relación',
+    description:
+      'No se puede eliminar - hay bloques dependientes de esta relación',
     schema: {
       example: {
         error: 'CONFLICT_ERROR',
-        message: 'No se puede eliminar la relacion porque hay bloques dependientes',
+        message:
+          'No se puede eliminar la relacion porque hay bloques dependientes',
         details: [
           {
             field: 'bloques',
@@ -277,7 +283,10 @@ export class FacultadController {
       if (err instanceof BadRequestException) {
         throw new HttpException(err.getResponse(), HttpStatus.BAD_REQUEST);
       }
-      throw new HttpException('Error interno', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Error interno',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

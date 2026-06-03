@@ -1,5 +1,10 @@
 // Este archivo define las pruebas del controlador de facultad para el endpoint DELETE.
-import { HttpException, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  HttpException,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { FacultadController } from './facultad.controller';
 import type {
   ListFacultadesItem,
@@ -16,7 +21,10 @@ interface FakeListFacultadesUseCase {
 }
 
 interface FakeDeleteFacultadUseCase {
-  execute: jest.Mock<Promise<{ id: number; deletedFacultad?: boolean }>, [{ id: number; campusId: number }]>;
+  execute: jest.Mock<
+    Promise<{ id: number; deletedFacultad?: boolean }>,
+    [{ id: number; campusId: number }]
+  >;
 }
 
 describe('FacultadController - findPaginated', () => {
@@ -137,7 +145,10 @@ describe('FacultadController - delete', () => {
     const { controller, deleteFacultadUseCase } = buildController();
     deleteFacultadUseCase.execute.mockResolvedValue({ id: 1 });
     const response = await controller.delete(1, 3);
-    expect(deleteFacultadUseCase.execute).toHaveBeenCalledWith({ id: 1, campusId: 3 });
+    expect(deleteFacultadUseCase.execute).toHaveBeenCalledWith({
+      id: 1,
+      campusId: 3,
+    });
     expect(response).toBeUndefined();
   });
 
@@ -164,7 +175,8 @@ describe('FacultadController - delete', () => {
     const { controller, deleteFacultadUseCase } = buildController();
     const conflictException = new ConflictException({
       error: 'CONFLICT_ERROR',
-      message: 'No se puede eliminar la relacion porque hay bloques dependientes',
+      message:
+        'No se puede eliminar la relacion porque hay bloques dependientes',
       details: [],
     });
     deleteFacultadUseCase.execute.mockRejectedValue(conflictException);

@@ -277,7 +277,8 @@ describe('BloqueController', () => {
     it('lanza HttpException 409 cuando hay ambientes dependientes', async () => {
       const conflictException = new ConflictException({
         error: 'CONFLICT_ERROR',
-        message: 'No se puede eliminar el bloque porque tiene ambientes dependientes',
+        message:
+          'No se puede eliminar el bloque porque tiene ambientes dependientes',
         details: [],
       });
       deleteUseCase.execute.mockRejectedValue(conflictException);

@@ -1,4 +1,9 @@
-import { Inject, Injectable, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { FacultadRepositoryPort } from '../domain/facultad.repository.port';
 import { CampusRepositoryPort } from '../../campus/domain/campus.repository.port';
 import { CreateFacultadCommand } from './dto/create-facultad.command';

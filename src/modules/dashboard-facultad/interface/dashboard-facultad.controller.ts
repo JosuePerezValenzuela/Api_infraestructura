@@ -36,7 +36,8 @@ export class DashboardFacultadController {
     schema: { default: true },
   })
   @ApiOkResponse({
-    description: 'Dashboard detalle de una facultad con KPIs, rankings, distribuciones y lista de bloques',
+    description:
+      'Dashboard detalle de una facultad con KPIs, rankings, distribuciones y lista de bloques',
     schema: {
       example: {
         schemaVersion: 2,
@@ -116,7 +117,12 @@ export class DashboardFacultadController {
       example: {
         error: 'VALIDATION_ERROR',
         message: 'Los datos enviados no son válidos',
-        details: [{ field: 'facultadId', message: 'El parámetro facultadId debe ser un entero positivo' }],
+        details: [
+          {
+            field: 'facultadId',
+            message: 'El parámetro facultadId debe ser un entero positivo',
+          },
+        ],
       },
     },
   })

@@ -94,7 +94,10 @@ describe('DashboardBloqueTypeormRepository.getDetailDashboard', () => {
 
     expect(result?.schemaVersion).toBe(2);
     expect(result?.layout).toEqual({ mode: 'detail' });
-    expect(result?.filtersApplied).toEqual({ bloqueId: 101, includeInactive: true });
+    expect(result?.filtersApplied).toEqual({
+      bloqueId: 101,
+      includeInactive: true,
+    });
     expect(result?.data.bloque).toEqual({
       id: 101,
       nombre: 'Bloque A',

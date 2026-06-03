@@ -285,9 +285,14 @@ export class BloqueController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Elimina un bloque por ID (delete físico)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del bloque a eliminar' })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID del bloque a eliminar',
+  })
   @ApiNoContentResponse({
-    description: 'El bloque fue eliminado físicamente (sin cuerpo en respuesta)',
+    description:
+      'El bloque fue eliminado físicamente (sin cuerpo en respuesta)',
   })
   @ApiNotFoundResponse({
     description: 'Bloque no encontrado',
@@ -304,7 +309,8 @@ export class BloqueController {
     schema: {
       example: {
         error: 'CONFLICT_ERROR',
-        message: 'No se puede eliminar el bloque porque tiene ambientes dependientes',
+        message:
+          'No se puede eliminar el bloque porque tiene ambientes dependientes',
         details: [
           {
             field: 'ambientes',
@@ -345,7 +351,10 @@ export class BloqueController {
       if (err instanceof ConflictException) {
         throw new HttpException(err.getResponse(), HttpStatus.CONFLICT);
       }
-      throw new HttpException('Error interno', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Error interno',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

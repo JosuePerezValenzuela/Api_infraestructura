@@ -1,4 +1,5 @@
 {
+  "exclude": ["be.infra.umss.net", "**/*.spec.ts", "**/*.test.ts", "test/"],
   "compilerOptions": {
     "types": ["jest", "node"],
     "module": "nodenext",

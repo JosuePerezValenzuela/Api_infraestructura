@@ -47,13 +47,21 @@ export interface FacultadRepositoryPort {
 
   // Métodos para delete de UNA relación específica
   // Busca bloques que dependen de una relación específica (campus_facultad_id)
-  findBlocksByCampusFacultadId(campus_facultadId: number): Promise<RelatedBlock[]>;
+  findBlocksByCampusFacultadId(
+    campus_facultadId: number,
+  ): Promise<RelatedBlock[]>;
 
   // Elimina una relación específica (facultad + campus)
-  deleteRelationship(facultadId: number, campusId: number): Promise<{ id: number }>;
+  deleteRelationship(
+    facultadId: number,
+    campusId: number,
+  ): Promise<{ id: number }>;
 
   // Verifica si la facultad tiene otras relaciones (activas o inactivas, después de eliminar)
-  hasOtherRelationships(facultadId: number, excludeCampusId: number): Promise<boolean>;
+  hasOtherRelationships(
+    facultadId: number,
+    excludeCampusId: number,
+  ): Promise<boolean>;
 
   // Elimina la facultad físicamente
   deleteFacultad(facultadId: number): Promise<{ id: number }>;

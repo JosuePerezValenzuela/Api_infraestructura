@@ -67,7 +67,9 @@ export class CreateBloqueUseCase {
     }
 
     //Validar que el campus exista
-    const takenCampus = await this.facultadRepos.findCampusById(input.campus_id);
+    const takenCampus = await this.facultadRepos.findCampusById(
+      input.campus_id,
+    );
     if (!takenCampus) {
       throw new BadRequestException({
         error: 'CONFLICT_ERROR',
