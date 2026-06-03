@@ -22,6 +22,21 @@ services:
       retries: 5
       start_period: 10s
 
+  redis:
+    image: redis:alpine3.23
+    container_name: infraestructura-redis-dev
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   app:
     build:
       context: ..
@@ -42,9 +57,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
 
 volumes:
   postgres_dev_data:
     driver: local
   pnpm_store:
+    driver: local
+  redis_dev_data:
     driver: local

@@ -28,6 +28,11 @@
 - Shared config sits in `src/config`, database migrations in `src/migrations`, and compiled assets build into `dist/`.
 - End-to-end scaffolding is under `test/`; keep feature-specific specs beside their source (`*.spec.ts`).
 
+## Container Execution
+
+- El proyecto corre dentro de un devcontainer. **Todos los comandos del proyecto** (pnpm install, build, lint, test, format, migration, etc.) se ejecutan **dentro del contenedor `app`**, no en la máquina host.
+- Para ejecutar comandos dentro del contenedor: `docker compose -f .devcontainer/docker-compose.yml exec app <comando>`.
+
 ## Build, Test, and Development Commands
 
 - `pnpm install` resolves dependencies; use the workspace lockfile.

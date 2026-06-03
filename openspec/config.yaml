@@ -1,0 +1,66 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: NestJS 11, TypeScript 5.7, PostgreSQL 16, TypeORM 0.3, PNPM
+  Architecture: Clean/Hexagonal — modules/<feature>/{interface,application,domain,infrastructure}
+  Features: campus, facultad, tipo-bloque, bloque, tipo-ambiente, ambiente, activo, reportes, dashboards
+  Testing: Jest 30, @nestjs/testing, supertest, ts-jest, coverage via --coverage
+  Style: ESLint 9 + Prettier 3, 2-space indent, single quotes, trailing commas
+
+rules:
+  proposal:
+    - Include rollback plan for risky cascade operations (deactivate/delete hierarchies)
+    - Reference scope rule from AGENTS.md: Global (2+ features) / Local (1 feature only)
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Use error format from AGENTS.md: BadRequestException, ConflictException, NotFoundException
+  design:
+    - Include sequence diagrams for complex cascades
+    - Document architecture decisions with rationale
+    - Follow hexagonal layering — domain ports, application use cases, infrastructure adapters
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+    - Include unit and integration spec tasks
+  apply:
+    - Follow existing code patterns (snake_case methods, PascalCase classes)
+    - NUNCA implementar sin tests fallidos (never implement without failing tests)
+    tdd: true
+    test_command: "docker compose -f .devcontainer/docker-compose.yml exec app pnpm test"
+  verify:
+    test_command: "docker compose -f .devcontainer/docker-compose.yml exec app pnpm test"
+    build_command: "docker compose -f .devcontainer/docker-compose.yml exec app pnpm build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+
+testing:
+  strict_tdd: true
+  runner:
+    command: pnpm test
+    framework: jest
+    watch: pnpm test:watch
+    coverage: pnpm test:cov
+    e2e: pnpm test:e2e
+  layers:
+    unit:
+      available: true
+      tool: jest
+    integration:
+      available: true
+      tool: "@nestjs/testing + TypeORM repositories"
+    e2e:
+      available: true
+      tool: supertest + jest (config: test/jest-e2e.json)
+  quality:
+    linter:
+      available: true
+      command: pnpm lint
+    type_checker:
+      available: true
+      command: npx tsc --noEmit
+    formatter:
+      available: true
+      command: pnpm format
