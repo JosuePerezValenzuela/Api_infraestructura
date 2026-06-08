@@ -1,37 +1,71 @@
 // Esta suite explica cómo debe comportarse ListTipoAmbientesUseCase con ejemplos comentados.
 import { BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ListTipoAmbientesUseCase } from './list-tipo-ambientes.usecase';
 import {
   ListTipoAmbientesOptions,
   ListTipoAmbientesResult,
 } from '../domain/tipo-ambiente.list.types';
 import { TipoAmbienteRepositoryPort } from '../domain/tipo-ambiente.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 type FakeTipoAmbienteRepository = {
   list: jest.Mock<Promise<ListTipoAmbientesResult>, [ListTipoAmbientesOptions]>;
 };
 
+const dummyResult: ListTipoAmbientesResult = {
+  items: [],
+  meta: {
+    total: 0,
+    page: 1,
+    take: 8,
+    pages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  },
+};
+
+const mockConfigService = {
+  get: jest.fn().mockReturnValue(300),
+};
+
 describe('ListTipoAmbientesUseCase', () => {
-  const buildSystem = () => {
+  const buildSystem = (overrides?: {
+    cacheGetOrSetImpl?: (
+      _key: string,
+      _ttl: number,
+      factory: () => Promise<ListTipoAmbientesResult>,
+    ) => Promise<ListTipoAmbientesResult>;
+  }) => {
     const repo: FakeTipoAmbienteRepository = {
-      list: jest.fn().mockResolvedValue({
-        items: [],
-        meta: {
-          total: 0,
-          page: 1,
-          take: 8,
-          pages: 1,
-          hasNextPage: false,
-          hasPreviousPage: false,
-        },
-      }),
+      list: jest.fn().mockResolvedValue({ ...dummyResult }),
     };
+
+    const getOrSet = overrides?.cacheGetOrSetImpl
+      ? jest.fn().mockImplementation(overrides.cacheGetOrSetImpl)
+      : jest
+          .fn()
+          .mockImplementation(
+            (
+              _key: string,
+              _ttl: number,
+              factory: () => Promise<ListTipoAmbientesResult>,
+            ) => factory(),
+          );
+
+    const cache = {
+      getOrSet,
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    } as unknown as CacheService;
 
     const useCase = new ListTipoAmbientesUseCase(
       repo as unknown as TipoAmbienteRepositoryPort,
+      cache,
+      mockConfigService as unknown as ConfigService,
     );
 
-    return { useCase, repo };
+    return { useCase, repo, cache };
   };
 
   it('usa valores por defecto cuando no se envían filtros', async () => {
@@ -126,5 +160,37 @@ describe('ListTipoAmbientesUseCase', () => {
     await expect(
       useCase.execute({ orderDir: 'sideways' as any }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  // ── Cache behavior tests ───────────────────────────────────────
+
+  it('llama getOrSet con key correcta que empieza por tipo_ambiente:list:', async () => {
+    const { useCase, cache } = buildSystem();
+
+    await useCase.execute({ page: 1, limit: 8 });
+
+    expect(cache.getOrSet).toHaveBeenCalledWith(
+      expect.stringMatching(/^tipo_ambiente:list:/),
+      expect.any(Number),
+      expect.any(Function),
+    );
+  });
+
+  it('NO llama repo.list cuando cache entrega valor (cache hit)', async () => {
+    const { repo, useCase } = buildSystem({
+      cacheGetOrSetImpl: async () => ({ ...dummyResult }),
+    });
+
+    await useCase.execute({ page: 1, limit: 8 });
+
+    expect(repo.list).not.toHaveBeenCalled();
+  });
+
+  it('llama repo.list cuando cache ejecuta factory (cache miss)', async () => {
+    const { repo, useCase } = buildSystem();
+
+    await useCase.execute({ page: 1, limit: 8 });
+
+    expect(repo.list).toHaveBeenCalledTimes(1);
   });
 });

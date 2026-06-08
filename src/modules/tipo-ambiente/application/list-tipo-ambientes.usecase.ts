@@ -1,15 +1,20 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TipoAmbienteRepositoryPort } from '../domain/tipo-ambiente.repository.port';
 import {
   ListTipoAmbientesOptions,
   ListTipoAmbientesResult,
 } from '../domain/tipo-ambiente.list.types';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
+import { CacheKeyBuilder } from '../../_shared/infrastructure/cache/cache-key-builder';
 
 @Injectable()
 export class ListTipoAmbientesUseCase {
   constructor(
     @Inject(TipoAmbienteRepositoryPort)
     private readonly repo: TipoAmbienteRepositoryPort,
+    private readonly cacheService: CacheService,
+    private readonly config: ConfigService,
   ) {}
 
   async execute(input: {
@@ -42,7 +47,19 @@ export class ListTipoAmbientesUseCase {
       activo,
     };
 
-    return this.repo.list(options);
+    const ttl = this.config.get<number>('CACHE_TTL', 300);
+    const cacheKey = CacheKeyBuilder.list('tipo_ambiente', {
+      page,
+      limit,
+      orderBy,
+      orderDir,
+      search: search || null,
+      activo,
+    });
+
+    return this.cacheService.getOrSet(cacheKey, ttl, () =>
+      this.repo.list(options),
+    );
   }
 
   private ensurePageIsValid(page: number) {

@@ -1,11 +1,13 @@
 import { BadRequestException, ConflictException, Inject } from '@nestjs/common';
 import { TipoAmbienteRepositoryPort } from '../domain/tipo-ambiente.repository.port';
 import { CreateTipoAmbienteCommand } from '../domain/commands/create-tipo-ambiente.command';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 export class CreateTipoAmbienteUseCase {
   constructor(
     @Inject(TipoAmbienteRepositoryPort)
     private readonly repo: TipoAmbienteRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute(
@@ -50,7 +52,9 @@ export class CreateTipoAmbienteUseCase {
       delete command.descripcion_corta;
     }
 
-    return this.repo.create(command);
+    const result = await this.repo.create(command);
+    await this.cacheService.invalidateNamespace('tipo_ambiente:*');
+    return result;
   }
 
   // Valida el nombre.

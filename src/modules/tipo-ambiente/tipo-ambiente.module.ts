@@ -7,6 +7,7 @@ import { TypeormTipoAmbienteRepository } from './infrastructure/persistence/type
 import { ListTipoAmbientesUseCase } from './application/list-tipo-ambientes.usecase';
 import { DeleteTipoAmbienteUseCase } from './application/delete-tipo-ambiente.usecase';
 import { UpdateTipoAmbienteUseCase } from './application/update-tipo-ambiente.usecase';
+import { CacheService } from '../_shared/infrastructure/cache/cache.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([])],
@@ -16,6 +17,7 @@ import { UpdateTipoAmbienteUseCase } from './application/update-tipo-ambiente.us
     ListTipoAmbientesUseCase,
     DeleteTipoAmbienteUseCase,
     UpdateTipoAmbienteUseCase,
+    CacheService,
     {
       provide: TipoAmbienteRepositoryPort,
       useClass: TypeormTipoAmbienteRepository,

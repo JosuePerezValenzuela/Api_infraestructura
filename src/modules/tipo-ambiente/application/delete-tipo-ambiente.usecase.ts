@@ -7,12 +7,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TipoAmbienteRepositoryPort } from '../domain/tipo-ambiente.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 @Injectable()
 export class DeleteTipoAmbienteUseCase {
   constructor(
     @Inject(TipoAmbienteRepositoryPort)
     private readonly repo: TipoAmbienteRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute({ id }: { id: number }): Promise<{ id: number }> {
@@ -60,6 +62,8 @@ export class DeleteTipoAmbienteUseCase {
     }
 
     // Eliminar el tipo de ambiente
-    return this.repo.delete(id);
+    const result = await this.repo.delete(id);
+    await this.cacheService.invalidateNamespace('tipo_ambiente:*');
+    return result;
   }
 }

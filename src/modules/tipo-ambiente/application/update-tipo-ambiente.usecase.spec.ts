@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { UpdateTipoAmbienteUseCase } from './update-tipo-ambiente.usecase';
 import { TipoAmbienteRepositoryPort } from '../domain/tipo-ambiente.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 type RepoMock = {
   findById: jest.Mock<Promise<any>, [number]>;
@@ -29,11 +30,18 @@ describe('UpdateTipoAmbienteUseCase', () => {
       update: jest.fn().mockResolvedValue({ id: 5 }),
     };
 
+    const cache = {
+      getOrSet: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    } as unknown as CacheService;
+
     const useCase = new UpdateTipoAmbienteUseCase(
       repo as unknown as TipoAmbienteRepositoryPort,
+      cache,
     );
 
-    return { repo, useCase };
+    return { repo, useCase, cache };
   };
 
   it('actualiza los campos enviados cuando son válidos', async () => {
@@ -105,5 +113,41 @@ describe('UpdateTipoAmbienteUseCase', () => {
       useCase.execute({ id: 5, descripcion: 'x'.repeat(300) }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  // ── Cache invalidation tests ───────────────────────────────────
+
+  it('llama invalidateNamespace despues de actualizar exitosamente', async () => {
+    const { useCase, cache, repo } = buildSystem();
+
+    await useCase.execute({
+      id: 5,
+      nombre: 'Laboratorio renovado',
+    });
+
+    expect(repo.update).toHaveBeenCalled();
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('tipo_ambiente:*');
+  });
+
+  it('NO llama invalidateNamespace cuando la validacion falla', async () => {
+    const { useCase, cache } = buildSystem();
+
+    await expect(
+      useCase.execute({ id: 5, nombre: '   ' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
+  });
+
+  it('NO llama invalidateNamespace cuando repo.update lanza error', async () => {
+    const { useCase, cache, repo } = buildSystem();
+    const error = new Error('DB error');
+    repo.update.mockRejectedValue(error);
+
+    await expect(
+      useCase.execute({ id: 5, nombre: 'Nuevo nombre' }),
+    ).rejects.toBe(error);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });
