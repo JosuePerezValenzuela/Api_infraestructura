@@ -40,7 +40,10 @@ describe('CreateTipoAmbienteUseCase', () => {
       invalidateNamespace: jest.fn().mockResolvedValue(undefined),
     } as unknown as CacheService;
     // Instanciamos el caso de uso con el repositorio y cache simulados.
-    const useCase = new CreateTipoAmbienteUseCase(repo as unknown as any, cache);
+    const useCase = new CreateTipoAmbienteUseCase(
+      repo as unknown as any,
+      cache,
+    );
     // Retornamos los objetos para que cada prueba pueda inspeccionarlos.
     return { useCase, repo, cache };
   };

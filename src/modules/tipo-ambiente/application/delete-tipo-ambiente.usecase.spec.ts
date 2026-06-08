@@ -23,7 +23,9 @@ const defaultExisting = {
 describe('DeleteTipoAmbienteUseCase', () => {
   const buildSystem = (options?: { existing?: any | null }) => {
     const hasExisting = options ? 'existing' in options : false;
-    const existing = hasExisting ? (options!.existing ?? null) : defaultExisting;
+    const existing = hasExisting
+      ? (options!.existing ?? null)
+      : defaultExisting;
 
     const repo: DeleteRepoMock = {
       findById: jest.fn().mockResolvedValue(existing),

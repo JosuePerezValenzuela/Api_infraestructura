@@ -179,8 +179,14 @@ describe('CacheService', () => {
 
       expect(mockRedis.scan).toHaveBeenCalledTimes(2);
       expect(mockRedis.del).toHaveBeenCalledTimes(2);
-      expect(mockRedis.del).toHaveBeenNthCalledWith(1, 'tipo_bloque:list:page=1');
-      expect(mockRedis.del).toHaveBeenNthCalledWith(2, 'tipo_bloque:list:page=2');
+      expect(mockRedis.del).toHaveBeenNthCalledWith(
+        1,
+        'tipo_bloque:list:page=1',
+      );
+      expect(mockRedis.del).toHaveBeenNthCalledWith(
+        2,
+        'tipo_bloque:list:page=2',
+      );
     });
 
     it('no-ops when Redis scan throws — logs error', async () => {
