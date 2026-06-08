@@ -79,6 +79,42 @@ describe('CacheService', () => {
       );
     });
 
+    it('fetches and recaches a fresh value after a later cache miss', async () => {
+      const factory = jest
+        .fn()
+        .mockResolvedValueOnce({ id: 2, version: 1 })
+        .mockResolvedValueOnce({ id: 2, version: 2 });
+
+      mockRedis.get
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(JSON.stringify({ id: 2, version: 1 }))
+        .mockResolvedValueOnce(null);
+
+      await expect(
+        service.getOrSet('bloque:list:page=1', 300, factory),
+      ).resolves.toEqual({ id: 2, version: 1 });
+      await expect(
+        service.getOrSet('bloque:list:page=1', 300, factory),
+      ).resolves.toEqual({ id: 2, version: 1 });
+      await expect(
+        service.getOrSet('bloque:list:page=1', 300, factory),
+      ).resolves.toEqual({ id: 2, version: 2 });
+
+      expect(factory).toHaveBeenCalledTimes(2);
+      expect(mockRedis.setex).toHaveBeenNthCalledWith(
+        1,
+        'bloque:list:page=1',
+        300,
+        JSON.stringify({ id: 2, version: 1 }),
+      );
+      expect(mockRedis.setex).toHaveBeenNthCalledWith(
+        2,
+        'bloque:list:page=1',
+        300,
+        JSON.stringify({ id: 2, version: 2 }),
+      );
+    });
+
     it('propagates factory error — cache NOT modified', async () => {
       mockRedis.get.mockResolvedValue(null);
       const factoryError = new Error('DB connection failed');
@@ -193,7 +229,7 @@ describe('CacheService', () => {
       mockRedis.scan.mockRejectedValue(new Error('Redis timeout'));
 
       await expect(
-        service.invalidateNamespace('tipo_bloque:*'),
+        service.invalidateNamespace('bloque:*'),
       ).resolves.toBeUndefined();
 
       expect(Logger.prototype.error).toHaveBeenCalledWith(
