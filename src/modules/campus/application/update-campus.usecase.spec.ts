@@ -7,6 +7,7 @@ import type {
   CampusRepositoryPort,
 } from '../domain/campus.repository.port';
 import type { RelationshipsPort as RelationshipsPortContract } from '../../_shared/relationships/domain/relationships.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 // Definimos una interfaz auxiliar que describe las funciones que vamos a simular del repositorio de campus.
 interface FakeCampusRepositoryPort {
@@ -37,12 +38,19 @@ describe('UpdateCampusUseCase', () => {
       markCampusCascadeInactive: jest.fn(),
     };
 
+    const cache = {
+      getOrSet: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    } as unknown as CacheService;
+
     const useCase = new (UpdateCampusUseCase as any)(
       campusRepo as unknown as CampusRepositoryPort,
       relationships as unknown as RelationshipsPortContract,
+      cache,
     );
 
-    return { useCase, campusRepo, relationships };
+    return { useCase, campusRepo, relationships, cache };
   };
 
   // Esta prueba representa la historia: "Como administrador, cuando desactivo un campus necesito que todas sus dependencias tambien queden inactivas".
@@ -113,5 +121,56 @@ describe('UpdateCampusUseCase', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
     // Verificamos que el puerto de relaciones nunca fue utilizado en este escenario erroneo.
     expect(relationships.markCampusCascadeInactive).not.toHaveBeenCalled();
+  });
+
+  // ── Cache invalidation tests ───────────────────────────────────
+
+  it('llama invalidateNamespace despuÃ©s de actualizar exitosamente', async () => {
+    const { useCase, campusRepo, cache } = buildSystem();
+    // Configuramos el repositorio para devolver un campus existente.
+    campusRepo.findById.mockResolvedValue({
+      id: 77,
+      codigo: 'CP-001',
+      nombre: 'Campus Principal',
+      direccion: 'Av. Siempre Viva 742',
+      lat: -17.4,
+      lng: -66.2,
+      activo: true,
+      creado_en: new Date(),
+      actualizado_en: new Date(),
+    });
+    campusRepo.isCodeTaken.mockResolvedValue(false);
+    campusRepo.update.mockResolvedValue({ id: 77 });
+
+    await useCase.execute({ id: 77, data: { nombre: 'Campus Renovado' } });
+
+    expect(campusRepo.update).toHaveBeenCalled();
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('campus:*');
+  });
+
+  it('NO llama invalidateNamespace cuando campusRepo.update lanza error', async () => {
+    const { useCase, campusRepo, cache } = buildSystem();
+    // Configuramos el repositorio para devolver un campus existente.
+    campusRepo.findById.mockResolvedValue({
+      id: 55,
+      codigo: 'CP-002',
+      nombre: 'Campus Norte',
+      direccion: 'Calle Principal 123',
+      lat: -17.5,
+      lng: -66.3,
+      activo: true,
+      creado_en: new Date(),
+      actualizado_en: new Date(),
+    });
+    campusRepo.isCodeTaken.mockResolvedValue(false);
+    // Hacemos que update falle.
+    const error = new Error('DB error');
+    campusRepo.update.mockRejectedValue(error);
+
+    await expect(
+      useCase.execute({ id: 55, data: { nombre: 'Nuevo Nombre' } }),
+    ).rejects.toThrow(error);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

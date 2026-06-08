@@ -13,6 +13,7 @@ import { DeleteCampusUseCase } from './application/delete-campus.usecase';
 import { CampusController } from './interface/campus.controller';
 
 import { RelationshipsModule } from '../_shared/relationships/relationships.module';
+import { CacheService } from '../_shared/infrastructure/cache/cache.service';
 @Module({
   imports: [TypeOrmModule.forFeature([CampusOrmEntity]), RelationshipsModule],
   controllers: [CampusController],
@@ -21,6 +22,7 @@ import { RelationshipsModule } from '../_shared/relationships/relationships.modu
     ListCampusUseCase,
     UpdateCampusUseCase,
     DeleteCampusUseCase,
+    CacheService,
     { provide: CampusRepositoryPort, useClass: TypeormCampusRepository },
   ],
   exports: [CampusRepositoryPort],

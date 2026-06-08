@@ -7,6 +7,7 @@ import type {
   CampusRepositoryPort,
   RelatedFaculty,
 } from '../domain/campus.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 // Definimos la forma del repositorio falso que utilizaremos en las pruebas.
 interface FakeCampusRepositoryPort {
@@ -25,12 +26,19 @@ describe('DeleteCampusUseCase', () => {
       delete: jest.fn(),
     };
 
+    const cache = {
+      getOrSet: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    } as unknown as CacheService;
+
     // Instanciamos el caso de uso real inyectando el mock.
     const useCase = new (DeleteCampusUseCase as any)(
       campusRepo as unknown as CampusRepositoryPort,
+      cache,
     );
 
-    return { campusRepo, useCase };
+    return { campusRepo, useCase, cache };
   };
 
   // Esta prueba cubre el flujo feliz: el campus existe, no tiene facultades relacionadas y se elimina físicamente.
@@ -140,6 +148,68 @@ describe('DeleteCampusUseCase', () => {
 
     // Verificamos que NO se llama al delete.
     expect(campusRepo.delete).not.toHaveBeenCalled();
+  });
+
+  // ── Cache invalidation tests ───────────────────────────────────
+
+  it('llama invalidateNamespace despuÃ©s de eliminar exitosamente', async () => {
+    const { campusRepo, useCase, cache } = buildSystem();
+
+    // Simulamos que el campus existe y no tiene facultades relacionadas.
+    campusRepo.findById.mockResolvedValue({
+      id: 25,
+      codigo: 'CAMP-025',
+      nombre: 'Campus Central',
+      direccion: 'Av. Principal 123',
+      lat: -17.38,
+      lng: -66.16,
+      activo: true,
+      creado_en: new Date('2025-01-01T10:00:00Z'),
+      actualizado_en: new Date('2025-01-10T12:00:00Z'),
+    });
+    campusRepo.findRelatedFaculties.mockResolvedValue([]);
+    campusRepo.delete.mockResolvedValue({ id: 25 });
+
+    await useCase.execute({ id: 25 });
+
+    expect(campusRepo.delete).toHaveBeenCalledWith(25);
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('campus:*');
+  });
+
+  it('NO llama invalidateNamespace cuando el campus no existe', async () => {
+    const { campusRepo, useCase, cache } = buildSystem();
+
+    campusRepo.findById.mockResolvedValue(null);
+
+    await expect(useCase.execute({ id: 999 })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
+  });
+
+  it('NO llama invalidateNamespace cuando repo.delete lanza error', async () => {
+    const { campusRepo, useCase, cache } = buildSystem();
+
+    // Simulamos que el campus existe y no tiene facultades relacionadas.
+    campusRepo.findById.mockResolvedValue({
+      id: 88,
+      codigo: 'CAMP-088',
+      nombre: 'Campus Norte',
+      direccion: 'Calle Falsa 456',
+      lat: -17.4,
+      lng: -66.2,
+      activo: true,
+      creado_en: new Date('2024-05-01T08:00:00Z'),
+      actualizado_en: new Date('2024-06-01T09:30:00Z'),
+    });
+    campusRepo.findRelatedFaculties.mockResolvedValue([]);
+    const error = new Error('DB error');
+    campusRepo.delete.mockRejectedValue(error);
+
+    await expect(useCase.execute({ id: 88 })).rejects.toThrow(error);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   // Esta prueba demuestra que si el delete falla, el error se propaga.

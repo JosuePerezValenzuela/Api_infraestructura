@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CampusRepositoryPort } from '../domain/campus.repository.port';
 import { RelationshipsPort } from '../../_shared/relationships/domain/relationships.port';
 import { NotFoundException, ConflictException } from '@nestjs/common';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 type UpdateCampusInput = {
   id: number;
@@ -25,6 +26,7 @@ export class UpdateCampusUseCase {
     @Inject(CampusRepositoryPort) private readonly repo: CampusRepositoryPort,
     @Inject(RelationshipsPort)
     private readonly relationships: RelationshipsPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute({ id, data }: UpdateCampusInput): Promise<UpdateCampusOutput> {
@@ -76,6 +78,8 @@ export class UpdateCampusUseCase {
     if (shouldDeactivateDependents) {
       await this.relationships.markCampusCascadeInactive(id);
     }
+
+    await this.cacheService.invalidateNamespace('campus:*');
 
     return { idResp: id };
   }

@@ -5,12 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CampusRepositoryPort } from '../domain/campus.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 @Injectable()
 export class DeleteCampusUseCase {
   constructor(
     @Inject(CampusRepositoryPort)
     private readonly campusPort: CampusRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute({ id }: { id: number }): Promise<{ id: number }> {
@@ -42,6 +44,7 @@ export class DeleteCampusUseCase {
 
     // Delete físico del campus
     await this.campusPort.delete(id);
+    await this.cacheService.invalidateNamespace('campus:*');
     return { id };
   }
 }
