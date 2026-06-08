@@ -7,6 +7,7 @@ import { DeleteTipoBloqueUseCase } from './application/delete-tipo-bloque.usecas
 import { TipoBloqueRepositoryPort } from './domain/tipo-bloque.repository.port';
 import { RelationshipsModule } from '../_shared/relationships/relationships.module';
 import { TypeormTipoBloqueRepository } from './infrastructure/persistence/typeorm-tipo-bloque.repository';
+import { CacheService } from '../_shared/infrastructure/cache/cache.service';
 
 @Module({
   imports: [RelationshipsModule],
@@ -16,6 +17,7 @@ import { TypeormTipoBloqueRepository } from './infrastructure/persistence/typeor
     ListTipoBloquesUseCase,
     UpdateTipoBloqueUseCase,
     DeleteTipoBloqueUseCase,
+    CacheService,
     {
       provide: TipoBloqueRepositoryPort,
       useClass: TypeormTipoBloqueRepository,

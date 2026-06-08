@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { TipoBloqueRepositoryPort } from '../domain/tipo-bloque.repository.port';
 import { RelationshipsPort } from '../../_shared/relationships/domain/relationships.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 @Injectable()
 export class DeleteTipoBloqueUseCase {
@@ -14,6 +15,7 @@ export class DeleteTipoBloqueUseCase {
     private readonly repo: TipoBloqueRepositoryPort,
     @Inject(RelationshipsPort)
     private readonly relationships: RelationshipsPort,
+    private readonly cacheService: CacheService,
   ) {}
   async execute({ id }: { id: number }): Promise<{ id: number }> {
     // Busqueda del tipo de bloque por su identificador
@@ -49,6 +51,8 @@ export class DeleteTipoBloqueUseCase {
     }
 
     // Eliminar el tipo de bloque
-    return this.repo.delete(id);
+    const result = await this.repo.delete(id);
+    await this.cacheService.invalidateNamespace('tipo_bloque:*');
+    return result;
   }
 }

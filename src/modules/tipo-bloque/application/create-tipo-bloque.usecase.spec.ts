@@ -3,6 +3,8 @@
 import { ConflictException, BadRequestException } from '@nestjs/common';
 // Importamos la clase CreateTipoBloqueUseCase (aun por implementar) para describir el comportamiento esperado.
 import { CreateTipoBloqueUseCase } from './create-tipo-bloque.usecase';
+// Importamos CacheService para simular el servicio de cache en las pruebas.
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 // Definimos una interfaz local que describe las funciones que esperamos del repositorio de tipos de bloque.
 interface FakeTipoBloqueRepositoryPort {
@@ -32,10 +34,16 @@ describe('CreateTipoBloqueUseCase', () => {
       create: jest.fn().mockResolvedValue({ id: 10 }),
       isNameTaken: jest.fn().mockResolvedValue(nameTaken),
     };
-    // Instanciamos el caso de uso pasando el repositorio falso como dependencia.
-    const useCase = new CreateTipoBloqueUseCase(repo as unknown as any);
+    // Creamos un cache falso para espiar llamadas a invalidateNamespace.
+    const cache = {
+      getOrSet: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    } as unknown as CacheService;
+    // Instanciamos el caso de uso pasando el repositorio falso y el cache falso como dependencias.
+    const useCase = new CreateTipoBloqueUseCase(repo as unknown as any, cache);
     // Retornamos las dependencias para que cada prueba pueda inspeccionarlas.
-    return { useCase, repo };
+    return { useCase, repo, cache };
   };
 
   // Probamos el camino feliz donde se crea el tipo de bloque con datos validos.
@@ -135,5 +143,52 @@ describe('CreateTipoBloqueUseCase', () => {
       descripcion: 'Almacenes de materiales',
       activo: false,
     });
+  });
+
+  // ── Cache invalidation tests ───────────────────────────────────
+
+  // Probamos que se invalida el cache despues de crear exitosamente.
+  it('llama invalidateNamespace despues de crear exitosamente', async () => {
+    // Construimos el sistema con el nombre disponible.
+    const { useCase, cache, repo } = buildSystem();
+    // Ejecutamos el caso de uso con datos validos.
+    await useCase.execute({
+      nombre: 'Edificio A',
+      descripcion: 'Descripcion valida',
+    });
+    // Verificamos que el repositorio creo el registro.
+    expect(repo.create).toHaveBeenCalled();
+    // Verificamos que se invalido el namespace de tipo_bloque.
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('tipo_bloque:*');
+  });
+
+  // Probamos que NO se invalida el cache cuando falla la validacion.
+  it('NO llama invalidateNamespace cuando falla la validacion', async () => {
+    // Construimos el sistema con el nombre disponible.
+    const { useCase, cache } = buildSystem();
+    // Ejecutamos con nombre invalido (vacio) y esperamos error.
+    await expect(
+      useCase.execute({ nombre: '  ', descripcion: 'Descripcion valida' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    // Verificamos que NO se invalido el cache.
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
+  });
+
+  // Probamos que NO se invalida el cache cuando el repositorio lanza un error.
+  it('NO llama invalidateNamespace cuando repo.create lanza error', async () => {
+    // Construimos el sistema con el nombre disponible.
+    const { useCase, cache, repo } = buildSystem();
+    // Hacemos que repo.create falle.
+    const error = new Error('DB error');
+    repo.create.mockRejectedValue(error);
+    // Ejecutamos con datos validos pero el repositorio falla.
+    await expect(
+      useCase.execute({
+        nombre: 'Edificio A',
+        descripcion: 'Descripcion valida',
+      }),
+    ).rejects.toBe(error);
+    // Verificamos que NO se invalido el cache porque nunca se completo la creacion.
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

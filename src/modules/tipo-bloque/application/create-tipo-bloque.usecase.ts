@@ -6,12 +6,14 @@ import {
 } from '@nestjs/common';
 import { TipoBloqueRepositoryPort } from '../domain/tipo-bloque.repository.port';
 import { CreateTipoBloqueCommand } from '../domain/commands/create-tipo-bloque.command';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 @Injectable()
 export class CreateTipoBloqueUseCase {
   constructor(
     @Inject(TipoBloqueRepositoryPort)
     private readonly repo: TipoBloqueRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute(input: {
@@ -52,6 +54,8 @@ export class CreateTipoBloqueUseCase {
 
     const activo = input.activo ?? true;
     const command: CreateTipoBloqueCommand = { nombre, descripcion, activo };
-    return this.repo.create(command);
+    const result = await this.repo.create(command);
+    await this.cacheService.invalidateNamespace('tipo_bloque:*');
+    return result;
   }
 }

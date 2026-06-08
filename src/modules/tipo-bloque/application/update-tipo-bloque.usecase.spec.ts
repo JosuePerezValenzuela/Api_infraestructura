@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 // Importamos el caso de uso (que implementaremos después) para definir su comportamiento esperado.
 import { UpdateTipoBloqueUseCase } from './update-tipo-bloque.usecase';
+// Importamos el CacheService para simular el servicio de cache en las pruebas.
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 // Importamos el tipo que representa un registro de tipo de bloque para armar los datos simulados del repositorio.
 import { TipoBloqueListItem } from '../domain/tipo-bloque.list.types';
 
@@ -47,10 +49,16 @@ const buildSystem = (options?: {
       .fn()
       .mockResolvedValue({ id: (existing ?? defaultExisting).id }),
   };
-  // Instanciamos el caso de uso con el repositorio falso.
-  const useCase = new UpdateTipoBloqueUseCase(repo as unknown as any);
+  // Creamos un cache falso para espiar llamadas a invalidateNamespace.
+  const cache = {
+    getOrSet: jest.fn().mockResolvedValue(undefined),
+    invalidate: jest.fn().mockResolvedValue(undefined),
+    invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+  } as unknown as CacheService;
+  // Instanciamos el caso de uso con el repositorio falso y el cache falso.
+  const useCase = new UpdateTipoBloqueUseCase(repo as unknown as any, cache);
   // Retornamos las dependencias para que cada prueba pueda usarlas.
-  return { useCase, repo, existing: existing ?? defaultExisting };
+  return { useCase, repo, cache, existing: existing ?? defaultExisting };
 };
 
 // Agrupamos las pruebas del caso de uso dentro de describe.
@@ -191,5 +199,52 @@ describe('UpdateTipoBloqueUseCase', () => {
     // Verificamos que la verificación de duplicados se haya omitido y no se haya intentado actualizar.
     expect(repo.isNameTakenByOther).not.toHaveBeenCalled();
     expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  // ── Cache invalidation tests ───────────────────────────────────
+
+  // Probamos que se invalida el cache despues de actualizar exitosamente.
+  it('llama invalidateNamespace despues de actualizar exitosamente', async () => {
+    // Construimos el sistema con un registro existente.
+    const { useCase, cache, repo, existing } = buildSystem();
+    // Enviamos un nombre diferente al actual para forzar una actualizacion real.
+    await useCase.execute({
+      id: existing.id,
+      nombre: 'Bloque renovado',
+    });
+    // Verificamos que el repositorio ejecuto la actualizacion.
+    expect(repo.update).toHaveBeenCalled();
+    // Verificamos que se invalido el namespace de tipo_bloque.
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('tipo_bloque:*');
+  });
+
+  // Probamos que NO se invalida el cache cuando falla la validacion.
+  it('NO llama invalidateNamespace cuando la validacion falla', async () => {
+    // Construimos el sistema con un registro existente.
+    const { useCase, cache } = buildSystem();
+    // Enviamos nombre vacio para provocar error de validacion.
+    await expect(
+      useCase.execute({ id: 7, nombre: '   ' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    // Verificamos que NO se invalido el cache.
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
+  });
+
+  // Probamos que NO se invalida el cache cuando el repositorio lanza un error.
+  it('NO llama invalidateNamespace cuando repo.update lanza error', async () => {
+    // Construimos el sistema con un registro existente.
+    const { useCase, cache, repo, existing } = buildSystem();
+    // Hacemos que repo.update falle.
+    const error = new Error('DB error');
+    repo.update.mockRejectedValue(error);
+    // Enviamos cambios validos pero el repositorio falla.
+    await expect(
+      useCase.execute({
+        id: existing.id,
+        nombre: 'Bloque renovado',
+      }),
+    ).rejects.toBe(error);
+    // Verificamos que NO se invalido el cache porque nunca se completo la actualizacion.
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

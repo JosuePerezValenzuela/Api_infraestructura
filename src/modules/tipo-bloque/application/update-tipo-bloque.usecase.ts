@@ -7,12 +7,14 @@ import {
 } from '@nestjs/common';
 import { TipoBloqueRepositoryPort } from '../domain/tipo-bloque.repository.port';
 import { UpdateTipoBloqueCommand } from '../domain/commands/update-tipo-bloque.command';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 @Injectable()
 export class UpdateTipoBloqueUseCase {
   constructor(
     @Inject(TipoBloqueRepositoryPort)
     private readonly repo: TipoBloqueRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute(input: {
@@ -113,6 +115,7 @@ export class UpdateTipoBloqueUseCase {
 
     const command: UpdateTipoBloqueCommand = { id, ...changes };
     const { id: updatedId } = await this.repo.update(command);
+    await this.cacheService.invalidateNamespace('tipo_bloque:*');
     return { id: updatedId };
   }
 }

@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ListTipoBloquesOptions,
   ListTipoBloquesResult,
@@ -6,6 +7,8 @@ import {
   TipoBloqueOrderDir,
 } from '../domain/tipo-bloque.list.types';
 import { TipoBloqueRepositoryPort } from '../domain/tipo-bloque.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
+import { CacheKeyBuilder } from '../../_shared/infrastructure/cache/cache-key-builder';
 
 const ALLOWED_ORDER_BY: TipoBloqueOrderBy[] = [
   'nombre',
@@ -19,6 +22,8 @@ export class ListTipoBloquesUseCase {
   constructor(
     @Inject(TipoBloqueRepositoryPort)
     private readonly repo: TipoBloqueRepositoryPort,
+    private readonly cacheService: CacheService,
+    private readonly config: ConfigService,
   ) {}
 
   async execute(input: {
@@ -82,6 +87,18 @@ export class ListTipoBloquesUseCase {
       activo,
     };
 
-    return this.repo.list(options);
+    const ttl = this.config.get<number>('CACHE_TTL', 300);
+    const cacheKey = CacheKeyBuilder.list('tipo_bloque', {
+      page,
+      limit,
+      orderBy,
+      orderDir,
+      search,
+      activo,
+    });
+
+    return this.cacheService.getOrSet(cacheKey, ttl, () =>
+      this.repo.list(options),
+    );
   }
 }
