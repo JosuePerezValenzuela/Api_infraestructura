@@ -15,4 +15,9 @@ export const envSchema = Joi.object({
 
   // JWT
   GLOBAL_PREFIX: Joi.string().default('api'),
+
+  // Redis
+  REDIS_HOST: Joi.string().default('localhost'),
+  REDIS_PORT: Joi.number().default(6379),
+  CACHE_TTL: Joi.number().default(300),
 });

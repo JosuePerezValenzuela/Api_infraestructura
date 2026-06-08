@@ -26,7 +26,6 @@
     "migration:show": "typeorm-ts-node-commonjs -d ./typeorm-cli.datasource.ts migration:show"
   },
   "dependencies": {
-    "@nestjs/cache-manager": "^3.1.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -35,8 +34,6 @@
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^11.0.0",
-    "cache-manager": "^7.2.8",
-    "cache-manager-ioredis": "^2.1.0",
     "chart.js": "^4.5.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
