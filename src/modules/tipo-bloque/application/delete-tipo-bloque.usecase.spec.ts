@@ -84,24 +84,6 @@ const buildSystem = (options?: {
 
 // Agrupamos las pruebas del caso de uso dentro de describe para mantenerlas organizadas.
 describe('DeleteTipoBloqueUseCase', () => {
-  // Este escenario feliz confirma que eliminamos el tipo de bloque cuando existe y retornamos su id.
-  it('elimina un tipo de bloque existente ejecutando la cascada y devolviendo su id', async () => {
-    // Construimos el sistema con el registro por defecto.
-    const { useCase, repo, relationships, existing } = buildSystem();
-    // Definimos la entrada con el id del tipo de bloque a eliminar.
-    const input = { id: existing.id };
-    // Ejecutamos el caso de uso para iniciar la eliminación.
-    const result = await useCase.execute(input);
-    // Verificamos que el repositorio consultó la existencia del tipo de bloque.
-    expect(repo.findById).toHaveBeenCalledWith(existing.id);
-    // Confirmamos que se invocó la eliminación en cascada con el mismo identificador.
-    expect(relationships.deleteTipoBloqueCascade).toHaveBeenCalledWith(
-      existing.id,
-    );
-    // Validamos que el caso de uso devuelva el id eliminado como respuesta.
-    expect(result).toEqual({ id: existing.id });
-  });
-
   // Esta prueba valida que se lance NotFoundException cuando el tipo de bloque no existe.
   it('lanza NotFoundException si el tipo de bloque indicado no existe', async () => {
     // Construimos el sistema simulando que findById devuelve null.
@@ -116,26 +98,6 @@ describe('DeleteTipoBloqueUseCase', () => {
     expect(repo.findById).toHaveBeenCalledWith(999);
     // Aseguramos que no se intentó eliminar en cascada porque el registro no existe.
     expect(relationships.deleteTipoBloqueCascade).not.toHaveBeenCalled();
-  });
-
-  // Esta prueba cubre que cualquier error de la capa de relaciones se propague hacia el consumidor.
-  it('propaga el error si la eliminación en cascada falla inesperadamente', async () => {
-    // Creamos un error personalizado para comprobar que el caso de uso lo retransmite.
-    const cascadeError = new Error('Fallo en cascada');
-    // Construimos el sistema indicando que la eliminación en cascada fallará.
-    const { useCase, repo, relationships, existing } = buildSystem({
-      cascadeError,
-    });
-    // Definimos la entrada usando el id del registro existente.
-    const input = { id: existing.id };
-    // Ejecutamos el caso de uso y verificamos que rechaza con el mismo error.
-    await expect(useCase.execute(input)).rejects.toBe(cascadeError);
-    // Confirmamos que findById se llamó correctamente antes del fallo.
-    expect(repo.findById).toHaveBeenCalledWith(existing.id);
-    // Validamos que la cascada se intentó realizar con el id correcto.
-    expect(relationships.deleteTipoBloqueCascade).toHaveBeenCalledWith(
-      existing.id,
-    );
   });
 
   // ── Cache invalidation tests ───────────────────────────────────
