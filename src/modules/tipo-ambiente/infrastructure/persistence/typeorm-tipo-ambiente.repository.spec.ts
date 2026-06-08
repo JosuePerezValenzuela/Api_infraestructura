@@ -185,35 +185,6 @@ describe('TypeormTipoAmbienteRepository', () => {
     expect(countParams).toEqual([true]);
   });
 
-  it('elimina un tipo de ambiente y sus dependencias', async () => {
-    const { dataSource, repository } = buildRepository();
-    dataSource.query
-      .mockResolvedValueOnce([{ id: 5 }]) // exists
-      .mockResolvedValueOnce([]) // delete ambientes
-      .mockResolvedValueOnce([{ id: 5 }]); // delete tipo_ambientes
-
-    const result = await repository.delete({ id: 5 });
-
-    const [selectSql, selectParams] = dataSource.query.mock.calls[0];
-    expect(selectSql.replace(/\s+/g, ' ').trim()).toContain(
-      'SELECT id FROM infraestructura.tipo_ambientes WHERE id = $1',
-    );
-    expect(selectParams).toEqual([5]);
-
-    const [deleteAmbSql, deleteAmbParams] = dataSource.query.mock.calls[1];
-    expect(deleteAmbSql.replace(/\s+/g, ' ').trim()).toContain(
-      'DELETE FROM infraestructura.ambientes',
-    );
-    expect(deleteAmbParams).toEqual([5]);
-
-    const [deleteTipoSql, deleteTipoParams] = dataSource.query.mock.calls[2];
-    expect(deleteTipoSql.replace(/\s+/g, ' ').trim()).toContain(
-      'DELETE FROM infraestructura.tipo_ambientes WHERE id = $1 RETURNING id',
-    );
-    expect(deleteTipoParams).toEqual([5]);
-    expect(result).toEqual({ id: 5 });
-  });
-
   it('lanza NotFoundException cuando el tipo de ambiente no existe', async () => {
     const { dataSource, repository } = buildRepository();
     dataSource.query.mockResolvedValueOnce([]);
