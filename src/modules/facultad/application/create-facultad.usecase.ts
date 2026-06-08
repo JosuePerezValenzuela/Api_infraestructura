@@ -7,6 +7,7 @@ import {
 import { FacultadRepositoryPort } from '../domain/facultad.repository.port';
 import { CampusRepositoryPort } from '../../campus/domain/campus.repository.port';
 import { CreateFacultadCommand } from './dto/create-facultad.command';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 @Injectable()
 export class CreateFacultadUseCase {
@@ -15,6 +16,7 @@ export class CreateFacultadUseCase {
     private readonly facultadRepository: FacultadRepositoryPort,
     @Inject(CampusRepositoryPort)
     private readonly campusRepository: CampusRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute(cmd: CreateFacultadCommand): Promise<{ id: number }> {
@@ -39,6 +41,9 @@ export class CreateFacultadUseCase {
       nombre_corto: cmd.nombre_corto,
       campus_ids: cmd.campus_ids,
     });
+
+    // Invalidamos el cache de facultades para que las listas reflejen el nuevo registro
+    await this.cacheService.invalidateNamespace('facultad:*');
 
     return created;
   }

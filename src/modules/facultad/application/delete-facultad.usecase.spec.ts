@@ -11,6 +11,7 @@ import type {
   FacultadRepositoryPort,
   RelatedBlock,
 } from '../domain/facultad.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 // Definimos la forma del repositorio simulado.
 interface FakeFacultadRepository {
@@ -39,11 +40,18 @@ describe('DeleteFacultadUseCase', () => {
       deleteFacultad: jest.fn(),
     };
 
+    const cache = {
+      getOrSet: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    } as unknown as CacheService;
+
     const useCase = new (DeleteFacultadUseCase as any)(
       facultadRepo as unknown as FacultadRepositoryPort,
+      cache,
     );
 
-    return { facultadRepo, useCase };
+    return { facultadRepo, useCase, cache };
   };
 
   // Flujo feliz: la relación existe, no tiene bloques dependientes, y la facultad se elimina porque era su única relación
@@ -322,5 +330,98 @@ describe('DeleteFacultadUseCase', () => {
     await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toThrow(
       failure,
     );
+  });
+
+  // ── Cache invalidation tests ───────────────────────────────────
+
+  it('llama invalidateNamespace despues de eliminar (sin otras relaciones)', async () => {
+    const { facultadRepo, useCase, cache } = buildSystem();
+
+    facultadRepo.findById.mockResolvedValue({
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3],
+    });
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 10 });
+    facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue([]);
+    facultadRepo.deleteRelationship.mockResolvedValue({ id: 1 });
+    facultadRepo.hasOtherRelationships.mockResolvedValue(false);
+    facultadRepo.deleteFacultad.mockResolvedValue({ id: 1 });
+
+    await useCase.execute({ id: 1, campusId: 3 });
+
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('facultad:*');
+  });
+
+  it('llama invalidateNamespace despues de eliminar (con otras relaciones)', async () => {
+    const { facultadRepo, useCase, cache } = buildSystem();
+
+    facultadRepo.findById.mockResolvedValue({
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3, 5],
+    });
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 10 });
+    facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue([]);
+    facultadRepo.deleteRelationship.mockResolvedValue({ id: 1 });
+    facultadRepo.hasOtherRelationships.mockResolvedValue(true);
+
+    await useCase.execute({ id: 1, campusId: 3 });
+
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('facultad:*');
+  });
+
+  it('NO llama invalidateNamespace cuando la facultad no existe', async () => {
+    const { facultadRepo, useCase, cache } = buildSystem();
+
+    facultadRepo.findById.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute({ id: 999, campusId: 3 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
+  });
+
+  it('NO llama invalidateNamespace cuando delete lanza error', async () => {
+    const { facultadRepo, useCase, cache } = buildSystem();
+
+    facultadRepo.findById.mockResolvedValue({
+      id: 1,
+      codigo: 'FCT-001',
+      nombre: 'Facultad de Ciencias',
+      nombre_corto: 'FC',
+      lat: -17.389,
+      lng: -66.156,
+      activo: true,
+      campus_id: 3,
+      campus_ids: [3],
+    });
+    facultadRepo.findCampusById.mockResolvedValue({ id: 3 });
+    facultadRepo.findCampusFacultadRelationship.mockResolvedValue({ id: 10 });
+    facultadRepo.findBlocksByCampusFacultadId.mockResolvedValue([]);
+
+    const error = new Error('DB error');
+    facultadRepo.deleteRelationship.mockRejectedValue(error);
+
+    await expect(useCase.execute({ id: 1, campusId: 3 })).rejects.toThrow(
+      error,
+    );
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

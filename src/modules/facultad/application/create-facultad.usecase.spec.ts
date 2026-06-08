@@ -5,6 +5,8 @@ import { ConflictException, BadRequestException } from '@nestjs/common';
 import { CreateFacultadUseCase } from './create-facultad.usecase';
 // Importamos solo el tipo de CampusRepositoryPort para describir la forma del doble de prueba.
 import type { CampusRepositoryPort as CampusRepositoryPortType } from '../../campus/domain/campus.repository.port';
+// Importamos CacheService para espiar llamadas de invalidacion.
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 // Definimos una interfaz local que describe como esperamos que sea el puerto de repositorio de facultades.
 interface FakeFacultadRepositoryPort {
@@ -60,13 +62,20 @@ describe('CreateFacultadUseCase', () => {
         jest.fn() as unknown as CampusRepositoryPortType['isCodeTaken'],
       update: jest.fn() as unknown as CampusRepositoryPortType['update'],
     };
+    // Creamos un cache falso para espiar llamadas a invalidateNamespace.
+    const cache = {
+      getOrSet: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    } as unknown as CacheService;
     // Instanciamos el caso de uso pasando los puertos falsos para poder observar su comportamiento.
     const useCase = new CreateFacultadUseCase(
       facultadRepo as unknown as any,
       campusRepo,
+      cache,
     );
     // Retornamos todas las piezas para que cada prueba pueda inspeccionarlas.
-    return { useCase, facultadRepo, campusRepo };
+    return { useCase, facultadRepo, campusRepo, cache };
   };
 
   // Este caso cubre el registro exitoso de una nueva facultad cumpliendo el escenario principal de la HU.
@@ -134,5 +143,42 @@ describe('CreateFacultadUseCase', () => {
     await expect(useCase.execute(comando)).rejects.toBeInstanceOf(
       BadRequestException,
     );
+  });
+
+  // ── Cache invalidation tests ───────────────────────────────────
+
+  it('llama invalidateNamespace despues de crear exitosamente', async () => {
+    const { useCase, facultadRepo, cache } = buildSystem();
+
+    const comando = {
+      codigo: 'FCYT-01',
+      nombre: 'Facultad de Ciencias y Tecnologia',
+      nombre_corto: 'FCyT',
+      campus_ids: [1],
+    };
+
+    await useCase.execute(comando);
+
+    expect(facultadRepo.create).toHaveBeenCalled();
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('facultad:*');
+  });
+
+  it('NO llama invalidateNamespace cuando create falla', async () => {
+    const { useCase, facultadRepo, cache } = buildSystem();
+
+    // Hacemos que repo.create falle
+    const error = new Error('DB error');
+    facultadRepo.create.mockRejectedValue(error);
+
+    const comando = {
+      codigo: 'FCYT-01',
+      nombre: 'Facultad de Ciencias y Tecnologia',
+      nombre_corto: 'FCyT',
+      campus_ids: [1],
+    };
+
+    await expect(useCase.execute(comando)).rejects.toThrow(error);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

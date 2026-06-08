@@ -12,6 +12,7 @@ import {
   facultadCompleta,
   UpdateFacultadesInputAndId,
 } from '../domain/facultad.list.types';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 @Injectable()
 export class UpdateFacultadUseCase {
@@ -22,6 +23,7 @@ export class UpdateFacultadUseCase {
     private readonly relationshipRepo: RelationshipsPort,
     @Inject(CampusRepositoryPort)
     private readonly campusRepo: CampusRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute({
@@ -100,6 +102,9 @@ export class UpdateFacultadUseCase {
     if (shouldDeactivateDependents) {
       await this.relationshipRepo.markFacultadCascadeInactive(id);
     }
+
+    // Invalidamos el cache de facultades para que las listas reflejen los cambios
+    await this.cacheService.invalidateNamespace('facultad:*');
 
     return { id };
   }

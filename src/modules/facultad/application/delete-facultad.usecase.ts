@@ -6,12 +6,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FacultadRepositoryPort } from '../domain/facultad.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 @Injectable()
 export class DeleteFacultadUseCase {
   constructor(
     @Inject(FacultadRepositoryPort)
     private readonly facultadRepo: FacultadRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute({
@@ -92,12 +94,17 @@ export class DeleteFacultadUseCase {
       campusId,
     );
 
+    let deletedFacultad = false;
+
     // Si no tiene más relaciones, eliminar la facultad también
     if (!hasOtherRelations) {
       await this.facultadRepo.deleteFacultad(id);
-      return { id, deletedFacultad: true };
+      deletedFacultad = true;
     }
 
-    return { id, deletedFacultad: false };
+    // Invalidamos el cache de facultades para reflejar la eliminacion
+    await this.cacheService.invalidateNamespace('facultad:*');
+
+    return { id, deletedFacultad };
   }
 }

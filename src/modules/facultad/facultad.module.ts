@@ -13,6 +13,8 @@ import { TypeormFacultadRepository } from './infraestructure/persistence/faculta
 
 import { FacultadController } from './interface/facultad.controller';
 
+import { CacheService } from '../_shared/infrastructure/cache/cache.service';
+
 @Module({
   imports: [CampusModule, RelationshipsModule],
   controllers: [FacultadController],
@@ -21,6 +23,7 @@ import { FacultadController } from './interface/facultad.controller';
     ListFacultadesUseCase,
     UpdateFacultadUseCase,
     DeleteFacultadUseCase,
+    CacheService,
     {
       provide: FacultadRepositoryPort,
       useClass: TypeormFacultadRepository,
