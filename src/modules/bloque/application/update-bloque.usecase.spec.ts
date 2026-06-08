@@ -15,6 +15,7 @@ import type { UpdateBloqueCommand } from '../domain/commands/update-bloque.comma
 import type { FacultadRepositoryPort } from '../../facultad/domain/facultad.repository.port';
 import type { TipoBloqueRepositoryPort } from '../../tipo-bloque/domain/tipo-bloque.repository.port';
 import type { RelationshipsPort } from '../../_shared/relationships/domain/relationships.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 // Declaramos una interfaz auxiliar que describe los mocks que usaremos para el repositorio de bloques.
 interface FakeBloqueRepositoryPort {
@@ -39,6 +40,14 @@ interface FakeTipoBloqueRepositoryPort {
 
 interface FakeRelationshipsPort {
   markBloquesCascadeInactive: jest.Mock<Promise<void>, [number]>;
+}
+
+interface FakeCacheService {
+  getOrSet: jest.Mock<
+    Promise<unknown>,
+    [string, number, () => Promise<unknown>]
+  >;
+  invalidateNamespace: jest.Mock<Promise<void>, [string]>;
 }
 
 // Creamos un bloque de ejemplo que reutilizaremos en varios escenarios.
@@ -79,14 +88,27 @@ describe('UpdateBloqueUseCase', () => {
       markBloquesCascadeInactive: jest.fn(),
     };
 
+    const cache: FakeCacheService = {
+      getOrSet: jest.fn(),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    };
+
     const useCase = new (UpdateBloqueUseCase as any)(
       bloqueRepo as unknown as BloqueRepositoryPort,
       facultadRepo as unknown as FacultadRepositoryPort,
       tipoBloqueRepo as unknown as TipoBloqueRepositoryPort,
       relationships as unknown as RelationshipsPort,
+      cache as unknown as CacheService,
     );
 
-    return { useCase, bloqueRepo, facultadRepo, tipoBloqueRepo, relationships };
+    return {
+      useCase,
+      bloqueRepo,
+      facultadRepo,
+      tipoBloqueRepo,
+      relationships,
+      cache,
+    };
   };
 
   beforeEach(() => {
@@ -236,5 +258,50 @@ describe('UpdateBloqueUseCase', () => {
     await useCase.execute({ id: 42, input: { activo: false } });
 
     expect(relationships.markBloquesCascadeInactive).not.toHaveBeenCalled();
+  });
+
+  it('invalidates bloque namespace after a successful update', async () => {
+    const { useCase, bloqueRepo, cache } = buildSystem();
+    bloqueRepo.findById.mockResolvedValue(existingBloque);
+    bloqueRepo.isCodeTaken.mockResolvedValue(false);
+    bloqueRepo.update.mockResolvedValue({ id: 42 });
+
+    await useCase.execute({ id: 42, input: { nombre: 'Bloque Renovado' } });
+
+    expect(bloqueRepo.update).toHaveBeenCalled();
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('bloque:*');
+    expect(
+      cache.invalidateNamespace.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(bloqueRepo.update.mock.invocationCallOrder[0]);
+  });
+
+  it('invalidates bloque namespace after update cascade finishes', async () => {
+    const { useCase, bloqueRepo, relationships, cache } = buildSystem();
+    bloqueRepo.findById.mockResolvedValue(existingBloque);
+    bloqueRepo.isCodeTaken.mockResolvedValue(false);
+    bloqueRepo.update.mockResolvedValue({ id: 42 });
+
+    await useCase.execute({ id: 42, input: { activo: false } });
+
+    expect(relationships.markBloquesCascadeInactive).toHaveBeenCalledWith(42);
+    expect(
+      cache.invalidateNamespace.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(
+      relationships.markBloquesCascadeInactive.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('does not invalidate bloque namespace when update fails', async () => {
+    const { useCase, bloqueRepo, cache } = buildSystem();
+    bloqueRepo.findById.mockResolvedValue(existingBloque);
+    bloqueRepo.isCodeTaken.mockResolvedValue(false);
+    const error = new Error('DB error');
+    bloqueRepo.update.mockRejectedValue(error);
+
+    await expect(
+      useCase.execute({ id: 42, input: { nombre: 'Bloque Renovado' } }),
+    ).rejects.toThrow(error);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { GeoPoint } from './../../_shared/domain/value-objects/geo-point.vo';
+import { CacheService } from './../../_shared/infrastructure/cache/cache.service';
 import { BloqueRepositoryPort } from '../domain/bloque.repository.port';
 import { FacultadRepositoryPort } from './../../facultad/domain/facultad.repository.port';
 import { TipoBloqueRepositoryPort } from './../../tipo-bloque/domain/tipo-bloque.repository.port';
@@ -19,6 +20,7 @@ export class CreateBloqueUseCase {
     private readonly facultadRepos: FacultadRepositoryPort,
     @Inject(TipoBloqueRepositoryPort)
     private readonly tipoBloqueRepo: TipoBloqueRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute(input: {
@@ -147,6 +149,8 @@ export class CreateBloqueUseCase {
       tipo_bloque_id: input.tipo_bloque_id,
     };
 
-    return this.bloqueRepo.create(command);
+    const result = await this.bloqueRepo.create(command);
+    await this.cacheService.invalidateNamespace('bloque:*');
+    return result;
   }
 }

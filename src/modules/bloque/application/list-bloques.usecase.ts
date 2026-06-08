@@ -1,4 +1,5 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   BloqueListOrderBy,
   BloqueListOrderDir,
@@ -6,6 +7,8 @@ import {
   ListBloquesResult,
 } from '../domain/bloque.list.types';
 import { BloqueRepositoryPort } from '../domain/bloque.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
+import { CacheKeyBuilder } from '../../_shared/infrastructure/cache/cache-key-builder';
 
 const ALLOWED_ORDER_BY: BloqueListOrderBy[] = [
   'codigo',
@@ -21,6 +24,8 @@ const ALLOWED_ORDER_DIR: BloqueListOrderDir[] = ['asc', 'desc'];
 export class ListBloquesUseCase {
   constructor(
     @Inject(BloqueRepositoryPort) private readonly repo: BloqueRepositoryPort,
+    private readonly cacheService: CacheService,
+    private readonly config: ConfigService,
   ) {}
 
   async execute(input: {
@@ -157,6 +162,23 @@ export class ListBloquesUseCase {
       pisosMax,
     };
 
-    return this.repo.list(options);
+    const ttl = this.config.get<number>('CACHE_TTL', 300);
+    const cacheKey = CacheKeyBuilder.list('bloque', {
+      page,
+      limit,
+      search,
+      orderBy,
+      orderDir,
+      facultadId,
+      campusId,
+      tipoBloqueId,
+      activo,
+      pisosMin,
+      pisosMax,
+    });
+
+    return this.cacheService.getOrSet(cacheKey, ttl, () =>
+      this.repo.list(options),
+    );
   }
 }

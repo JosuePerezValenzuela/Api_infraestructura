@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 // Importamos el valor objeto GeoPoint reutilizado en el dominio para validar y transformar coordenadas.
 import { GeoPoint } from '../../_shared/domain/value-objects/geo-point.vo';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 // Importamos el caso de uso (se implementará después siguiendo los comportamientos que declaramos aquí).
 import { CreateBloqueUseCase } from './create-bloque.usecase';
 
@@ -57,6 +58,14 @@ interface TipoBloqueRepositoryPort {
   findById: jest.Mock<Promise<{ id: number } | null>, [number]>;
 }
 
+interface FakeCacheService {
+  getOrSet: jest.Mock<
+    Promise<unknown>,
+    [string, number, () => Promise<unknown>]
+  >;
+  invalidateNamespace: jest.Mock<Promise<void>, [string]>;
+}
+
 // El decorador Injectable nos permite extender la clase en el futuro si Nest la necesita, pero aquí solo lo documentamos.
 @Injectable()
 class FakeCreateBloqueUseCase extends CreateBloqueUseCase {}
@@ -100,15 +109,21 @@ describe('CreateBloqueUseCase', () => {
         .mockResolvedValue(tipoBloqueExists ? { id: 3 } : null),
     };
 
+    const cache: FakeCacheService = {
+      getOrSet: jest.fn(),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    };
+
     // Instanciamos el caso de uso con las dependencias simuladas.
     const useCase = new FakeCreateBloqueUseCase(
       bloqueRepo as unknown as any,
       facultadRepo as unknown as any,
       tipoBloqueRepo as unknown as any,
+      cache as unknown as CacheService,
     );
 
     // Retornamos todo para que cada prueba pueda inspeccionar las dependencias y el SUT.
-    return { useCase, bloqueRepo, facultadRepo, tipoBloqueRepo };
+    return { useCase, bloqueRepo, facultadRepo, tipoBloqueRepo, cache };
   };
 
   // Definimos un comando base exitoso que reutilizaremos en varias pruebas.
@@ -204,5 +219,37 @@ describe('CreateBloqueUseCase', () => {
       BadRequestException,
     );
     expect(bloqueRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('invalidates bloque namespace after a successful create', async () => {
+    const { useCase, bloqueRepo, cache } = buildSystem();
+
+    await useCase.execute(baseCommand);
+
+    expect(bloqueRepo.create).toHaveBeenCalled();
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('bloque:*');
+    expect(
+      cache.invalidateNamespace.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(bloqueRepo.create.mock.invocationCallOrder[0]);
+  });
+
+  it('does not invalidate bloque namespace when validation fails', async () => {
+    const { useCase, cache } = buildSystem({ facultadExists: false });
+
+    await expect(useCase.execute(baseCommand)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
+  });
+
+  it('does not invalidate bloque namespace when create fails', async () => {
+    const { useCase, bloqueRepo, cache } = buildSystem();
+    const error = new Error('DB error');
+    bloqueRepo.create.mockRejectedValue(error);
+
+    await expect(useCase.execute(baseCommand)).rejects.toThrow(error);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

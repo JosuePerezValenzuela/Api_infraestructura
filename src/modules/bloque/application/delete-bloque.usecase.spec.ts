@@ -6,11 +6,20 @@ import type {
   BloqueRepositoryPort,
   RelatedAmbiente,
 } from '../domain/bloque.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 
 interface FakeBloqueRepositoryPort {
   findById: jest.Mock<Promise<{ id: number; codigo: string } | null>, [number]>;
   findRelatedAmbientes: jest.Mock<Promise<RelatedAmbiente[]>, [number]>;
   delete: jest.Mock<Promise<{ id: number }>, [number]>;
+}
+
+interface FakeCacheService {
+  getOrSet: jest.Mock<
+    Promise<unknown>,
+    [string, number, () => Promise<unknown>]
+  >;
+  invalidateNamespace: jest.Mock<Promise<void>, [string]>;
 }
 
 describe('DeleteBloqueUseCase', () => {
@@ -21,11 +30,17 @@ describe('DeleteBloqueUseCase', () => {
       delete: jest.fn(),
     };
 
+    const cache: FakeCacheService = {
+      getOrSet: jest.fn(),
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    };
+
     const useCase = new (DeleteBloqueUseCase as any)(
       bloqueRepo as unknown as BloqueRepositoryPort,
+      cache as unknown as CacheService,
     );
 
-    return { useCase, bloqueRepo };
+    return { useCase, bloqueRepo, cache };
   };
 
   // Flujo feliz: el bloque existe, no tiene ambientes dependientes y se elimina
@@ -104,7 +119,7 @@ describe('DeleteBloqueUseCase', () => {
 
   // Propaga error cuando delete falla
   it('propaga el error cuando delete falla', async () => {
-    const { useCase, bloqueRepo } = buildSystem();
+    const { useCase, bloqueRepo, cache } = buildSystem();
 
     bloqueRepo.findById.mockResolvedValue({ id: 1, codigo: 'BLOQ-01' });
     bloqueRepo.findRelatedAmbientes.mockResolvedValue([]);
@@ -113,5 +128,34 @@ describe('DeleteBloqueUseCase', () => {
     bloqueRepo.delete.mockRejectedValue(failure);
 
     await expect(useCase.execute({ id: 1 })).rejects.toThrow(failure);
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
+  });
+
+  it('invalidates bloque namespace after a successful delete', async () => {
+    const { useCase, bloqueRepo, cache } = buildSystem();
+
+    bloqueRepo.findById.mockResolvedValue({ id: 1, codigo: 'BLOQ-01' });
+    bloqueRepo.findRelatedAmbientes.mockResolvedValue([]);
+    bloqueRepo.delete.mockResolvedValue({ id: 1 });
+
+    await useCase.execute({ id: 1 });
+
+    expect(cache.invalidateNamespace).toHaveBeenCalledWith('bloque:*');
+    expect(
+      cache.invalidateNamespace.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(bloqueRepo.delete.mock.invocationCallOrder[0]);
+  });
+
+  it('does not invalidate bloque namespace when bloque does not exist', async () => {
+    const { useCase, bloqueRepo, cache } = buildSystem();
+
+    bloqueRepo.findById.mockResolvedValue(null);
+
+    await expect(useCase.execute({ id: 999 })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    expect(cache.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

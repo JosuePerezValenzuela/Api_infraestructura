@@ -10,6 +10,7 @@ import { FacultadRepositoryPort } from 'src/modules/facultad/domain/facultad.rep
 import { TipoBloqueRepositoryPort } from 'src/modules/tipo-bloque/domain/tipo-bloque.repository.port';
 import { RelationshipsPort } from 'src/modules/_shared/relationships/domain/relationships.port';
 import { GeoPoint } from 'src/modules/_shared/domain/value-objects/geo-point.vo';
+import { CacheService } from 'src/modules/_shared/infrastructure/cache/cache.service';
 import { UpdateBloqueCommand } from '../domain/commands/update-bloque.command';
 
 @Injectable()
@@ -23,6 +24,7 @@ export class UpdateBloqueUseCase {
     private readonly tipoBloqueRepo: TipoBloqueRepositoryPort,
     @Inject(RelationshipsPort)
     private readonly relationshipsRepo: RelationshipsPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute({
@@ -313,6 +315,8 @@ export class UpdateBloqueUseCase {
     if (shouldCascadeDeactivate) {
       await this.relationshipsRepo.markBloquesCascadeInactive(id);
     }
+
+    await this.cacheService.invalidateNamespace('bloque:*');
 
     return { id: aux };
   }

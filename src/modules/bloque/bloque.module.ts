@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { FacultadModule } from '../facultad/facultad.module';
 import { TipoBloqueModule } from '../tipo-bloque/tipo-bloque.module';
 import { RelationshipsModule } from '../_shared/relationships/relationships.module';
+import { CacheService } from '../_shared/infrastructure/cache/cache.service';
 
 import { BloqueController } from './interface/bloque.controller';
 import { CreateBloqueUseCase } from './application/create-bloque.usecase';
@@ -20,6 +21,7 @@ import { TypeormBloqueRepository } from './infrastructure/persistence/typeorm-bl
     ListBloquesUseCase,
     UpdateBloqueUseCase,
     DeleteBloqueUseCase,
+    CacheService,
     {
       provide: BloqueRepositoryPort,
       useClass: TypeormBloqueRepository,

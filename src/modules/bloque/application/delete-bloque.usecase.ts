@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 import { BloqueRepositoryPort } from '../domain/bloque.repository.port';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class DeleteBloqueUseCase {
   constructor(
     @Inject(BloqueRepositoryPort)
     private readonly bloqueRepo: BloqueRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute({ id }: { id: number }): Promise<{ id: number }> {
@@ -48,6 +50,7 @@ export class DeleteBloqueUseCase {
 
     // 3. Delete físico del bloque
     await this.bloqueRepo.delete(id);
+    await this.cacheService.invalidateNamespace('bloque:*');
     return { id };
   }
 }
