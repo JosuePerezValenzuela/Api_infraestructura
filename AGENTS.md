@@ -73,6 +73,13 @@
 - Run migrations via `pnpm migration:run` after updating entities and generate new ones with `pnpm migration:generate`.
 - Keep throttling, Helmet, and Swagger options consistent with `main.ts`; flag config changes during review.
 
+## Auth BFF Pending Work
+
+- Redis debe quedar centralizado con DI real (provider compartido) antes de cerrar el diseño final de auth.
+- Faltan guards y manejo de roles/permissions para autorizar endpoints según sesión autenticada.
+- Falta resolver refresco de sesión (refresh token + renovación de acceso) para evitar expiración dura del login.
+- El CSRF no queda cubierto solo con `SameSite=Lax`; para endpoints mutables protegidos por cookie hay que validar `Origin`/`Referer` y/o agregar token CSRF.
+
 ## RULES
 
 - NUNCA escribimos codigo sin una funcionalidad concreta
