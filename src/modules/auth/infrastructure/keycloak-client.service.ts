@@ -13,6 +13,7 @@ type TokenResponse = {
   expires_in: number;
   id_token?: string;
   refresh_token?: string;
+  refresh_expires_in?: number;
   scope?: string;
   token_type: string;
 };
@@ -56,6 +57,33 @@ export class KeycloakClientService {
     if (!response.ok) {
       throw new Error(
         `Keycloak token exchange failed with status ${response.status}`,
+      );
+    }
+
+    return (await response.json()) as TokenResponse;
+  }
+
+  async refreshTokens(refreshToken: string): Promise<TokenResponse> {
+    const discovery = await this.discovery();
+    const body = new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: this.clientId(),
+      client_secret: this.clientSecret(),
+      refresh_token: refreshToken,
+    });
+
+    const response = await fetch(discovery.token_endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Keycloak refresh token failed with status ${response.status}`,
       );
     }
 

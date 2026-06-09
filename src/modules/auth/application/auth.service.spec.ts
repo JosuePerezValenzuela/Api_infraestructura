@@ -16,14 +16,17 @@ describe('AuthService', () => {
       exchangeCode: jest.fn(),
       fetchUserInfo: jest.fn(),
       buildLogoutUrl: jest.fn(),
+      refreshTokens: jest.fn(),
     } as unknown as jest.Mocked<KeycloakClientService>;
 
     sessionStore = {
       createLoginState: jest.fn(),
       consumeLoginState: jest.fn(),
       createSession: jest.fn(),
+      saveSession: jest.fn(),
       getSessionFromCookie: jest.fn(),
       deleteSession: jest.fn(),
+      deleteSessionById: jest.fn(),
       buildSessionCookie: jest.fn(),
       buildClearCookie: jest.fn(),
     } as unknown as jest.Mocked<AuthSessionStore>;
@@ -177,5 +180,68 @@ describe('AuthService', () => {
     expect(sessionStore.deleteSession).toHaveBeenCalledWith(
       'session-1.signature',
     );
+  });
+
+  it('refreshes the session lazily when the access token is about to expire', async () => {
+    const expiresSoon = Date.now() + 30 * 1000;
+    sessionStore.getSessionFromCookie.mockResolvedValue({
+      sessionId: 'session-1',
+      user: {
+        sub: '123',
+        name: 'Ada Lovelace',
+        roles: ['admin'],
+      },
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+      idToken: 'old-id',
+      createdAt: Date.now() - 1000,
+      expiresAt: expiresSoon,
+    });
+    keycloakClient.refreshTokens.mockResolvedValue({
+      access_token: 'new-access',
+      expires_in: 3600,
+      id_token: 'new-id',
+      refresh_token: 'new-refresh',
+      refresh_expires_in: 7200,
+      token_type: 'Bearer',
+    });
+
+    await expect(service.me('session-1.signature')).resolves.toEqual({
+      sub: '123',
+      name: 'Ada Lovelace',
+      roles: ['admin'],
+    });
+
+    expect(keycloakClient.refreshTokens).toHaveBeenCalledWith('old-refresh');
+    expect(sessionStore.saveSession).toHaveBeenCalledWith(
+      'session-1',
+      expect.objectContaining({
+        accessToken: 'new-access',
+        refreshToken: 'new-refresh',
+        idToken: 'new-id',
+      }),
+    );
+  });
+
+  it('clears the local session if refresh fails', async () => {
+    sessionStore.getSessionFromCookie.mockResolvedValue({
+      sessionId: 'session-1',
+      user: {
+        sub: '123',
+        name: 'Ada Lovelace',
+        roles: ['admin'],
+      },
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+      createdAt: Date.now() - 1000,
+      expiresAt: Date.now() + 10 * 1000,
+    });
+    keycloakClient.refreshTokens.mockRejectedValue(new Error('refresh failed'));
+
+    await expect(service.me('session-1.signature')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+
+    expect(sessionStore.deleteSessionById).toHaveBeenCalledWith('session-1');
   });
 });

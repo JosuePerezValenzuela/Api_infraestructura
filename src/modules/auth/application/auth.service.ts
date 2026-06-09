@@ -25,6 +25,8 @@ type LogoutResult = {
 
 @Injectable()
 export class AuthService {
+  private readonly refreshThresholdMs = 2 * 60 * 1000;
+
   constructor(
     private readonly keycloakClient: KeycloakClientService,
     private readonly sessionStore: AuthSessionStore,
@@ -84,11 +86,7 @@ export class AuthService {
   }
 
   async me(cookieValue: string | undefined): Promise<AuthUser> {
-    const session = await this.sessionStore.getSessionFromCookie(cookieValue);
-    if (!session) {
-      throw new UnauthorizedException('Sesión no válida o expirada');
-    }
-
+    const session = await this.ensureFreshSession(cookieValue);
     return session.user;
   }
 
@@ -106,6 +104,49 @@ export class AuthService {
       cookie: this.sessionStore.buildClearCookie(),
       redirectUrl,
     };
+  }
+
+  private async ensureFreshSession(cookieValue: string | undefined) {
+    const session = await this.sessionStore.getSessionFromCookie(cookieValue);
+    if (!session) {
+      throw new UnauthorizedException('Sesión no válida o expirada');
+    }
+
+    if (!this.shouldRefresh(session.expiresAt) || !session.refreshToken) {
+      return session;
+    }
+
+    try {
+      const refreshed = await this.refreshSession(session.refreshToken);
+      const updatedSession: AuthSessionRecord = {
+        ...session,
+        accessToken: refreshed.access_token,
+        refreshToken: refreshed.refresh_token ?? session.refreshToken,
+        idToken: refreshed.id_token ?? session.idToken,
+        expiresAt: Date.now() + refreshed.expires_in * 1000,
+        refreshExpiresAt: refreshed.refresh_expires_in
+          ? Date.now() + refreshed.refresh_expires_in * 1000
+          : session.refreshExpiresAt,
+      };
+
+      await this.sessionStore.saveSession(session.sessionId, updatedSession);
+
+      return {
+        ...updatedSession,
+        sessionId: session.sessionId,
+      };
+    } catch {
+      await this.sessionStore.deleteSessionById(session.sessionId);
+      throw new UnauthorizedException('La sesión expiró y requiere iniciar sesión otra vez');
+    }
+  }
+
+  private async refreshSession(refreshToken: string) {
+    return this.keycloakClient.refreshTokens(refreshToken);
+  }
+
+  private shouldRefresh(expiresAt: number): boolean {
+    return expiresAt - Date.now() <= this.refreshThresholdMs;
   }
 
   private frontendUrl(): string {

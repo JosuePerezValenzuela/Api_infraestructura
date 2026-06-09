@@ -16,6 +16,7 @@ export interface AuthSessionRecord {
   idToken?: string;
   createdAt: number;
   expiresAt: number;
+  refreshExpiresAt?: number;
 }
 
 export interface CookiePayload {

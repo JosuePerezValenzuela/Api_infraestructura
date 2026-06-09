@@ -39,17 +39,21 @@ export class AuthSessionStore {
 
   async createSession(record: AuthSessionRecord): Promise<StoredSession> {
     const sessionId = randomUUID();
+    await this.saveSession(sessionId, record);
+
+    return {
+      ...record,
+      sessionId,
+    };
+  }
+
+  async saveSession(sessionId: string, record: AuthSessionRecord): Promise<void> {
     await this.redis.set(
       this.sessionKey(sessionId),
       JSON.stringify(record),
       'EX',
       this.sessionTtlSeconds(),
     );
-
-    return {
-      ...record,
-      sessionId,
-    };
   }
 
   async getSessionFromCookie(
@@ -78,6 +82,10 @@ export class AuthSessionStore {
       return;
     }
 
+    await this.redis.del(this.sessionKey(sessionId));
+  }
+
+  async deleteSessionById(sessionId: string): Promise<void> {
     await this.redis.del(this.sessionKey(sessionId));
   }
 
