@@ -16,6 +16,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
 import { DashboardCampusModule } from './modules/dashboard-campus/dashboard-campus.module';
 import { DashboardFacultadModule } from './modules/dashboard-facultad/dashboard-facultad.module';
 import { DashboardBloqueModule } from './modules/dashboard-bloque/dashboard-bloque.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { DashboardBloqueModule } from './modules/dashboard-bloque/dashboard-bloq
     DashboardCampusModule,
     DashboardFacultadModule,
     DashboardBloqueModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
