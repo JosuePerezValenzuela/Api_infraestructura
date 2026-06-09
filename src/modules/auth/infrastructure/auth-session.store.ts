@@ -47,7 +47,10 @@ export class AuthSessionStore {
     };
   }
 
-  async saveSession(sessionId: string, record: AuthSessionRecord): Promise<void> {
+  async saveSession(
+    sessionId: string,
+    record: AuthSessionRecord,
+  ): Promise<void> {
     await this.redis.set(
       this.sessionKey(sessionId),
       JSON.stringify(record),
