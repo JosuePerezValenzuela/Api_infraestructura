@@ -35,6 +35,10 @@ interface AmbienteRepositoryPort {
   isCodeTaken: jest.Mock<Promise<boolean>, [string]>;
 }
 
+interface CacheServicePort {
+  invalidateNamespace: jest.Mock<Promise<void>, [string]>;
+}
+
 // También simulamos los repositorios de bloque y tipo de ambiente para validar que existan las relaciones enviadas.
 interface BloqueRepositoryPort {
   findById: jest.Mock<
@@ -90,13 +94,24 @@ describe('CreateAmbienteUseCase', () => {
         ),
     };
 
+    const cacheService: CacheServicePort = {
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    };
+
     const useCase = new FakeCreateAmbienteUseCase(
       ambienteRepo as unknown as any,
       bloqueRepo as unknown as any,
       tipoAmbienteRepo as unknown as any,
+      cacheService as any,
     );
 
-    return { useCase, ambienteRepo, bloqueRepo, tipoAmbienteRepo };
+    return {
+      useCase,
+      ambienteRepo,
+      bloqueRepo,
+      tipoAmbienteRepo,
+      cacheService,
+    };
   };
 
   // Este payload base representa un ambiente válido que usaremos como referencia en la mayoría de escenarios.
@@ -120,7 +135,7 @@ describe('CreateAmbienteUseCase', () => {
   // Camino feliz: comprobamos que se cree un ambiente cuando todas las reglas se cumplen.
   it('crea un ambiente cuando los datos son validos', async () => {
     // Arrange: armamos el sistema con datos válidos.
-    const { useCase, ambienteRepo } = buildSystem();
+    const { useCase, ambienteRepo, cacheService } = buildSystem();
     // Act: ejecutamos el caso de uso con el payload base.
     const result = await useCase.execute({ ...basePayload });
     // Assert: verificamos que el repositorio valide el código y reciba el comando correcto.
@@ -143,21 +158,25 @@ describe('CreateAmbienteUseCase', () => {
       bloque_id: 8,
     };
     expect(ambienteRepo.create).toHaveBeenCalledWith(expectedCommand);
+    expect(cacheService.invalidateNamespace).toHaveBeenCalledWith('ambiente:*');
     expect(result).toEqual({ id: 44 });
   });
 
   // Si el código ya existe debemos rechazar el proceso con una ConflictException.
   it('lanza ConflictException cuando el codigo ya existe', async () => {
-    const { useCase, ambienteRepo } = buildSystem({ codeTaken: true });
+    const { useCase, ambienteRepo, cacheService } = buildSystem({
+      codeTaken: true,
+    });
     await expect(useCase.execute({ ...basePayload })).rejects.toBeInstanceOf(
       ConflictException,
     );
     expect(ambienteRepo.create).not.toHaveBeenCalled();
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   // Validamos que no se permita crear ambientes sin un bloque asociado.
   it('lanza BadRequestException si el bloque no existe', async () => {
-    const { useCase, bloqueRepo, ambienteRepo } = buildSystem({
+    const { useCase, bloqueRepo, ambienteRepo, cacheService } = buildSystem({
       bloqueExists: false,
     });
     await expect(useCase.execute({ ...basePayload })).rejects.toBeInstanceOf(
@@ -165,42 +184,47 @@ describe('CreateAmbienteUseCase', () => {
     );
     expect(bloqueRepo.findById).toHaveBeenCalledWith(8);
     expect(ambienteRepo.create).not.toHaveBeenCalled();
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   // También bloqueamos la operación cuando el tipo de ambiente no se encuentra.
   it('lanza BadRequestException si el tipo de ambiente no existe', async () => {
-    const { useCase, tipoAmbienteRepo, ambienteRepo } = buildSystem({
-      tipoAmbienteExists: false,
-    });
+    const { useCase, tipoAmbienteRepo, ambienteRepo, cacheService } =
+      buildSystem({ tipoAmbienteExists: false });
     await expect(useCase.execute({ ...basePayload })).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(tipoAmbienteRepo.findById).toHaveBeenCalledWith(5);
     expect(ambienteRepo.create).not.toHaveBeenCalled();
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   // La regla de negocio también exige que las relaciones estén activas, por lo que probamos ese comportamiento.
   it('lanza BadRequestException si el bloque esta inactivo', async () => {
-    const { useCase, ambienteRepo } = buildSystem({ bloqueActive: false });
+    const { useCase, ambienteRepo, cacheService } = buildSystem({
+      bloqueActive: false,
+    });
     await expect(useCase.execute({ ...basePayload })).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(ambienteRepo.create).not.toHaveBeenCalled();
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('lanza BadRequestException si el tipo de ambiente esta inactivo', async () => {
-    const { useCase, ambienteRepo } = buildSystem({
+    const { useCase, ambienteRepo, cacheService } = buildSystem({
       tipoAmbienteActive: false,
     });
     await expect(useCase.execute({ ...basePayload })).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(ambienteRepo.create).not.toHaveBeenCalled();
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   // Cuando el cliente no envía capacidad y dimensión debemos usar los valores por defecto definidos en la tabla.
   it('aplica los valores por defecto de capacidad y dimension cuando no se envian', async () => {
-    const { useCase, ambienteRepo } = buildSystem();
+    const { useCase, ambienteRepo, cacheService } = buildSystem();
     const payloadSinOpcionales: CreateAmbientePayload = {
       ...basePayload,
       nombre_corto: undefined,
@@ -222,11 +246,12 @@ describe('CreateAmbienteUseCase', () => {
         nombre_corto: null,
       }),
     );
+    expect(cacheService.invalidateNamespace).toHaveBeenCalledWith('ambiente:*');
   });
 
   // Probamos un error de validación cuando capacidad trae números negativos.
   it('lanza BadRequestException si la capacidad es invalida', async () => {
-    const { useCase, ambienteRepo } = buildSystem();
+    const { useCase, ambienteRepo, cacheService } = buildSystem();
     const payload = {
       ...basePayload,
       capacidad: { total: -1, examen: 10 },
@@ -235,11 +260,12 @@ describe('CreateAmbienteUseCase', () => {
       BadRequestException,
     );
     expect(ambienteRepo.create).not.toHaveBeenCalled();
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   // Finalmente validamos que dimension solo acepte unidades permitidas.
   it('lanza BadRequestException si la dimension tiene unidades no soportadas', async () => {
-    const { useCase, ambienteRepo } = buildSystem();
+    const { useCase, ambienteRepo, cacheService } = buildSystem();
     const payload = {
       ...basePayload,
       dimension: {
@@ -253,5 +279,6 @@ describe('CreateAmbienteUseCase', () => {
       BadRequestException,
     );
     expect(ambienteRepo.create).not.toHaveBeenCalled();
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

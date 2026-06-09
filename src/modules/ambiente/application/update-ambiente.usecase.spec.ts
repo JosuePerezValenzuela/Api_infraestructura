@@ -30,6 +30,10 @@ interface TipoAmbienteRepoMock extends TipoAmbienteRepositoryPort {
   >;
 }
 
+interface CacheServiceMock {
+  invalidateNamespace: jest.Mock<Promise<void>, [string]>;
+}
+
 @Injectable()
 class FakeUpdateAmbienteUseCase extends UpdateAmbienteUseCase {}
 
@@ -79,18 +83,22 @@ describe('UpdateAmbienteUseCase', () => {
             : { id: 5, activo: true },
         ),
     };
+    const cacheService: CacheServiceMock = {
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    };
 
     const useCase = new FakeUpdateAmbienteUseCase(
       ambienteRepo as unknown as AmbienteRepositoryPort,
       bloqueRepo as unknown as BloqueRepositoryPort,
       tipoRepo as unknown as TipoAmbienteRepositoryPort,
+      cacheService as any,
     );
 
-    return { useCase, ambienteRepo, bloqueRepo, tipoRepo };
+    return { useCase, ambienteRepo, bloqueRepo, tipoRepo, cacheService };
   };
 
   it('actualiza campos y normaliza valores correctamente', async () => {
-    const { useCase, ambienteRepo } = buildSystem();
+    const { useCase, ambienteRepo, cacheService } = buildSystem();
     const result = await useCase.execute({
       id: 10,
       input: {
@@ -106,36 +114,40 @@ describe('UpdateAmbienteUseCase', () => {
       capacidad: { total: 30, examen: 20 },
       dimension: { largo: 9, ancho: 4, alto: 3, unid_med: 'metros' },
     });
+    expect(cacheService.invalidateNamespace).toHaveBeenCalledWith('ambiente:*');
     expect(result).toEqual({ id: 10 });
   });
 
   it('lanza NotFoundException si el ambiente no existe', async () => {
-    const { useCase, ambienteRepo } = buildSystem();
+    const { useCase, ambienteRepo, cacheService } = buildSystem();
     ambienteRepo.findById.mockResolvedValueOnce(null);
 
     await expect(
       useCase.execute({ id: 999, input: { nombre: 'Test' } }),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('lanza BadRequestException si no se envía ningún campo', async () => {
-    const { useCase } = buildSystem();
+    const { useCase, cacheService } = buildSystem();
     await expect(useCase.execute({ id: 10, input: {} })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('valida unicidad del codigo', async () => {
-    const { useCase, ambienteRepo } = buildSystem();
+    const { useCase, ambienteRepo, cacheService } = buildSystem();
     ambienteRepo.isCodeTaken.mockResolvedValueOnce(true);
 
     await expect(
       useCase.execute({ id: 10, input: { codigo: 'LAB-NEW' } }),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('valida bloque y tipo de ambiente cuando se actualizan', async () => {
-    const { useCase, bloqueRepo, tipoRepo } = buildSystem({
+    const { useCase, bloqueRepo, cacheService } = buildSystem({
       bloqueActivo: false,
       tipoActivo: true,
     });
@@ -144,14 +156,18 @@ describe('UpdateAmbienteUseCase', () => {
       useCase.execute({ id: 10, input: { bloque_id: 99 } }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(bloqueRepo.findById).toHaveBeenCalledWith(99);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
 
     // tipificar tipo inactivo
-    const { useCase: useCase2, tipoRepo: tipoRepo2 } = buildSystem({
-      tipoActivo: false,
-    });
+    const {
+      useCase: useCase2,
+      tipoRepo: tipoRepo2,
+      cacheService: cache2,
+    } = buildSystem({ tipoActivo: false });
     await expect(
       useCase2.execute({ id: 10, input: { tipo_ambiente_id: 77 } }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(tipoRepo2.findById).toHaveBeenCalledWith(77);
+    expect(cache2.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

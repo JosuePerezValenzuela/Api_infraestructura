@@ -1,8 +1,6 @@
-// Este archivo guía paso a paso el comportamiento esperado del caso de uso ListAmbientesUseCase.
-// Cada prueba describe en lenguaje sencillo qué valida y por qué, pensando en lectores sin experiencia previa.
-
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ListAmbientesUseCase } from './list-ambientes.usecase';
+import { CacheKeyBuilder } from '../../_shared/infrastructure/cache/cache-key-builder';
 import {
   AmbienteListItem,
   ListAmbientesOptions,
@@ -12,6 +10,17 @@ import {
 // Definimos la forma del repositorio simulado que recibe las opciones de búsqueda y devuelve resultados paginados.
 interface AmbienteRepositoryPort {
   list: jest.Mock<Promise<ListAmbientesResult>, [ListAmbientesOptions]>;
+}
+
+interface CacheServiceMock {
+  getOrSet: jest.Mock<
+    Promise<ListAmbientesResult>,
+    [string, number, () => Promise<ListAmbientesResult>]
+  >;
+}
+
+interface ConfigServiceMock {
+  get: jest.Mock<number, [string, number?]>;
 }
 
 // Marcamos con Injectable una versión falsa del caso de uso para poder instanciarlo en las pruebas.
@@ -54,14 +63,34 @@ describe('ListAmbientesUseCase', () => {
       list: jest.fn().mockResolvedValue(sampleResult),
     };
 
+    const cacheService: CacheServiceMock = {
+      getOrSet: jest
+        .fn()
+        .mockImplementation(async (_key, _ttl, factory) => factory()),
+    };
+
+    const config: ConfigServiceMock = {
+      get: jest
+        .fn()
+        .mockImplementation((key: string, defaultValue?: number) => {
+          if (key === 'CACHE_TTL') {
+            return defaultValue ?? 300;
+          }
+
+          return defaultValue ?? 300;
+        }),
+    };
+
     const useCase = new FakeListAmbientesUseCase(
       repo as unknown as AmbienteRepositoryPort,
+      cacheService as any,
+      config as any,
     );
-    return { useCase, repo };
+    return { useCase, repo, cacheService, config };
   };
 
-  it('devuelve el listado cuando los filtros son válidos', async () => {
-    const { useCase, repo } = buildSystem();
+  it('cachea el listado usando la key ambiente:list y el ttl compartido', async () => {
+    const { useCase, repo, cacheService, config } = buildSystem();
     const result = await useCase.execute({
       page: 2,
       limit: 10,
@@ -78,6 +107,26 @@ describe('ListAmbientesUseCase', () => {
       pisoMax: 3,
     });
 
+    expect(config.get).toHaveBeenCalledWith('CACHE_TTL', 300);
+    expect(cacheService.getOrSet).toHaveBeenCalledWith(
+      CacheKeyBuilder.list('ambiente', {
+        page: 2,
+        limit: 10,
+        search: 'Lab',
+        orderBy: 'codigo',
+        orderDir: 'desc',
+        bloqueId: 5,
+        campusId: null,
+        facultadId: null,
+        tipoAmbienteId: 2,
+        activo: true,
+        clases: true,
+        pisoMin: 1,
+        pisoMax: 3,
+      }),
+      300,
+      expect.any(Function),
+    );
     expect(repo.list).toHaveBeenCalledWith({
       page: 2,
       take: 10,
@@ -94,6 +143,75 @@ describe('ListAmbientesUseCase', () => {
       pisoMax: 3,
     });
     expect(result).toEqual(sampleResult);
+  });
+
+  it('devuelve el valor cacheado sin volver a consultar el repositorio', async () => {
+    const cachedResult: ListAmbientesResult = {
+      items: [],
+      meta: {
+        total: 0,
+        page: 1,
+        take: 8,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    };
+    const { useCase, repo, cacheService } = buildSystem();
+    cacheService.getOrSet.mockResolvedValueOnce(cachedResult);
+
+    const result = await useCase.execute({ page: 1, limit: 8 });
+
+    expect(repo.list).not.toHaveBeenCalled();
+    expect(result).toEqual(cachedResult);
+  });
+
+  it('usa keys distintas para filtros distintos', async () => {
+    const { useCase, cacheService } = buildSystem();
+    const seenKeys: string[] = [];
+
+    cacheService.getOrSet.mockImplementation(async (key, _ttl, factory) => {
+      seenKeys.push(key);
+      return factory();
+    });
+
+    await useCase.execute({ page: 1, limit: 8, search: 'uno' });
+    await useCase.execute({ page: 2, limit: 8, search: 'dos' });
+
+    expect(seenKeys[0]).toBe(
+      CacheKeyBuilder.list('ambiente', {
+        page: 1,
+        limit: 8,
+        search: 'uno',
+        orderBy: 'nombre',
+        orderDir: 'asc',
+        bloqueId: null,
+        campusId: null,
+        facultadId: null,
+        tipoAmbienteId: null,
+        activo: null,
+        clases: null,
+        pisoMin: null,
+        pisoMax: null,
+      }),
+    );
+    expect(seenKeys[1]).toBe(
+      CacheKeyBuilder.list('ambiente', {
+        page: 2,
+        limit: 8,
+        search: 'dos',
+        orderBy: 'nombre',
+        orderDir: 'asc',
+        bloqueId: null,
+        campusId: null,
+        facultadId: null,
+        tipoAmbienteId: null,
+        activo: null,
+        clases: null,
+        pisoMin: null,
+        pisoMax: null,
+      }),
+    );
+    expect(new Set(seenKeys).size).toBe(2);
   });
 
   it('normaliza filtros cuando no se envían (page=1, limit=8, etc.)', async () => {

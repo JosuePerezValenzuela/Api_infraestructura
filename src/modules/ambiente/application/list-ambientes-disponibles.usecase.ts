@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   AmbientesDisponiblesRepositoryPort,
   AmbientesDisponiblesRepositoryPort as DisponiblesRepoToken,
@@ -8,6 +9,8 @@ import {
   ListAmbientesDisponiblesQuery,
 } from '../domain/ambiente.disponibles.types';
 import { HorarioSlot } from '../domain/horario.repository.port';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
+import { CacheKeyBuilder } from '../../_shared/infrastructure/cache/cache-key-builder';
 
 type ListAmbientesDisponiblesInput = ListAmbientesDisponiblesQuery & {
   dia?: number;
@@ -20,13 +23,25 @@ export class ListAmbientesDisponiblesUseCase {
   constructor(
     @Inject(DisponiblesRepoToken)
     private readonly disponiblesRepo: AmbientesDisponiblesRepositoryPort,
+    private readonly cacheService: CacheService,
+    private readonly config: ConfigService,
   ) {}
 
   async execute(
     input: ListAmbientesDisponiblesInput,
   ): Promise<ListAmbientesDisponiblesResult> {
     const query = this.validateAndBuildQuery(input);
-    return this.disponiblesRepo.listDisponibles(query);
+    const ttl = this.config.get<number>('CACHE_TTL', 300);
+    const cacheKey = CacheKeyBuilder.list('ambiente:disponibles', {
+      ...query,
+      horario: query.horario
+        ? `${query.horario.dia}|${query.horario.hora_inicio}|${query.horario.hora_fin}`
+        : undefined,
+    });
+
+    return this.cacheService.getOrSet(cacheKey, ttl, async () =>
+      this.disponiblesRepo.listDisponibles(query),
+    );
   }
 
   private validateAndBuildQuery(

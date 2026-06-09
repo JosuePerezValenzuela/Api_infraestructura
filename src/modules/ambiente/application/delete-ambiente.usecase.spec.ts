@@ -18,6 +18,10 @@ interface HorarioRepositoryMock extends HorarioRepositoryPort {
   deleteByAmbienteId: jest.Mock<Promise<void>, [number]>;
 }
 
+interface CacheServiceMock {
+  invalidateNamespace: jest.Mock<Promise<void>, [string]>;
+}
+
 describe('DeleteAmbienteUseCase', () => {
   const buildSystem = () => {
     const repo: AmbienteRepositoryMock = {
@@ -38,17 +42,22 @@ describe('DeleteAmbienteUseCase', () => {
       deleteByAmbienteId: jest.fn(),
     };
 
+    const cacheService: CacheServiceMock = {
+      invalidateNamespace: jest.fn().mockResolvedValue(undefined),
+    };
+
     const useCase = new (DeleteAmbienteUseCase as any)(
       repo as unknown as AmbienteRepositoryPort,
       horarioRepo as unknown as HorarioRepositoryPort,
+      cacheService as any,
     );
 
-    return { useCase, repo, horarioRepo };
+    return { useCase, repo, horarioRepo, cacheService };
   };
 
   // Flujo feliz: elimina el ambiente y todo lo relacionado
   it('elimina el ambiente y todo lo relacionado (horarios, activos)', async () => {
-    const { useCase, repo, horarioRepo } = buildSystem();
+    const { useCase, repo, horarioRepo, cacheService } = buildSystem();
 
     repo.findById.mockResolvedValue({ id: 10 });
     horarioRepo.deleteByAmbienteId.mockResolvedValue(undefined);
@@ -62,11 +71,12 @@ describe('DeleteAmbienteUseCase', () => {
     expect(horarioRepo.deleteByAmbienteId).toHaveBeenCalledWith(10);
     expect(repo.deleteAssets).toHaveBeenCalledWith(10);
     expect(repo.delete).toHaveBeenCalledWith({ id: 10 });
+    expect(cacheService.invalidateNamespace).toHaveBeenCalledWith('ambiente:*');
   });
 
   // NotFoundException cuando el ambiente no existe
   it('lanza NotFoundException cuando el ambiente no existe', async () => {
-    const { useCase, repo, horarioRepo } = buildSystem();
+    const { useCase, repo, horarioRepo, cacheService } = buildSystem();
 
     repo.findById.mockResolvedValue(null);
 
@@ -77,11 +87,12 @@ describe('DeleteAmbienteUseCase', () => {
     expect(horarioRepo.deleteByAmbienteId).not.toHaveBeenCalled();
     expect(repo.deleteAssets).not.toHaveBeenCalled();
     expect(repo.delete).not.toHaveBeenCalled();
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   // Propaga error cuando delete falla
   it('propaga el error cuando delete falla', async () => {
-    const { useCase, repo, horarioRepo } = buildSystem();
+    const { useCase, repo, horarioRepo, cacheService } = buildSystem();
 
     repo.findById.mockResolvedValue({ id: 10 });
     horarioRepo.deleteByAmbienteId.mockResolvedValue(undefined);
@@ -91,5 +102,6 @@ describe('DeleteAmbienteUseCase', () => {
     repo.delete.mockRejectedValue(failure);
 
     await expect(useCase.execute({ id: 10 })).rejects.toThrow(failure);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 });

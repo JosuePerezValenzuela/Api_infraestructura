@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 import {
   AmbienteRepositoryPort,
   AmbienteRepositoryPort as AmbienteRepoToken,
@@ -12,6 +13,7 @@ export class DeleteAmbienteUseCase {
     private readonly ambienteRepo: AmbienteRepositoryPort,
     @Inject(HorarioRepositoryPort)
     private readonly horarioRepo: HorarioRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute(payload: { id: number }): Promise<{ id: number }> {
@@ -33,6 +35,7 @@ export class DeleteAmbienteUseCase {
 
     // 4. Eliminar el ambiente físicamente
     await this.ambienteRepo.delete({ id: payload.id });
+    await this.cacheService.invalidateNamespace('ambiente:*');
 
     return { id: payload.id };
   }

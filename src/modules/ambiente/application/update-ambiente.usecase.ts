@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 import {
   AmbienteRepositoryPort,
   AmbienteRepositoryPort as AmbienteRepoToken,
@@ -28,6 +29,7 @@ export class UpdateAmbienteUseCase {
     private readonly bloqueRepo: BloqueRepositoryPort,
     @Inject(TipoAmbienteRepoToken)
     private readonly tipoRepo: TipoAmbienteRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute({
@@ -227,7 +229,9 @@ export class UpdateAmbienteUseCase {
       command.tipo_ambiente_id = input.tipo_ambiente_id;
     }
 
-    return this.ambienteRepo.update(command);
+    const result = await this.ambienteRepo.update(command);
+    await this.cacheService.invalidateNamespace('ambiente:*');
+    return result;
   }
 
   private normalizeCapacity(value: { total: number; examen: number }) {

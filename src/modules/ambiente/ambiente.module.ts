@@ -18,6 +18,7 @@ import { TypeormHorarioRepository } from './infrastructure/persistence/typeorm-h
 import { BloqueModule } from '../bloque/bloque.module';
 import { TipoAmbienteModule } from '../tipo-ambiente/tipo-ambiente.module';
 import { ActivoModule } from '../activo/activo.module';
+import { CacheService } from '../_shared/infrastructure/cache/cache.service';
 
 @Module({
   imports: [BloqueModule, TipoAmbienteModule, forwardRef(() => ActivoModule)],
@@ -44,6 +45,7 @@ import { ActivoModule } from '../activo/activo.module';
       provide: HorarioRepositoryPort,
       useClass: TypeormHorarioRepository,
     },
+    CacheService,
   ],
   exports: [
     AmbienteRepositoryPort,

@@ -57,6 +57,10 @@ class DataSourceStub {
   }
 }
 
+class CacheServiceStub {
+  public invalidateNamespace = jest.fn().mockResolvedValue(undefined);
+}
+
 describe('ReplaceHorariosUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -67,10 +71,12 @@ describe('ReplaceHorariosUseCase', () => {
       5: { id: 5, nombre: 'Aula 101', activo: true } as AmbientItem,
     });
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     const result = await useCase.execute({
@@ -89,15 +95,18 @@ describe('ReplaceHorariosUseCase', () => {
     expect(dataSource.queries[1].sql).toContain(
       'INSERT INTO infraestructura.horarios_operacion',
     );
+    expect(cacheService.invalidateNamespace).toHaveBeenCalledWith('ambiente:*');
   });
 
   it('lanza NotFound si el ambiente no existe', async () => {
     const ambienteRepo = new AmbienteRepoStub({});
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     await expect(
@@ -107,6 +116,7 @@ describe('ReplaceHorariosUseCase', () => {
         horarios: [{ dia: 0, apertura: '06:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('lanza BadRequest si el ambiente esta inactivo', async () => {
@@ -114,10 +124,12 @@ describe('ReplaceHorariosUseCase', () => {
       2: { id: 2, nombre: 'Sala', activo: false } as AmbientItem,
     });
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     await expect(
@@ -127,6 +139,7 @@ describe('ReplaceHorariosUseCase', () => {
         horarios: [{ dia: 0, apertura: '06:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('valida que dia este entre 0 y 6', async () => {
@@ -134,10 +147,12 @@ describe('ReplaceHorariosUseCase', () => {
       1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
     });
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     await expect(
@@ -147,6 +162,7 @@ describe('ReplaceHorariosUseCase', () => {
         horarios: [{ dia: 7, apertura: '06:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('valida que hora_inicio sea menor que hora_fin', async () => {
@@ -154,10 +170,12 @@ describe('ReplaceHorariosUseCase', () => {
       1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
     });
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     await expect(
@@ -167,6 +185,7 @@ describe('ReplaceHorariosUseCase', () => {
         horarios: [{ dia: 0, apertura: '21:45', cierre: '06:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('valida formato HH:mm en apertura', async () => {
@@ -174,10 +193,12 @@ describe('ReplaceHorariosUseCase', () => {
       1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
     });
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     await expect(
@@ -187,6 +208,7 @@ describe('ReplaceHorariosUseCase', () => {
         horarios: [{ dia: 0, apertura: '6:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('valida formato HH:mm en cierre', async () => {
@@ -194,10 +216,12 @@ describe('ReplaceHorariosUseCase', () => {
       1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
     });
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     await expect(
@@ -207,6 +231,7 @@ describe('ReplaceHorariosUseCase', () => {
         horarios: [{ dia: 0, apertura: '06:45', cierre: '9pm' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('valida periodo entero positivo', async () => {
@@ -214,10 +239,12 @@ describe('ReplaceHorariosUseCase', () => {
       1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
     });
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     await expect(
@@ -227,6 +254,7 @@ describe('ReplaceHorariosUseCase', () => {
         horarios: [{ dia: 0, apertura: '06:45', cierre: '21:45' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(cacheService.invalidateNamespace).not.toHaveBeenCalled();
   });
 
   it('permite horario vacio para borrar todos los horarios', async () => {
@@ -234,10 +262,12 @@ describe('ReplaceHorariosUseCase', () => {
       1: { id: 1, nombre: 'Aula', activo: true } as AmbientItem,
     });
     const dataSource = new DataSourceStub();
+    const cacheService = new CacheServiceStub();
 
     const useCase = new ReplaceHorariosUseCase(
       ambienteRepo as any,
       dataSource as any,
+      cacheService as any,
     );
 
     const result = await useCase.execute({
@@ -251,5 +281,6 @@ describe('ReplaceHorariosUseCase', () => {
       'DELETE FROM infraestructura.horarios_operacion',
     );
     expect(dataSource.queries.length).toBe(1);
+    expect(cacheService.invalidateNamespace).toHaveBeenCalledWith('ambiente:*');
   });
 });

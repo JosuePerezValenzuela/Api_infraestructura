@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   AmbienteRepositoryPort,
   AmbienteRepositoryPort as AmbienteRepoToken,
@@ -9,6 +10,8 @@ import {
   ListAmbientesOptions,
   ListAmbientesResult,
 } from '../domain/ambiente.list.types';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
+import { CacheKeyBuilder } from '../../_shared/infrastructure/cache/cache-key-builder';
 
 const ALLOWED_ORDER_BY: AmbienteListOrderBy[] = [
   'nombre',
@@ -25,6 +28,8 @@ export class ListAmbientesUseCase {
   constructor(
     @Inject(AmbienteRepoToken)
     private readonly ambienteRepo: AmbienteRepositoryPort,
+    private readonly cacheService: CacheService,
+    private readonly config: ConfigService,
   ) {}
 
   async execute(input: {
@@ -157,6 +162,25 @@ export class ListAmbientesUseCase {
       pisoMax,
     };
 
-    return this.ambienteRepo.list(options);
+    const ttl = this.config.get<number>('CACHE_TTL', 300);
+    const cacheKey = CacheKeyBuilder.list('ambiente', {
+      page,
+      limit,
+      search,
+      orderBy,
+      orderDir,
+      bloqueId,
+      campusId,
+      facultadId,
+      tipoAmbienteId,
+      activo,
+      clases,
+      pisoMin,
+      pisoMax,
+    });
+
+    return this.cacheService.getOrSet(cacheKey, ttl, async () =>
+      this.ambienteRepo.list(options),
+    );
   }
 }

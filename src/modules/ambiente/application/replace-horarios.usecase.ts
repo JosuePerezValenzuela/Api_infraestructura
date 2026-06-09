@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 import {
   AmbienteRepositoryPort,
   AmbienteRepositoryPort as AmbienteRepoToken,
@@ -24,6 +25,7 @@ export class ReplaceHorariosUseCase {
     private readonly ambienteRepo: AmbienteRepositoryPort,
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute(input: {
@@ -63,6 +65,7 @@ export class ReplaceHorariosUseCase {
     );
 
     if (validatedHorarios.length === 0) {
+      await this.cacheService.invalidateNamespace('ambiente:*');
       return { ambiente_id: input.ambiente_id, total: 0 };
     }
 
@@ -74,6 +77,8 @@ export class ReplaceHorariosUseCase {
     );
 
     await this.dataSource.query(insertSql, params);
+
+    await this.cacheService.invalidateNamespace('ambiente:*');
 
     return { ambiente_id: input.ambiente_id, total: validatedHorarios.length };
   }

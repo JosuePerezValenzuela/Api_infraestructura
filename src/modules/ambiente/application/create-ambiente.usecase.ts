@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { CacheService } from '../../_shared/infrastructure/cache/cache.service';
 import { CreateAmbienteCommand } from '../domain/commands/create-ambiente.command';
 import {
   AmbienteRepositoryPort,
@@ -45,6 +46,7 @@ export class CreateAmbienteUseCase {
     private readonly bloqueRepo: BloqueRepositoryPort,
     @Inject(TipoAmbientePortToken)
     private readonly tipoAmbienteRepo: TipoAmbienteRepositoryPort,
+    private readonly cacheService: CacheService,
   ) {}
 
   async execute(input: CreateAmbienteInput): Promise<{ id: number }> {
@@ -73,7 +75,9 @@ export class CreateAmbienteUseCase {
       bloque_id: input.bloque_id,
     };
 
-    return this.ambienteRepo.create(command);
+    const result = await this.ambienteRepo.create(command);
+    await this.cacheService.invalidateNamespace('ambiente:*');
+    return result;
   }
 
   private async ensureCodeAvailable(codigo: string): Promise<void> {
