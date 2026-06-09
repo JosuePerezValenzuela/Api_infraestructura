@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class AuthCallbackQueryDto {
   @IsString()
@@ -8,4 +8,12 @@ export class AuthCallbackQueryDto {
   @IsString()
   @IsNotEmpty()
   state!: string;
+
+  @IsString()
+  @IsOptional()
+  session_state?: string;
+
+  @IsString()
+  @IsOptional()
+  iss?: string;
 }

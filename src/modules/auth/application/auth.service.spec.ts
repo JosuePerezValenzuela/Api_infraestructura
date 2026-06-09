@@ -43,6 +43,14 @@ describe('AuthService', () => {
     service = new AuthService(keycloakClient, sessionStore, config);
   });
 
+  const makeJwt = (payload: Record<string, unknown>) => {
+    const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString(
+      'base64url',
+    );
+    const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    return `${header}.${body}.signature`;
+  };
+
   it('builds the login redirect URL', async () => {
     sessionStore.createLoginState.mockResolvedValue('state-1');
     keycloakClient.buildAuthorizationUrl.mockResolvedValue(
@@ -59,17 +67,16 @@ describe('AuthService', () => {
   it('creates a session after the callback', async () => {
     sessionStore.consumeLoginState.mockResolvedValue(true);
     keycloakClient.exchangeCode.mockResolvedValue({
-      access_token: 'header.payload.sig',
+      access_token: 'access.header.sig',
       expires_in: 3600,
-      id_token: 'id-token',
+      id_token: makeJwt({
+        sub: '123',
+        name: 'Ada Lovelace',
+        email: 'ada@umss.edu.bo',
+        preferred_username: 'ada',
+      }),
       refresh_token: 'refresh-token',
       token_type: 'Bearer',
-    });
-    keycloakClient.fetchUserInfo.mockResolvedValue({
-      sub: '123',
-      name: 'Ada Lovelace',
-      email: 'ada@umss.edu.bo',
-      preferred_username: 'ada',
     });
     sessionStore.createSession.mockResolvedValue({
       sessionId: 'session-1',
@@ -80,9 +87,14 @@ describe('AuthService', () => {
         preferred_username: 'ada',
         roles: [],
       },
-      accessToken: 'header.payload.sig',
+      accessToken: 'access.header.sig',
       refreshToken: 'refresh-token',
-      idToken: 'id-token',
+      idToken: makeJwt({
+        sub: '123',
+        name: 'Ada Lovelace',
+        email: 'ada@umss.edu.bo',
+        preferred_username: 'ada',
+      }),
       createdAt: Date.now(),
       expiresAt: Date.now() + 3600000,
     });
@@ -102,6 +114,7 @@ describe('AuthService', () => {
     expect(result.redirectUrl).toBe('http://localhost:8000');
     expect(result.cookie.value).toBe('session-1.signature');
     expect(result.user.name).toBe('Ada Lovelace');
+    expect(keycloakClient.fetchUserInfo).not.toHaveBeenCalled();
   });
 
   it('rejects callback with invalid state', async () => {

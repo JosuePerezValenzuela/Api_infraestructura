@@ -62,10 +62,7 @@ export class AuthService {
     }
 
     const tokenResponse = await this.keycloakClient.exchangeCode(code);
-    const userInfo = await this.keycloakClient.fetchUserInfo(
-      tokenResponse.access_token,
-    );
-    const user = this.mapUser(userInfo, tokenResponse.access_token);
+    const user = this.mapUserFromIdToken(tokenResponse.id_token);
 
     const sessionRecord: AuthSessionRecord = {
       user,
@@ -157,46 +154,22 @@ export class AuthService {
     return value;
   }
 
-  private mapUser(
-    userInfo: Record<string, unknown>,
-    accessToken: string,
-  ): AuthUser {
-    const payload = this.decodeJwtPayload(accessToken);
-    const clientId = this.config.get<string>('KEYCLOAK_CLIENT_ID') ?? '';
+  private mapUserFromIdToken(idToken: string | undefined): AuthUser {
+    if (!idToken) {
+      throw new Error('Keycloak did not return an id_token');
+    }
 
-    const realmRoles = this.extractStringArray(
-      (payload.realm_access as { roles?: unknown } | undefined)?.roles,
-    );
-    const clientRoles = this.extractStringArray(
-      (
-        payload.resource_access as
-          | Record<string, { roles?: unknown }>
-          | undefined
-      )?.[clientId]?.roles,
-    );
-
-    const roles = [...new Set([...realmRoles, ...clientRoles])];
+    const payload = this.decodeJwtPayload(idToken);
 
     return {
-      sub: String(userInfo.sub ?? payload.sub ?? ''),
-      name: String(
-        userInfo.name ??
-          payload.name ??
-          userInfo.preferred_username ??
-          'Usuario',
-      ),
-      email: this.optionalString(userInfo.email ?? payload.email),
-      preferred_username: this.optionalString(
-        userInfo.preferred_username ?? payload.preferred_username,
-      ),
-      given_name: this.optionalString(
-        userInfo.given_name ?? payload.given_name,
-      ),
-      family_name: this.optionalString(
-        userInfo.family_name ?? payload.family_name,
-      ),
-      picture: this.optionalString(userInfo.picture ?? payload.picture),
-      roles,
+      sub: String(payload.sub ?? ''),
+      name: String(payload.name ?? payload.preferred_username ?? 'Usuario'),
+      email: this.optionalString(payload.email),
+      preferred_username: this.optionalString(payload.preferred_username),
+      given_name: this.optionalString(payload.given_name),
+      family_name: this.optionalString(payload.family_name),
+      picture: this.optionalString(payload.picture),
+      roles: [],
     };
   }
 
@@ -212,14 +185,6 @@ export class AuthService {
     } catch {
       return {};
     }
-  }
-
-  private extractStringArray(value: unknown): string[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.filter((item): item is string => typeof item === 'string');
   }
 
   private optionalString(value: unknown): string | undefined {
