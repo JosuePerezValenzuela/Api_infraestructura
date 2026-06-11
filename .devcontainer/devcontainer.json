@@ -26,9 +26,5 @@
       }
     }
   },
-  "forwardPorts": [
-    3002,
-    9229
-  ],
   "postCreateCommand": "bash -c 'pnpm install'"
 }

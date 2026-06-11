@@ -45,7 +45,7 @@ services:
     user: node
     tty: true
     ports:
-      - '${PORT:-3002}:${PORT:-3002}'
+      - '${PORT:-3000}:${PORT:-3000}'
     env_file:
       - ../.env
     environment:

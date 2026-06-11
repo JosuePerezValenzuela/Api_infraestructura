@@ -134,7 +134,9 @@ export class AuthService {
       };
     } catch {
       await this.sessionStore.deleteSessionById(session.sessionId);
-      throw new UnauthorizedException('La sesión expiró y requiere iniciar sesión otra vez');
+      throw new UnauthorizedException(
+        'La sesión expiró y requiere iniciar sesión otra vez',
+      );
     }
   }
 
